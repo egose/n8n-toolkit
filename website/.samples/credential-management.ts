@@ -25,7 +25,7 @@ const dbCred = await client.credential().create({
     port: 5432,
     database: 'mydb',
     user: 'admin',
-    password: 'secret',
+    password: 'secret', // pragma: allowlist secret
   },
   projectId: 'proj-123',
 });

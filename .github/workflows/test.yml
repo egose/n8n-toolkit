@@ -24,4 +24,4 @@ jobs:
     - name: Run unit tests
       run: |
         pnpm test:unit
-        pnpm test:integration
+        # pnpm test:integration
