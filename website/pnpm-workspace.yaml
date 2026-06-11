@@ -1,0 +1,8 @@
+allowBuilds:
+  '@swc/core': false
+  core-js: false
+  fast-folder-size: false
+  gifsicle: false
+  highlight.js: false
+  jpegtran-bin: false
+  optipng-bin: false
