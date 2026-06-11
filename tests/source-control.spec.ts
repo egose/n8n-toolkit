@@ -4,7 +4,18 @@ import { createMockHttpClient } from './test-utils';
 
 describe('Implementation Consistency: SourceControl', () => {
   test('pull calls POST /source-control/pull', async () => {
-    const files = [{ file: 'workflow.json', id: 'wf-1', name: 'My Workflow', type: 'workflow', status: 'new', location: 'remote', conflict: false, updatedAt: '' }];
+    const files = [
+      {
+        file: 'workflow.json',
+        id: 'wf-1',
+        name: 'My Workflow',
+        type: 'workflow',
+        status: 'new',
+        location: 'remote',
+        conflict: false,
+        updatedAt: '',
+      },
+    ];
     const http = createMockHttpClient([{ body: files }]);
     const handle = new SourceControlHandle(http);
 

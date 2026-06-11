@@ -32,17 +32,19 @@ describe('Public API contracts', () => {
 
     expectTypeOf(handle.insertRows('dt-1', { data: [], returnType: 'id' })).toEqualTypeOf<Promise<number[]>>();
     expectTypeOf(handle.insertRows('dt-1', { data: [], returnType: 'all' })).toEqualTypeOf<Promise<DataTableRow[]>>();
-    expectTypeOf(
-      handle.updateRows('dt-1', { filter: { filters: [] }, data: {}, returnData: true }),
-    ).toEqualTypeOf<Promise<DataTableRow[]>>();
-    expectTypeOf(
-      handle.upsertRow('dt-1', { filter: { filters: [] }, data: {}, returnData: true }),
-    ).toEqualTypeOf<Promise<DataTableRow>>();
-    expectTypeOf(handle.deleteRows('dt-1', { filter: '{}', returnData: true })).toEqualTypeOf<Promise<DataTableRow[]>>();
+    expectTypeOf(handle.updateRows('dt-1', { filter: { filters: [] }, data: {}, returnData: true })).toEqualTypeOf<
+      Promise<DataTableRow[]>
+    >();
+    expectTypeOf(handle.upsertRow('dt-1', { filter: { filters: [] }, data: {}, returnData: true })).toEqualTypeOf<
+      Promise<DataTableRow>
+    >();
+    expectTypeOf(handle.deleteRows('dt-1', { filter: '{}', returnData: true })).toEqualTypeOf<
+      Promise<DataTableRow[]>
+    >();
   });
 
   test('N8nClient exposes low-level request helpers', () => {
-    const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' });
+    const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
 
     expectTypeOf(client.get).toBeFunction();
     expectTypeOf(client.post).toBeFunction();

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const OPENAPI_PATH = join(REPO_ROOT, '.public-api/v1/openapi.yml');
 const HANDLES_DIR = join(REPO_ROOT, 'src/handles');
-const PATH_REF_PREFIX = "  /";
+const PATH_REF_PREFIX = '  /';
 const METHOD_KEYS = new Set(['get', 'post', 'put', 'patch', 'delete']);
 
 function normalizePath(path: string): string {

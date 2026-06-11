@@ -52,20 +52,33 @@ describe('Implementation Consistency: Regressions', () => {
   });
 
   test('credential create passes nested data correctly', async () => {
-    const http = createMockHttpClient([{ body: { id: 'c-1', name: 'AWS', type: 'aws', isManaged: false, isGlobal: true, isResolvable: true, createdAt: '', updatedAt: '' } }]);
+    const http = createMockHttpClient([
+      {
+        body: {
+          id: 'c-1',
+          name: 'AWS',
+          type: 'aws',
+          isManaged: false,
+          isGlobal: true,
+          isResolvable: true,
+          createdAt: '',
+          updatedAt: '',
+        },
+      },
+    ]);
     const handle = new CredentialHandle(http);
 
     await handle.create({
       name: 'AWS Credentials',
       type: 'aws',
-      data: { accessKey: 'AKIA123', secretKey: 'secret456' },
+      data: { accessKey: 'AKIA123', secretKey: 'secret456' }, // pragma: allowlist secret
       projectId: 'proj-1',
     });
 
     expect(http.post).toHaveBeenCalledWith('/credentials', {
       name: 'AWS Credentials',
       type: 'aws',
-      data: { accessKey: 'AKIA123', secretKey: 'secret456' },
+      data: { accessKey: 'AKIA123', secretKey: 'secret456' }, // pragma: allowlist secret
       projectId: 'proj-1',
     });
   });

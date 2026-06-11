@@ -62,9 +62,7 @@ const prod = projects.find((p) => p.name === 'Production');
 
 if (prod) {
   // Add a member
-  await client.project().addMembers(prod.id, [
-    { userId: 'user-id-1', role: 'project:admin' },
-  ]);
+  await client.project().addMembers(prod.id, [{ userId: 'user-id-1', role: 'project:admin' }]);
 
   // Move workflow to project
   await client.workflow().transfer(workflow.id, prod.id);

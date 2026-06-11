@@ -14,7 +14,15 @@ describe('Implementation Consistency: CommunityPackage', () => {
   });
 
   test('install calls POST /community-packages', async () => {
-    const installed = { packageName: 'n8n-nodes-foo', installedVersion: '1.0.0', authorName: '', authorEmail: '', installedNodes: [], createdAt: '', updatedAt: '' };
+    const installed = {
+      packageName: 'n8n-nodes-foo',
+      installedVersion: '1.0.0',
+      authorName: '',
+      authorEmail: '',
+      installedNodes: [],
+      createdAt: '',
+      updatedAt: '',
+    };
     const http = createMockHttpClient([{ body: installed }]);
     const handle = new CommunityPackageHandle(http);
 
@@ -25,7 +33,15 @@ describe('Implementation Consistency: CommunityPackage', () => {
   });
 
   test('update calls PATCH /community-packages/:name', async () => {
-    const updated = { packageName: 'n8n-nodes-foo', installedVersion: '2.0.0', authorName: '', authorEmail: '', installedNodes: [], createdAt: '', updatedAt: '' };
+    const updated = {
+      packageName: 'n8n-nodes-foo',
+      installedVersion: '2.0.0',
+      authorName: '',
+      authorEmail: '',
+      installedNodes: [],
+      createdAt: '',
+      updatedAt: '',
+    };
     const http = createMockHttpClient([{ body: updated }]);
     const handle = new CommunityPackageHandle(http);
 

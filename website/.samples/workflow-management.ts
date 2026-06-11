@@ -83,10 +83,7 @@ console.log(`Version: ${version.versionId}, Authors: ${version.authors}`);
 const prodTag = await client.tag().create({ name: 'production' });
 const dataTag = await client.tag().create({ name: 'data-pipeline' });
 
-await client.workflow().updateTags(workflow.id, [
-  { id: prodTag.id },
-  { id: dataTag.id },
-]);
+await client.workflow().updateTags(workflow.id, [{ id: prodTag.id }, { id: dataTag.id }]);
 
 const tags = await client.workflow().getTags(workflow.id);
 console.log(`Tags: ${tags.map((t) => t.name).join(', ')}`);

@@ -8,11 +8,7 @@ export default class InsightsHandle {
     this.http = http;
   }
 
-  async getSummary(params?: {
-    startDate?: string;
-    endDate?: string;
-    projectId?: string;
-  }): Promise<InsightsSummary> {
+  async getSummary(params?: { startDate?: string; endDate?: string; projectId?: string }): Promise<InsightsSummary> {
     return this.http.get<InsightsSummary>('/insights/summary', params);
   }
 }

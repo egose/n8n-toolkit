@@ -143,7 +143,17 @@ export interface WorkflowListResponse {
 // ─── Execution ───────────────────────────────────────────────────────────────
 
 export type ExecutionStatus = 'canceled' | 'crashed' | 'error' | 'new' | 'running' | 'success' | 'unknown' | 'waiting';
-export type ExecutionMode = 'cli' | 'error' | 'integrated' | 'internal' | 'manual' | 'retry' | 'trigger' | 'webhook' | 'evaluation' | 'chat';
+export type ExecutionMode =
+  | 'cli'
+  | 'error'
+  | 'integrated'
+  | 'internal'
+  | 'manual'
+  | 'retry'
+  | 'trigger'
+  | 'webhook'
+  | 'evaluation'
+  | 'chat';
 
 export interface Execution {
   id: number;

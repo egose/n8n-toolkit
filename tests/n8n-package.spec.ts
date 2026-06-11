@@ -10,12 +10,9 @@ describe('Implementation Consistency: N8nPackage', () => {
 
     const result = await handle.exportWorkflows({ workflowIds: ['wf-1', 'wf-2'] });
 
-    expect(http.post).toHaveBeenCalledWith(
-      '/n8n-packages/export',
-      { workflowIds: ['wf-1', 'wf-2'] },
-      undefined,
-      { Accept: 'application/gzip' },
-    );
+    expect(http.post).toHaveBeenCalledWith('/n8n-packages/export', { workflowIds: ['wf-1', 'wf-2'] }, undefined, {
+      Accept: 'application/gzip',
+    });
     expect(result).toBe(buffer);
   });
 

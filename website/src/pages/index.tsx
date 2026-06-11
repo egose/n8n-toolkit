@@ -95,8 +95,8 @@ function Hero(): ReactNode {
               The n8n API, typed and ready to automate.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 !text-slate-100 drop-shadow-[0_1px_10px_rgba(2,6,23,0.7)]">
-              A single import gives you typed handles for every n8n API resource — workflows, executions,
-              credentials, projects, and more. Built on native fetch with automatic retry. No dependencies.
+              A single import gives you typed handles for every n8n API resource — workflows, executions, credentials,
+              projects, and more. Built on native fetch with automatic retry. No dependencies.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
@@ -215,8 +215,8 @@ function Coverage({ isDarkTheme }: { isDarkTheme: boolean }): ReactNode {
               Every n8n API v1 resource, typed.
             </h2>
             <p className={`mt-4 max-w-xl text-base leading-7 ${isDarkTheme ? 'text-slate-300' : 'text-slate-600'}`}>
-              Workflows, executions, credentials, tags, variables, projects, folders, users, data tables,
-              audit, insights, source control, community packages, discovery, and n8n packages — all covered.
+              Workflows, executions, credentials, tags, variables, projects, folders, users, data tables, audit,
+              insights, source control, community packages, discovery, and n8n packages — all covered.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -331,8 +331,8 @@ function ClosingCta(): ReactNode {
               Start building with the n8n API today.
             </h2>
             <p className="mt-4 text-base leading-7 text-slate-300">
-              Install the package, authenticate, and call any n8n endpoint with full type safety.
-              Drop down to the HTTP client when you need to — the typed surface stays out of your way.
+              Install the package, authenticate, and call any n8n endpoint with full type safety. Drop down to the HTTP
+              client when you need to — the typed surface stays out of your way.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

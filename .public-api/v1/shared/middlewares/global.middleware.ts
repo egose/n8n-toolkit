@@ -1,4 +1,3 @@
- 
 import type { BooleanLicenseFeature } from '@n8n/constants';
 import type { AuthenticatedRequest } from '@n8n/db';
 import { Container } from '@n8n/di';
@@ -19,141 +18,137 @@ const UNLIMITED_USERS_QUOTA = -1;
 export type ProjectScopeResource = 'workflow' | 'credential' | 'dataTable';
 
 const buildScopeMiddleware = (
-	scopes: Scope[],
-	resource?: ProjectScopeResource,
-	{ globalOnly } = { globalOnly: false },
+  scopes: Scope[],
+  resource?: ProjectScopeResource,
+  { globalOnly } = { globalOnly: false },
 ) => {
-	return async (
-		req: AuthenticatedRequest<{ id?: string; dataTableId?: string }>,
-		res: express.Response,
-		next: express.NextFunction,
-	): Promise<express.Response | void> => {
-		const params: { credentialId?: string; workflowId?: string; dataTableId?: string } = {};
-		if (req.params.id) {
-			if (resource === 'workflow') {
-				params.workflowId = req.params.id;
-			} else if (resource === 'credential') {
-				params.credentialId = req.params.id;
-			}
-		} else if (req.params.dataTableId && resource === 'dataTable') {
-			params.dataTableId = req.params.dataTableId;
-		}
+  return async (
+    req: AuthenticatedRequest<{ id?: string; dataTableId?: string }>,
+    res: express.Response,
+    next: express.NextFunction,
+  ): Promise<express.Response | void> => {
+    const params: { credentialId?: string; workflowId?: string; dataTableId?: string } = {};
+    if (req.params.id) {
+      if (resource === 'workflow') {
+        params.workflowId = req.params.id;
+      } else if (resource === 'credential') {
+        params.credentialId = req.params.id;
+      }
+    } else if (req.params.dataTableId && resource === 'dataTable') {
+      params.dataTableId = req.params.dataTableId;
+    }
 
-		try {
-			if (!(await userHasScopes(req.user, scopes, globalOnly, params))) {
-				return res.status(403).json({ message: 'Forbidden' });
-			}
-		} catch (error) {
-			if (error instanceof NotFoundError) {
-				return res.status(404).json({ message: error.message });
-			}
-			throw error;
-		}
+    try {
+      if (!(await userHasScopes(req.user, scopes, globalOnly, params))) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        return res.status(404).json({ message: error.message });
+      }
+      throw error;
+    }
 
-		return next();
-	};
+    return next();
+  };
 };
 
 export const globalScope = (scopes: Scope | Scope[]) =>
-	buildScopeMiddleware(Array.isArray(scopes) ? scopes : [scopes], undefined, { globalOnly: true });
+  buildScopeMiddleware(Array.isArray(scopes) ? scopes : [scopes], undefined, { globalOnly: true });
 
 export const projectScope = (scopes: Scope | Scope[], resource: ProjectScopeResource) =>
-	buildScopeMiddleware(Array.isArray(scopes) ? scopes : [scopes], resource, { globalOnly: false });
+  buildScopeMiddleware(Array.isArray(scopes) ? scopes : [scopes], resource, { globalOnly: false });
 
 export const validCursor = (
-	req: Request,
-	res: express.Response,
-	next: express.NextFunction,
+  req: Request,
+  res: express.Response,
+  next: express.NextFunction,
 ): express.Response | void => {
-	const paginatedReq = req as unknown as PaginatedRequest;
+  const paginatedReq = req as unknown as PaginatedRequest;
 
-	if (paginatedReq.query.cursor) {
-		const { cursor } = paginatedReq.query;
-		try {
-			const paginationData = decodeCursor(cursor);
-			if ('offset' in paginationData) {
-				paginatedReq.query.offset = paginationData.offset;
-				paginatedReq.query.limit = paginationData.limit;
-			} else {
-				paginatedReq.query.lastId = paginationData.lastId;
-				paginatedReq.query.limit = paginationData.limit;
-			}
-		} catch (error) {
-			return res.status(400).json({
-				message: 'An invalid cursor was provided',
-			});
-		}
-	}
+  if (paginatedReq.query.cursor) {
+    const { cursor } = paginatedReq.query;
+    try {
+      const paginationData = decodeCursor(cursor);
+      if ('offset' in paginationData) {
+        paginatedReq.query.offset = paginationData.offset;
+        paginatedReq.query.limit = paginationData.limit;
+      } else {
+        paginatedReq.query.lastId = paginationData.lastId;
+        paginatedReq.query.limit = paginationData.limit;
+      }
+    } catch (error) {
+      return res.status(400).json({
+        message: 'An invalid cursor was provided',
+      });
+    }
+  }
 
-	return next();
+  return next();
 };
 
 export type ScopeTaggedMiddleware = Middleware & {
-	__apiKeyScope: ApiKeyScope;
+  __apiKeyScope: ApiKeyScope;
 };
 
 export type Middleware = (req: Request, res: Response, next: NextFunction) => unknown;
 
 function tagMiddleware(middleware: Middleware, apiKeyScope: ApiKeyScope): ScopeTaggedMiddleware {
-	const tagged: ScopeTaggedMiddleware = Object.assign(
-		(req: Request, res: Response, next: NextFunction) => middleware(req, res, next),
-		{ __apiKeyScope: apiKeyScope },
-	);
-	return tagged;
+  const tagged: ScopeTaggedMiddleware = Object.assign(
+    (req: Request, res: Response, next: NextFunction) => middleware(req, res, next),
+    { __apiKeyScope: apiKeyScope },
+  );
+  return tagged;
 }
 
 function makePublicApiScopeEnforcementMiddleware(endpointScope: ApiKeyScope) {
-	return async (
-		req: AuthenticatedRequest,
-		res: express.Response,
-		next: express.NextFunction,
-	): Promise<void> => {
-		const { tokenGrant } = req;
+  return async (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction): Promise<void> => {
+    const { tokenGrant } = req;
 
-		if (!tokenGrant) {
-			res.status(403).json({ message: 'Forbidden' });
-			return;
-		}
+    if (!tokenGrant) {
+      res.status(403).json({ message: 'Forbidden' });
+      return;
+    }
 
-		if (!tokenGrant.apiKeyScopes?.includes(endpointScope)) {
-			res.status(403).json({ message: 'Forbidden' });
-			return;
-		}
+    if (!tokenGrant.apiKeyScopes?.includes(endpointScope)) {
+      res.status(403).json({ message: 'Forbidden' });
+      return;
+    }
 
-		next();
-		return;
-	};
+    next();
+    return;
+  };
 }
 
 export const publicApiScope = (apiKeyScope: ApiKeyScope) =>
-	tagMiddleware(makePublicApiScopeEnforcementMiddleware(apiKeyScope), apiKeyScope);
+  tagMiddleware(makePublicApiScopeEnforcementMiddleware(apiKeyScope), apiKeyScope);
 
 export const apiKeyHasScopeWithGlobalScopeFallback = (
-	config: { scope: ApiKeyScope & Scope } | { apiKeyScope: ApiKeyScope; globalScope: Scope },
+  config: { scope: ApiKeyScope & Scope } | { apiKeyScope: ApiKeyScope; globalScope: Scope },
 ) => {
-	const scope = 'scope' in config ? config.scope : config.apiKeyScope;
-	return tagMiddleware(makePublicApiScopeEnforcementMiddleware(scope), scope);
+  const scope = 'scope' in config ? config.scope : config.apiKeyScope;
+  return tagMiddleware(makePublicApiScopeEnforcementMiddleware(scope), scope);
 };
 
 export const validLicenseWithUserQuota = (
-	_: express.Request,
-	res: express.Response,
-	next: express.NextFunction,
+  _: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
 ): express.Response | void => {
-	const license = Container.get(License);
-	if (license.getUsersLimit() !== UNLIMITED_USERS_QUOTA) {
-		return res.status(403).json({
-			message: '/users path can only be used with a valid license. See https://n8n.io/pricing/',
-		});
-	}
+  const license = Container.get(License);
+  if (license.getUsersLimit() !== UNLIMITED_USERS_QUOTA) {
+    return res.status(403).json({
+      message: '/users path can only be used with a valid license. See https://n8n.io/pricing/',
+    });
+  }
 
-	return next();
+  return next();
 };
 
 export const isLicensed = (feature: BooleanLicenseFeature) => {
-	return async (_: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
-		if (Container.get(License).isLicensed(feature)) return next();
+  return async (_: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+    if (Container.get(License).isLicensed(feature)) return next();
 
-		return res.status(403).json({ message: new FeatureNotLicensedError(feature).message });
-	};
+    return res.status(403).json({ message: new FeatureNotLicensedError(feature).message });
+  };
 };

@@ -28,7 +28,7 @@
 `@egose/n8n-client` provides a TypeScript client for the [n8n Public API](https://docs.n8n.io/api/). Instead of manually constructing HTTP requests and parsing responses, you work through resource handles:
 
 ```ts
-const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'your-api-key' });
+const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'your-api-key' }); // pragma: allowlist secret
 
 const workflows = await client.workflow().list({ limit: 10 });
 const workflow = await client.workflow().get('wf-1');
@@ -60,7 +60,7 @@ import N8nClient from '@egose/n8n-client';
 
 const client = new N8nClient({
   baseUrl: 'http://localhost:5678',
-  apiKey: 'your-api-key', // or use bearerToken: 'your-jwt'
+  apiKey: 'your-api-key', // or use bearerToken: 'your-jwt' // pragma: allowlist secret
 });
 
 // List workflows
@@ -95,9 +95,7 @@ await client.workflow().updateTags(workflow.id, [{ id: tag.id }]);
 
 // Manage projects
 const projects = await client.project().list();
-await client.project().addMembers(projects.data[0].id, [
-  { userId: 'user-1', role: 'project:editor' },
-]);
+await client.project().addMembers(projects.data[0].id, [{ userId: 'user-1', role: 'project:editor' }]);
 
 // Insights
 const summary = await client.insights().getSummary({
@@ -115,7 +113,7 @@ The n8n API supports two authentication methods:
 ```ts
 const client = new N8nClient({
   baseUrl: 'http://localhost:5678',
-  apiKey: 'your-n8n-api-key',
+  apiKey: 'your-n8n-api-key', // pragma: allowlist secret
 });
 ```
 
@@ -261,7 +259,10 @@ const { data } = await dataTableApi.list({ limit: 10 });
 const table = await dataTableApi.get('dt-1');
 const created = await dataTableApi.create({
   name: 'Users',
-  columns: [{ name: 'email', type: 'string' }, { name: 'age', type: 'number' }],
+  columns: [
+    { name: 'email', type: 'string' },
+    { name: 'age', type: 'number' },
+  ],
 });
 await dataTableApi.update('dt-1', { name: 'Users Updated' });
 await dataTableApi.delete('dt-1');
@@ -342,9 +343,9 @@ try {
   await client.workflow().get('nonexistent');
 } catch (error) {
   if (error instanceof HttpError) {
-    console.log(error.status);  // 404
+    console.log(error.status); // 404
     console.log(error.message); // "Not Found"
-    console.log(error.data);    // response body
+    console.log(error.data); // response body
   }
 }
 ```
@@ -355,23 +356,23 @@ Transient errors (408, 429, 5xx) are automatically retried up to 3 times with ex
 
 ### N8nClient
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `workflow()` | `WorkflowHandle` | Workflow CRUD + activate/deactivate/archive/tags |
-| `execution()` | `ExecutionHandle` | Execution list/get/delete/retry/stop/tags |
-| `credential()` | `CredentialHandle` | Credential CRUD + test/transfer/schema |
-| `tag()` | `TagHandle` | Tag CRUD |
-| `user()` | `UserHandle` | User list/get/create/delete/changeRole |
-| `variable()` | `VariableHandle` | Variable CRUD |
-| `project()` | `ProjectHandle` | Project CRUD + member management |
-| `dataTable()` | `DataTableHandle` | DataTable CRUD + rows/columns |
-| `folder(projectId)` | `FolderHandle` | Folder CRUD scoped to project |
-| `communityPackage()` | `CommunityPackageHandle` | Package install/update/uninstall |
-| `audit()` | `AuditHandle` | Generate security audit |
-| `insights()` | `InsightsHandle` | Execution insights summary |
-| `sourceControl()` | `SourceControlHandle` | Git-based source control pull |
-| `discover()` | `DiscoverHandle` | API capability discovery |
-| `n8nPackage()` | `N8nPackageHandle` | Package export/import (beta) |
+| Method               | Returns                  | Description                                      |
+| -------------------- | ------------------------ | ------------------------------------------------ |
+| `workflow()`         | `WorkflowHandle`         | Workflow CRUD + activate/deactivate/archive/tags |
+| `execution()`        | `ExecutionHandle`        | Execution list/get/delete/retry/stop/tags        |
+| `credential()`       | `CredentialHandle`       | Credential CRUD + test/transfer/schema           |
+| `tag()`              | `TagHandle`              | Tag CRUD                                         |
+| `user()`             | `UserHandle`             | User list/get/create/delete/changeRole           |
+| `variable()`         | `VariableHandle`         | Variable CRUD                                    |
+| `project()`          | `ProjectHandle`          | Project CRUD + member management                 |
+| `dataTable()`        | `DataTableHandle`        | DataTable CRUD + rows/columns                    |
+| `folder(projectId)`  | `FolderHandle`           | Folder CRUD scoped to project                    |
+| `communityPackage()` | `CommunityPackageHandle` | Package install/update/uninstall                 |
+| `audit()`            | `AuditHandle`            | Generate security audit                          |
+| `insights()`         | `InsightsHandle`         | Execution insights summary                       |
+| `sourceControl()`    | `SourceControlHandle`    | Git-based source control pull                    |
+| `discover()`         | `DiscoverHandle`         | API capability discovery                         |
+| `n8nPackage()`       | `N8nPackageHandle`       | Package export/import (beta)                     |
 
 ## Documentation
 

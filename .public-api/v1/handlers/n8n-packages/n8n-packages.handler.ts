@@ -17,74 +17,74 @@ import { isLicensed, publicApiScope } from '../../shared/middlewares/global.midd
 type ExportWorkflowsRequest = AuthenticatedRequest<{}, {}, { workflowIds: string[] }>;
 
 type ImportPackageRequest = PackageRequest.Import & {
-	files?: Express.Multer.File[];
+  files?: Express.Multer.File[];
 };
 
 type N8nPackagesHandlers = {
-	exportWorkflows: PublicAPIEndpoint<ExportWorkflowsRequest>;
-	importPackage: PublicAPIEndpoint<ImportPackageRequest>;
+  exportWorkflows: PublicAPIEndpoint<ExportWorkflowsRequest>;
+  importPackage: PublicAPIEndpoint<ImportPackageRequest>;
 };
 
 const n8nPackagesHandlers: N8nPackagesHandlers = {
-	exportWorkflows: [
-		isLicensed(LICENSE_FEATURES.N8N_PACKAGES),
-		publicApiScope('workflow:export'),
-		async (req, res) => {
-			if (!Container.get(GlobalConfig).publicApi.packagesEnabled) {
-				throw new NotFoundError('Not Found');
-			}
+  exportWorkflows: [
+    isLicensed(LICENSE_FEATURES.N8N_PACKAGES),
+    publicApiScope('workflow:export'),
+    async (req, res) => {
+      if (!Container.get(GlobalConfig).publicApi.packagesEnabled) {
+        throw new NotFoundError('Not Found');
+      }
 
-			const payload = ExportWorkflowsRequestDto.safeParse(req.body);
-			if (!payload.success) {
-				throw new BadRequestError(payload.error.errors.map(({ message }) => message).join('; '));
-			}
+      const payload = ExportWorkflowsRequestDto.safeParse(req.body);
+      if (!payload.success) {
+        throw new BadRequestError(payload.error.errors.map(({ message }) => message).join('; '));
+      }
 
-			const stream = await Container.get(N8nPackagesService).exportWorkflows({
-				user: req.user,
-				workflowIds: payload.data.workflowIds,
-			});
+      const stream = await Container.get(N8nPackagesService).exportWorkflows({
+        user: req.user,
+        workflowIds: payload.data.workflowIds,
+      });
 
-			res.setHeader('Content-Type', 'application/gzip');
-			res.setHeader('Content-Disposition', 'attachment; filename="export.n8np"');
+      res.setHeader('Content-Type', 'application/gzip');
+      res.setHeader('Content-Disposition', 'attachment; filename="export.n8np"');
 
-			return await new Promise<Response>((resolve, reject) => {
-				stream.on('error', reject);
-				res.on('finish', () => resolve(res));
-				res.on('close', () => {
-					if (!res.writableFinished) stream.destroy();
-					resolve(res);
-				});
-				stream.pipe(res);
-			});
-		},
-	],
-	importPackage: [
-		isLicensed(LICENSE_FEATURES.N8N_PACKAGES),
-		publicApiScope('workflow:import'),
-		async (req, res) => {
-			if (!Container.get(GlobalConfig).publicApi.packagesEnabled) {
-				throw new NotFoundError('Not Found');
-			}
+      return await new Promise<Response>((resolve, reject) => {
+        stream.on('error', reject);
+        res.on('finish', () => resolve(res));
+        res.on('close', () => {
+          if (!res.writableFinished) stream.destroy();
+          resolve(res);
+        });
+        stream.pipe(res);
+      });
+    },
+  ],
+  importPackage: [
+    isLicensed(LICENSE_FEATURES.N8N_PACKAGES),
+    publicApiScope('workflow:import'),
+    async (req, res) => {
+      if (!Container.get(GlobalConfig).publicApi.packagesEnabled) {
+        throw new NotFoundError('Not Found');
+      }
 
-			const packageFile = resolveImportPackageUpload(req);
+      const packageFile = resolveImportPackageUpload(req);
 
-			const payload = ImportPackageRequestDto.safeParse(req.body ?? {});
-			if (!payload.success) {
-				throw new BadRequestError(payload.error.errors.map(({ message }) => message).join('; '));
-			}
+      const payload = ImportPackageRequestDto.safeParse(req.body ?? {});
+      if (!payload.success) {
+        throw new BadRequestError(payload.error.errors.map(({ message }) => message).join('; '));
+      }
 
-			const result = await Container.get(N8nPackagesService).importPackage({
-				user: req.user,
-				projectId: payload.data.projectId,
-				folderId: payload.data.folderId,
-				credentialMatchingMode: payload.data.credentialMatchingMode,
-				credentialMissingMode: payload.data.credentialMissingMode,
-				workflowConflictPolicy: payload.data.workflowConflictPolicy,
-				packageBuffer: packageFile.buffer,
-			});
-			return res.status(200).json(result);
-		},
-	],
+      const result = await Container.get(N8nPackagesService).importPackage({
+        user: req.user,
+        projectId: payload.data.projectId,
+        folderId: payload.data.folderId,
+        credentialMatchingMode: payload.data.credentialMatchingMode,
+        credentialMissingMode: payload.data.credentialMissingMode,
+        workflowConflictPolicy: payload.data.workflowConflictPolicy,
+        packageBuffer: packageFile.buffer,
+      });
+      return res.status(200).json(result);
+    },
+  ],
 };
 
 export = n8nPackagesHandlers;

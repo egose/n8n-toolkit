@@ -17,13 +17,15 @@ export default class WorkflowHandle {
     this.http = http;
   }
 
-  async list(params?: PaginationParams & {
-    active?: boolean;
-    tags?: string;
-    name?: string;
-    projectId?: string;
-    excludePinnedData?: boolean;
-  }): Promise<WorkflowListResponse> {
+  async list(
+    params?: PaginationParams & {
+      active?: boolean;
+      tags?: string;
+      name?: string;
+      projectId?: string;
+      excludePinnedData?: boolean;
+    },
+  ): Promise<WorkflowListResponse> {
     return this.http.get<WorkflowListResponse>('/workflows', params);
   }
 

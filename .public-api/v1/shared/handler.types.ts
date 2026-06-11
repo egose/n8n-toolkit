@@ -7,10 +7,7 @@ import type { Middleware } from './middlewares/global.middleware';
  * Final handler in a public API route tuple. `TReq` must be an `AuthenticatedRequest`
  * instantiation (including aliases like `WorkflowRequest.Create`).
  */
-type PublicAPIEndpointHandler<TReq extends AuthenticatedRequest> = (
-	req: TReq,
-	res: Response,
-) => Promise<Response>;
+type PublicAPIEndpointHandler<TReq extends AuthenticatedRequest> = (req: TReq, res: Response) => Promise<Response>;
 
 /**
  * A public API route: any number of middlewares (see `Middleware` in `global.middleware.ts`),
@@ -18,6 +15,6 @@ type PublicAPIEndpointHandler<TReq extends AuthenticatedRequest> = (
  * type-check strictly.
  */
 export type PublicAPIEndpoint<TReq extends AuthenticatedRequest> = readonly [
-	...Middleware[],
-	PublicAPIEndpointHandler<TReq>,
+  ...Middleware[],
+  PublicAPIEndpointHandler<TReq>,
 ];

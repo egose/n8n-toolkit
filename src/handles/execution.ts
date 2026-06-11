@@ -17,13 +17,15 @@ export default class ExecutionHandle {
     this.http = http;
   }
 
-  async list(params?: PaginationParams & {
-    includeData?: boolean;
-    redactExecutionData?: boolean;
-    status?: ExecutionStatus;
-    workflowId?: string;
-    projectId?: string;
-  }): Promise<ExecutionListResponse> {
+  async list(
+    params?: PaginationParams & {
+      includeData?: boolean;
+      redactExecutionData?: boolean;
+      status?: ExecutionStatus;
+      workflowId?: string;
+      projectId?: string;
+    },
+  ): Promise<ExecutionListResponse> {
     return this.http.get<ExecutionListResponse>('/executions', params);
   }
 

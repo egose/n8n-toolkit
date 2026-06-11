@@ -1,5 +1,12 @@
 import type { HttpClient } from '../http-client.js';
-import type { Folder, FolderCreate, FolderDetail, FolderListResponse, FolderUpdate, PaginationParams } from '../types.js';
+import type {
+  Folder,
+  FolderCreate,
+  FolderDetail,
+  FolderListResponse,
+  FolderUpdate,
+  PaginationParams,
+} from '../types.js';
 
 export interface FolderListParams extends PaginationParams {
   filter?: string;

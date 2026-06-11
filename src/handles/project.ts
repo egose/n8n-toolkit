@@ -1,9 +1,5 @@
 import type { HttpClient } from '../http-client.js';
-import type {
-  ProjectListResponse,
-  ProjectMemberListResponse,
-  PaginationParams,
-} from '../types.js';
+import type { ProjectListResponse, ProjectMemberListResponse, PaginationParams } from '../types.js';
 
 export default class ProjectHandle {
   protected http: HttpClient;

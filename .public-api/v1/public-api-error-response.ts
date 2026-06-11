@@ -8,7 +8,7 @@ import { serializePublicApiError } from '@/errors/http-error-serializers';
  * Express error middleware in `index.ts`.
  */
 export function sendPublicApiErrorResponse(res: Response, error: Error): void {
-	const descriptor = classifyHttpError(error);
-	const { status, body } = serializePublicApiError(descriptor);
-	res.status(status).json(body);
+  const descriptor = classifyHttpError(error);
+  const { status, body } = serializePublicApiError(descriptor);
+  res.status(status).json(body);
 }

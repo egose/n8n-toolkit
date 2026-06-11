@@ -126,15 +126,30 @@ export class HttpClient {
     return this.request<T>({ method: 'GET', path, query, headers });
   }
 
-  async post<T>(path: string, body?: unknown, query?: { [key: string]: unknown }, headers?: Record<string, string>): Promise<T> {
+  async post<T>(
+    path: string,
+    body?: unknown,
+    query?: { [key: string]: unknown },
+    headers?: Record<string, string>,
+  ): Promise<T> {
     return this.request<T>({ method: 'POST', path, body, query, headers });
   }
 
-  async put<T>(path: string, body?: unknown, query?: { [key: string]: unknown }, headers?: Record<string, string>): Promise<T> {
+  async put<T>(
+    path: string,
+    body?: unknown,
+    query?: { [key: string]: unknown },
+    headers?: Record<string, string>,
+  ): Promise<T> {
     return this.request<T>({ method: 'PUT', path, body, query, headers });
   }
 
-  async patch<T>(path: string, body?: unknown, query?: { [key: string]: unknown }, headers?: Record<string, string>): Promise<T> {
+  async patch<T>(
+    path: string,
+    body?: unknown,
+    query?: { [key: string]: unknown },
+    headers?: Record<string, string>,
+  ): Promise<T> {
     return this.request<T>({ method: 'PATCH', path, body, query, headers });
   }
 

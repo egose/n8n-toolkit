@@ -21,9 +21,7 @@ function loadYaml(filePath: string): SchemaDoc {
 }
 
 function resolveRef(ref: string, fromFile: string): SchemaDoc {
-  const refPath = ref.startsWith('.')
-    ? join(dirname(fromFile), ref)
-    : join(SCHEMAS_BASE, ref);
+  const refPath = ref.startsWith('.') ? join(dirname(fromFile), ref) : join(SCHEMAS_BASE, ref);
   return loadYaml(refPath);
 }
 
@@ -42,7 +40,11 @@ function collectAllSchemas(): Array<{ name: string; filePath: string; schema: Sc
       const fullPath = join(dir, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
-      } else if (entry.name.endsWith('.yml') && !entry.name.endsWith('.parameters.yml') && !entry.name.includes('paths')) {
+      } else if (
+        entry.name.endsWith('.yml') &&
+        !entry.name.endsWith('.parameters.yml') &&
+        !entry.name.includes('paths')
+      ) {
         const schema = loadYaml(fullPath);
         if (schema && schema.type === 'object' && schema.properties) {
           schemas.push({
@@ -74,13 +76,20 @@ function getScalarType(yamlType: string | undefined, format?: string): string {
   if (format === 'date-time') return 'string';
   if (format === 'email') return 'string';
   switch (yamlType) {
-    case 'string': return 'string';
-    case 'number': return 'number';
-    case 'integer': return 'number';
-    case 'boolean': return 'boolean';
-    case 'array': return 'array';
-    case 'object': return 'object';
-    default: return 'unknown';
+    case 'string':
+      return 'string';
+    case 'number':
+      return 'number';
+    case 'integer':
+      return 'number';
+    case 'boolean':
+      return 'boolean';
+    case 'array':
+      return 'array';
+    case 'object':
+      return 'object';
+    default:
+      return 'unknown';
   }
 }
 
@@ -110,9 +119,24 @@ const EXPECTED_SCHEMAS: Array<{
     specPath: 'handlers/workflows/spec/schemas/workflow.yml',
     requiredProps: ['name', 'nodes', 'connections', 'settings'],
     allProps: [
-      'id', 'name', 'description', 'active', 'createdAt', 'updatedAt', 'isArchived',
-      'versionId', 'triggerCount', 'nodes', 'connections', 'settings', 'staticData',
-      'pinData', 'meta', 'tags', 'shared', 'activeVersion',
+      'id',
+      'name',
+      'description',
+      'active',
+      'createdAt',
+      'updatedAt',
+      'isArchived',
+      'versionId',
+      'triggerCount',
+      'nodes',
+      'connections',
+      'settings',
+      'staticData',
+      'pinData',
+      'meta',
+      'tags',
+      'shared',
+      'activeVersion',
     ],
   },
   {
@@ -120,10 +144,27 @@ const EXPECTED_SCHEMAS: Array<{
     specPath: 'handlers/workflows/spec/schemas/node.yml',
     requiredProps: [],
     allProps: [
-      'id', 'name', 'webhookId', 'disabled', 'notesInFlow', 'notes', 'type',
-      'typeVersion', 'executeOnce', 'alwaysOutputData', 'retryOnFail', 'maxTries',
-      'waitBetweenTries', 'continueOnFail', 'onError', 'position', 'parameters',
-      'credentials', 'customTelemetryTags', 'createdAt', 'updatedAt',
+      'id',
+      'name',
+      'webhookId',
+      'disabled',
+      'notesInFlow',
+      'notes',
+      'type',
+      'typeVersion',
+      'executeOnce',
+      'alwaysOutputData',
+      'retryOnFail',
+      'maxTries',
+      'waitBetweenTries',
+      'continueOnFail',
+      'onError',
+      'position',
+      'parameters',
+      'credentials',
+      'customTelemetryTags',
+      'createdAt',
+      'updatedAt',
     ],
   },
   {
@@ -131,10 +172,20 @@ const EXPECTED_SCHEMAS: Array<{
     specPath: 'handlers/workflows/spec/schemas/workflowSettings.yml',
     requiredProps: [],
     allProps: [
-      'saveExecutionProgress', 'saveManualExecutions', 'saveDataErrorExecution',
-      'saveDataSuccessExecution', 'executionTimeout', 'errorWorkflow', 'timezone',
-      'executionOrder', 'callerPolicy', 'callerIds', 'timeSavedPerExecution',
-      'redactionPolicy', 'availableInMCP', 'customTelemetryTags',
+      'saveExecutionProgress',
+      'saveManualExecutions',
+      'saveDataErrorExecution',
+      'saveDataSuccessExecution',
+      'executionTimeout',
+      'errorWorkflow',
+      'timezone',
+      'executionOrder',
+      'callerPolicy',
+      'callerIds',
+      'timeSavedPerExecution',
+      'redactionPolicy',
+      'availableInMCP',
+      'customTelemetryTags',
     ],
   },
   {
@@ -142,8 +193,18 @@ const EXPECTED_SCHEMAS: Array<{
     specPath: 'handlers/executions/spec/schemas/execution.yml',
     requiredProps: [],
     allProps: [
-      'id', 'data', 'finished', 'mode', 'retryOf', 'retrySuccessId',
-      'startedAt', 'stoppedAt', 'workflowId', 'waitTill', 'customData', 'status',
+      'id',
+      'data',
+      'finished',
+      'mode',
+      'retryOf',
+      'retrySuccessId',
+      'startedAt',
+      'stoppedAt',
+      'workflowId',
+      'waitTill',
+      'customData',
+      'status',
     ],
   },
   {
@@ -162,10 +223,7 @@ const EXPECTED_SCHEMAS: Array<{
     name: 'User',
     specPath: 'handlers/users/spec/schemas/user.yml',
     requiredProps: ['email'],
-    allProps: [
-      'id', 'email', 'firstName', 'lastName', 'isPending', 'createdAt',
-      'updatedAt', 'role', 'mfaEnabled',
-    ],
+    allProps: ['id', 'email', 'firstName', 'lastName', 'isPending', 'createdAt', 'updatedAt', 'role', 'mfaEnabled'],
   },
   {
     name: 'Variable',
@@ -183,9 +241,7 @@ const EXPECTED_SCHEMAS: Array<{
     name: 'ProjectMember',
     specPath: 'handlers/projects/spec/schemas/projectMember.yml',
     requiredProps: [],
-    allProps: [
-      'id', 'email', 'firstName', 'lastName', 'createdAt', 'updatedAt', 'role',
-    ],
+    allProps: ['id', 'email', 'firstName', 'lastName', 'createdAt', 'updatedAt', 'role'],
   },
   {
     name: 'DataTable',
@@ -216,16 +272,12 @@ describe('Spec schema shape validation', () => {
       const specRequired = getRequiredProperties(specSchema);
 
       test(`spec has the properties we expect`, () => {
-        const missing = expected.allProps.filter(
-          (p) => !specAllProps.some((sp) => sp === p),
-        );
+        const missing = expected.allProps.filter((p) => !specAllProps.some((sp) => sp === p));
         expect(missing).toEqual([]);
       });
 
       test(`our allProps list covers all spec properties`, () => {
-        const extra = specAllProps.filter(
-          (p) => !expected.allProps.includes(p),
-        );
+        const extra = specAllProps.filter((p) => !expected.allProps.includes(p));
         expect(extra).toEqual([]);
       });
 
@@ -273,8 +325,16 @@ describe('Spec property types vs TypeScript types', () => {
     const prop = schema.properties!.mode as SchemaDoc;
     expect(getScalarType(prop.type)).toBe('string');
     expect(prop.enum).toEqual([
-      'cli', 'error', 'integrated', 'internal', 'manual',
-      'retry', 'trigger', 'webhook', 'evaluation', 'chat',
+      'cli',
+      'error',
+      'integrated',
+      'internal',
+      'manual',
+      'retry',
+      'trigger',
+      'webhook',
+      'evaluation',
+      'chat',
     ]);
   });
 

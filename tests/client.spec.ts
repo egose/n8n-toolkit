@@ -4,7 +4,7 @@ import { HttpClient } from '../src/http-client';
 
 describe('N8nClient', () => {
   test('creates client with API key config', () => {
-    const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' });
+    const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
     expect(client.workflow()).toBeDefined();
   });
 
@@ -14,8 +14,8 @@ describe('N8nClient', () => {
   });
 
   test('rejects config with both auth methods', () => {
-    expect(() =>
-      new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key', bearerToken: 'test-token' } as never),
+    expect(
+      () => new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key', bearerToken: 'test-token' } as never), // pragma: allowlist secret
     ).toThrow('Provide either apiKey or bearerToken, not both');
   });
 
@@ -26,7 +26,7 @@ describe('N8nClient', () => {
   });
 
   test('resource handles are created from client', () => {
-    const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' });
+    const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
     expect(client.workflow()).toBeDefined();
     expect(client.execution()).toBeDefined();
     expect(client.credential()).toBeDefined();
@@ -46,7 +46,7 @@ describe('N8nClient', () => {
 
   test('exposes low-level request helpers without exposing the transport object', async () => {
     const requestSpy = vi.spyOn(HttpClient.prototype, 'get').mockResolvedValue({ data: [] });
-    const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' });
+    const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
 
     const result = await client.get<{ data: unknown[] }>('/workflows', { limit: 5 });
 
@@ -88,7 +88,7 @@ describe('HttpClient', () => {
 
     vi.stubGlobal('fetch', fetchMock);
 
-    const client = new HttpClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' });
+    const client = new HttpClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
     const result = await client.get<{ data: unknown[] }>('/workflows');
 
     expect(fetchMock).toHaveBeenCalledTimes(2);

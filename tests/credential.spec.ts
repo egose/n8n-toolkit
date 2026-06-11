@@ -14,7 +14,16 @@ describe('Implementation Consistency: Credential', () => {
   });
 
   test('get calls GET /credentials/:id', async () => {
-    const cred = { id: 'c-1', name: 'GitHub API', type: 'githubApi', isManaged: false, isGlobal: true, isResolvable: true, createdAt: '', updatedAt: '' };
+    const cred = {
+      id: 'c-1',
+      name: 'GitHub API',
+      type: 'githubApi',
+      isManaged: false,
+      isGlobal: true,
+      isResolvable: true,
+      createdAt: '',
+      updatedAt: '',
+    };
     const http = createMockHttpClient([{ body: cred }]);
     const handle = new CredentialHandle(http);
 
@@ -25,18 +34,40 @@ describe('Implementation Consistency: Credential', () => {
   });
 
   test('create calls POST /credentials', async () => {
-    const created = { id: 'c-2', name: 'Slack', type: 'slackApi', isManaged: false, isGlobal: true, isResolvable: true, createdAt: '', updatedAt: '' };
+    const created = {
+      id: 'c-2',
+      name: 'Slack',
+      type: 'slackApi',
+      isManaged: false,
+      isGlobal: true,
+      isResolvable: true,
+      createdAt: '',
+      updatedAt: '',
+    };
     const http = createMockHttpClient([{ body: created }]);
     const handle = new CredentialHandle(http);
 
     const result = await handle.create({ name: 'Slack', type: 'slackApi', data: { token: 'xoxb-123' } });
 
-    expect(http.post).toHaveBeenCalledWith('/credentials', { name: 'Slack', type: 'slackApi', data: { token: 'xoxb-123' } });
+    expect(http.post).toHaveBeenCalledWith('/credentials', {
+      name: 'Slack',
+      type: 'slackApi',
+      data: { token: 'xoxb-123' },
+    });
     expect(result).toEqual(created);
   });
 
   test('update calls PATCH /credentials/:id', async () => {
-    const updated = { id: 'c-1', name: 'GitHub Updated', type: 'githubApi', isManaged: false, isGlobal: true, isResolvable: true, createdAt: '', updatedAt: '' };
+    const updated = {
+      id: 'c-1',
+      name: 'GitHub Updated',
+      type: 'githubApi',
+      isManaged: false,
+      isGlobal: true,
+      isResolvable: true,
+      createdAt: '',
+      updatedAt: '',
+    };
     const http = createMockHttpClient([{ body: updated }]);
     const handle = new CredentialHandle(http);
 

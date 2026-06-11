@@ -32,9 +32,7 @@ export default class DataTableHandle {
     this.http = http;
   }
 
-  async list(
-    params?: PaginationParams & { filter?: string; sortBy?: string },
-  ): Promise<DataTableListResponse> {
+  async list(params?: PaginationParams & { filter?: string; sortBy?: string }): Promise<DataTableListResponse> {
     return this.http.get<DataTableListResponse>('/data-tables', params);
   }
 
@@ -64,7 +62,10 @@ export default class DataTableHandle {
   async insertRows(dataTableId: string, data: InsertRowsCountRequest): Promise<{ count: number }>;
   async insertRows(dataTableId: string, data: InsertRowsIdsRequest): Promise<number[]>;
   async insertRows(dataTableId: string, data: InsertRowsAllRequest): Promise<DataTableRow[]>;
-  async insertRows(dataTableId: string, data: InsertRowsRequest): Promise<{ count: number } | number[] | DataTableRow[]> {
+  async insertRows(
+    dataTableId: string,
+    data: InsertRowsRequest,
+  ): Promise<{ count: number } | number[] | DataTableRow[]> {
     return this.http.post<{ count: number } | number[] | DataTableRow[]>(`/data-tables/${dataTableId}/rows`, data);
   }
 
@@ -83,10 +84,7 @@ export default class DataTableHandle {
   async deleteRows(dataTableId: string, params: DeleteRowsBooleanParams): Promise<boolean>;
   async deleteRows(dataTableId: string, params: DeleteRowsDataParams): Promise<DataTableRow[]>;
   async deleteRows(dataTableId: string, params: DeleteRowsParams): Promise<boolean | DataTableRow[]> {
-    return this.http.delete<boolean | DataTableRow[]>(
-      `/data-tables/${dataTableId}/rows/delete`,
-      params,
-    );
+    return this.http.delete<boolean | DataTableRow[]>(`/data-tables/${dataTableId}/rows/delete`, params);
   }
 
   async listColumns(dataTableId: string): Promise<DataTableColumn[]> {
