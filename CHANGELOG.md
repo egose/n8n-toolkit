@@ -1,4 +1,6 @@
-## 0.1.0 (2026-06-11)
+## [0.1.1](https://github.com/egose/n8n-client/compare/v0.1.0...v0.1.1) (2026-06-11)
+
+## [0.1.0](https://github.com/egose/n8n-client/compare/af6753477e8559b1324897e2af7f99772846a4a2...v0.1.0) (2026-06-11)
 
 ### Features
 
