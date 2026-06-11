@@ -12,7 +12,6 @@ jobs:
       contents: read
 
     steps:
-    - uses: hmarr/debug-action@cd1afbd7852b7ad7b1b7a9a1b03efebd3b0a1820
     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
     - name: Setup Tools
