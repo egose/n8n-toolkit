@@ -1,0 +1,125 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sc-bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#020617" />
+      <stop offset="0.55" stop-color="#0F172A" />
+      <stop offset="1" stop-color="#172554" />
+    </linearGradient>
+    <radialGradient id="sc-glowA" cx="0.2" cy="0.15" r="0.6">
+      <stop stop-color="#2563EB" stop-opacity="0.28" />
+      <stop offset="1" stop-color="#2563EB" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="sc-glowB" cx="0.82" cy="0.12" r="0.5">
+      <stop stop-color="#FB923C" stop-opacity="0.24" />
+      <stop offset="1" stop-color="#FB923C" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="sc-ring" x1="40" y1="36" x2="214" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FB923C" />
+      <stop offset="0.5" stop-color="#F8FAFC" />
+      <stop offset="1" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="sc-orbit" x1="72" y1="64" x2="184" y2="188" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDBA74" />
+      <stop offset="0.4" stop-color="#60A5FA" />
+      <stop offset="1" stop-color="#38BDF8" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" rx="0" fill="url(#sc-bg)" />
+  <rect width="1200" height="630" fill="url(#sc-glowA)" />
+  <rect width="1200" height="630" fill="url(#sc-glowB)" />
+
+  <!-- Border frame -->
+  <rect x="40" y="32" width="1120" height="566" rx="28" fill="none"
+    stroke="rgba(148,163,184,0.15)" stroke-width="1" />
+
+  <!-- Logo mark -->
+  <g transform="translate(80 100)">
+    <circle cx="68" cy="62" r="56" fill="url(#sc-ring)" />
+    <circle cx="68" cy="62" r="49" fill="#081224" />
+    <ellipse cx="68" cy="62" rx="34" ry="25" transform="rotate(-12 68 62)"
+      fill="none" stroke="url(#sc-orbit)" stroke-width="4" stroke-linecap="round" opacity="0.9" />
+    <circle cx="38" cy="50" r="5.5" fill="#FB923C" stroke="#081224" stroke-width="2.5" />
+    <circle cx="100" cy="54" r="5.5" fill="#60A5FA" stroke="#081224" stroke-width="2.5" />
+    <circle cx="76" cy="94" r="5.5" fill="#38BDF8" stroke="#081224" stroke-width="2.5" />
+    <text x="68" y="78" text-anchor="middle"
+      font-family="Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+      font-size="48" font-weight="800" fill="#F8FAFC" letter-spacing="-0.04em">n</text>
+  </g>
+
+  <!-- Title -->
+  <text x="240" y="158" fill="#F8FAFC"
+    font-family="Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    font-size="64" font-weight="800" letter-spacing="-0.03em">
+    n8n Client
+  </text>
+
+  <!-- Subtitle -->
+  <text x="88" y="260" fill="#E2E8F0"
+    font-family="Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    font-size="28" font-weight="600">
+    Typed TypeScript client for the n8n Public API
+  </text>
+
+  <!-- Description lines -->
+  <text x="88" y="318" fill="#CBD5E1"
+    font-family="Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    font-size="22" font-weight="500">
+    Manage workflows, executions, credentials,
+  </text>
+  <text x="88" y="350" fill="#94A3B8"
+    font-family="Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    font-size="22" font-weight="500">
+    projects, users, and 15 more resources through a typed API.
+  </text>
+
+  <!-- Code snippet panel -->
+  <g transform="translate(840 140)">
+    <rect width="240" height="260" rx="16" fill="#020817" stroke="#1E293B" />
+    <rect width="240" height="36" rx="16" fill="#0B1220" />
+    <circle cx="24" cy="18" r="5" fill="#FB7185" />
+    <circle cx="40" cy="18" r="5" fill="#FBBF24" />
+    <circle cx="56" cy="18" r="5" fill="#34D399" />
+
+    <text x="16" y="64" fill="#CBD5E1"
+      font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">
+      import N8nClient from
+    </text>
+    <text x="16" y="82" fill="#FBBF24"
+      font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">
+      '@egose/n8n-client'
+    </text>
+    <text x="16" y="112" fill="#CBD5E1"
+      font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">
+      const client = new
+    </text>
+    <text x="16" y="130" fill="#93C5FD"
+      font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">
+      N8nClient({ ... })
+    </text>
+    <text x="16" y="160" fill="#CBD5E1"
+      font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">
+      await client
+    </text>
+    <text x="16" y="178" fill="#34D399"
+      font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">
+      .workflow().list()
+    </text>
+    <text x="16" y="208" fill="#CBD5E1"
+      font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">
+      await client
+    </text>
+    <text x="16" y="226" fill="#FCD34D"
+      font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">
+      .execution().get(id)
+    </text>
+  </g>
+
+  <!-- Bottom tagline -->
+  <text x="88" y="540" fill="#475569"
+    font-family="Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    font-size="16" font-weight="500">
+    @egose/n8n-client  ·  npmjs.com
+  </text>
+</svg>

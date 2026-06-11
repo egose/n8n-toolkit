@@ -1,0 +1,40 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FB923C" />
+      <stop offset="0.5" stop-color="#F8FAFC" />
+      <stop offset="1" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="orbit-stroke" x1="52" y1="90" x2="204" y2="190" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDBA74" />
+      <stop offset="0.5" stop-color="#60A5FA" />
+      <stop offset="1" stop-color="#38BDF8" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Outer gradient ring -->
+  <circle cx="128" cy="128" r="120" fill="url(#ring)" />
+  <!-- Dark inner disc -->
+  <circle cx="128" cy="128" r="106" fill="#081224" />
+
+  <!-- Elliptical orbit path -->
+  <ellipse cx="128" cy="128" rx="72" ry="52" transform="rotate(-12 128 128)"
+    fill="none" stroke="url(#orbit-stroke)" stroke-width="5" stroke-linecap="round"
+    opacity="0.85" />
+
+  <!-- Orbit node: top-left (orange) -->
+  <circle cx="64" cy="100" r="8" fill="#FB923C" stroke="#081224" stroke-width="3" />
+  <!-- Orbit node: right (blue) -->
+  <circle cx="198" cy="108" r="8" fill="#60A5FA" stroke="#081224" stroke-width="3" />
+  <!-- Orbit node: bottom (cyan) -->
+  <circle cx="140" cy="184" r="8" fill="#38BDF8" stroke="#081224" stroke-width="3" />
+
+  <!-- Central "n" mark -->
+  <text x="128" y="148" text-anchor="middle"
+    font-family="Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    font-size="96" font-weight="800" fill="#F8FAFC" letter-spacing="-0.04em">n</text>
+</svg>
