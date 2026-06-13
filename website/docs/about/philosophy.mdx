@@ -134,7 +134,7 @@ It's a developer experience layer on top of the n8n REST API — perfect for aut
       apiKey: process.env.N8N_API_KEY,
     });
 
-    const { data, nextCursor } = await client.workflow().list({
+    const { data, nextCursor } = await client.workflows().list({
       limit: 10,
       active: true,
     });

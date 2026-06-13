@@ -78,6 +78,116 @@ Use the low-level helpers when:
 - you want to attach custom headers for a one-off request
 - you are intentionally working at the HTTP layer
 
+## Plain Objects Vs Resources
+
+Collection client methods like `list()` and `get()` return plain API DTOs.
+
+When you want an instance with bound methods, use the opt-in resource methods:
+
+```ts
+const project = await client.projects().getResource('proj-1');
+await project.update({ name: 'Ops' });
+
+const workflow = await client.workflows().getResource('wf-1');
+await workflow.activate();
+
+const folders = await project.folders().listResources({ take: '10' });
+await folders.data[0]?.update({ name: 'Archived Workflows' });
+
+const renamedFolder = await project.folders().updateResource('folder-id', { name: 'Archived Workflows' });
+
+await project.variables().create({ key: 'API_URL', value: 'https://example.com' });
+
+const createdWorkflow = await project.workflows().create({
+  name: 'Sync',
+  nodes: [],
+  connections: {},
+  settings: {},
+});
+
+const createdFolder = await project.folders().create({ name: 'Operations' });
+
+const table = await project.dataTables().createResource({
+  name: 'Users',
+  columns: [{ name: 'email', type: 'string' }],
+});
+
+await table.createColumn({ name: 'active', type: 'boolean' });
+
+const recentRuns = await project.executions().listResources({ limit: 10, status: 'success' });
+await recentRuns.data[0]?.getTags();
+
+const workflowResource = await client.workflows().getResource('wf-1');
+const workflowRuns = await workflowResource.executions().listResources({ limit: 10 });
+```
+
+The current resource layer covers:
+
+- `CommunityPackageResource`
+- `ProjectResource`
+- `WorkflowResource`
+- `CredentialResource`
+- `DataTableResource`
+- `ExecutionResource`
+- `FolderResource`
+- `TagResource`
+- `UserResource`
+- `VariableResource`
+
+## Nested Collections
+
+Some bound resources expose nested collections for related resources:
+
+```ts
+const project = await client.projects().getResource('proj-1');
+
+const workflow = await project.workflows().get('wf-1');
+const workflowResource = await project.workflows().getResource('wf-1');
+
+const updatedFolder = await project.folders().update('folder-id', { name: 'Archive' });
+const updatedFolderResource = await project.folders().updateResource('folder-id', { name: 'Archive' });
+
+const run = await workflowResource.executions().get(123);
+const runResource = await workflowResource.executions().getResource(123);
+```
+
+Rule of thumb:
+
+- raw nested methods mirror the underlying client/API return type
+- `getResource()` / `createResource()` / `updateResource()` return bound resource instances
+- nested collections only expose the pairs the API can support honestly
+
+Some nested collections are true scoped relationships, while others are filtered or verified convenience relationships:
+
+- `project.folders()` is truly project-scoped by endpoint path
+- `project.workflows()`, `project.variables()`, and `project.executions()` use project filters and explicit membership checks where needed
+- `project.dataTables()` currently supports project-scoped creation plus guarded single-resource access
+
+When a create endpoint returns the created entity, the matching client also exposes `createResource()`:
+
+```ts
+const workflow = await client.workflows().createResource({
+  name: 'Sync',
+  nodes: [],
+  connections: {},
+  settings: {},
+});
+
+const folder = await client.folders('proj-1').createResource({
+  name: 'Operations',
+});
+```
+
+Rule of thumb:
+
+- `create()` mirrors the underlying API/client return type
+- `createResource()` returns a bound resource instance when the API returns the created entity
+- `updateResource()` follows the same rule for update endpoints that return the updated entity
+
+`projects().createResource()` is intentionally not available because the n8n public API returns no project ID or entity body from `POST /projects`.
+
+For community packages, the equivalent opt-in method is `installResource()` because the public API uses install/uninstall verbs.
+
 ## Low-Level Requests
 
 If you need an endpoint or option that is not covered by a resource client yet, `N8nClient` exposes thin request helpers without exposing the transport object itself:
