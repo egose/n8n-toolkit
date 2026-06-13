@@ -7,6 +7,8 @@ sidebar_position: 13
 
 `SourceControlHandle` manages git-based source control operations.
 
+This handle currently exposes the public API pull operation. It is useful when you want to bring remote workflow and credential changes into the current n8n instance.
+
 ## Access
 
 ```ts
@@ -15,13 +17,22 @@ const sourceControl = client.sourceControl();
 
 ## Methods
 
-### `pull(data?)`
+## Common Tasks
+
+- pull changes from the configured remote repository
+- force a pull when you intentionally want to discard local changes
+- publish imported workflows automatically after pull
+
+### `pull(data)`
 
 Pull changes from the remote source control repository.
 
 ```ts
 const files = await client.sourceControl().pull({
-  // Optional pull parameters
+  force: false,
+  autoPublish: 'published',
 });
 // files is SourceControlledFile[]
 ```
+
+If n8n reports a conflict, inspect the returned files and look for `conflict: true` or statuses that indicate modified content.

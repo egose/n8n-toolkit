@@ -7,6 +7,8 @@ sidebar_position: 11
 
 `AuditHandle` generates audit reports for your n8n instance.
 
+Audit reports are grouped by risk category and are useful for operational reviews, credential hygiene checks, and identifying risky node usage.
+
 ## Access
 
 ```ts
@@ -15,12 +17,23 @@ const audit = client.audit();
 
 ## Methods
 
+## Common Tasks
+
+- generate a full audit report for the instance
+- limit the report to selected risk categories
+- review credential, filesystem, node, database, and instance findings
+
 ### `generate(data?)`
 
 Generate an audit report.
 
 ```ts
 const report = await client.audit().generate({
-  // Optional filters
+  additionalOptions: {
+    categories: ['credentials', 'nodes', 'filesystem'],
+    daysAbandonedWorkflow: 90,
+  },
 });
 ```
+
+The response is grouped into report sections such as `Credentials Risk Report`, `Nodes Risk Report`, and `Instance Risk Report` when those findings are present.

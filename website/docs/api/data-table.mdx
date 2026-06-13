@@ -7,6 +7,8 @@ sidebar_position: 8
 
 `DataTableHandle` manages n8n data tables — tables, columns, and rows with filtering and upsert support.
 
+This is one of the most flexible handles in the client. The row methods have typed overloads so the return type changes based on flags like `returnType` and `returnData`.
+
 ## Access
 
 ```ts
@@ -14,6 +16,14 @@ const dataTable = client.dataTable();
 ```
 
 ## Methods
+
+## Common Tasks
+
+- create tables for lightweight operational data
+- insert rows in batches
+- update rows with filters
+- upsert one logical record based on a filter
+- manage table columns separately from row data
 
 ### `list(params?)`
 
@@ -44,7 +54,7 @@ const table = await client.dataTable().create({
   name: 'User Events',
   columns: [
     { name: 'event', type: 'string' },
-    { name: 'timestamp', type: 'datetime' },
+    { name: 'createdAt', type: 'date' },
   ],
 });
 ```
@@ -86,11 +96,12 @@ const { data, nextCursor } = await client.dataTable().listRows('dt-123', {
 Insert rows into a data table.
 
 ```ts
-const result = await client.dataTable().insertRows('dt-123', {
-  rows: [
-    { event: 'login', timestamp: '2024-01-01T00:00:00Z' },
-    { event: 'logout', timestamp: '2024-01-01T01:00:00Z' },
+const rowIds = await client.dataTable().insertRows('dt-123', {
+  data: [
+    { event: 'login', createdAt: '2024-01-01T00:00:00Z' },
+    { event: 'logout', createdAt: '2024-01-01T01:00:00Z' },
   ],
+  returnType: 'id',
 });
 ```
 
@@ -99,9 +110,12 @@ const result = await client.dataTable().insertRows('dt-123', {
 Update rows matching a filter.
 
 ```ts
-const result = await client.dataTable().updateRows('dt-123', {
-  filter: 'event=login',
-  updates: { event: 'sign_in' },
+const updatedRows = await client.dataTable().updateRows('dt-123', {
+  filter: {
+    filters: [{ columnName: 'event', condition: 'eq', value: 'login' }],
+  },
+  data: { event: 'sign_in' },
+  returnData: true,
 });
 ```
 
@@ -111,8 +125,11 @@ Insert or update a single row.
 
 ```ts
 const row = await client.dataTable().upsertRow('dt-123', {
-  filter: 'event=login',
-  row: { event: 'login', timestamp: '2024-01-01T00:00:00Z' },
+  filter: {
+    filters: [{ columnName: 'event', condition: 'eq', value: 'login' }],
+  },
+  data: { event: 'login', createdAt: '2024-01-01T00:00:00Z' },
+  returnData: true,
 });
 ```
 
@@ -122,7 +139,10 @@ Delete rows matching a filter.
 
 ```ts
 const result = await client.dataTable().deleteRows('dt-123', {
-  filter: 'event=logout',
+  filter: JSON.stringify({
+    type: 'and',
+    filters: [{ columnName: 'event', condition: 'eq', value: 'logout' }],
+  }),
   returnData: true,
   dryRun: false,
 });
@@ -165,4 +185,21 @@ Delete a column.
 
 ```ts
 await client.dataTable().deleteColumn('dt-123', 'col-1');
+```
+
+## Return Type Narrowing
+
+Some row operations change their return type based on the request flags:
+
+```ts
+const count = await client.dataTable().insertRows('dt-123', {
+  data: [{ event: 'login' }],
+});
+// { count: number }
+
+const ids = await client.dataTable().insertRows('dt-123', {
+  data: [{ event: 'login' }],
+  returnType: 'id',
+});
+// number[]
 ```

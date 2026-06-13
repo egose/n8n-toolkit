@@ -18,6 +18,7 @@ The n8n Public API is well-documented, but calling it directly means:
 - Hand-writing `fetch` calls with correct headers and error handling every time.
 - Remembering query parameter names for pagination, filtering, and sorting.
 - Building retry logic for rate limits, timeouts, and server errors.
+- Recreating request and response types in every codebase that wants safer integrations.
 
 `n8n-client` solves this with:
 - **Full TypeScript types** for every request and response.
@@ -72,7 +73,17 @@ No need for wrapper libraries or manual retry loops.
 
 The client uses Node.js 20+ built-in `fetch`. No axios, no node-fetch, no extra packages to audit or maintain.
 
-### 5. Flat, Predictable API
+### 5. Strict Where It Matters
+
+The client is intentionally opinionated in a few places:
+
+- exactly one authentication method must be configured
+- handles follow the public API instead of inventing idempotent helpers
+- unsupported endpoints are not added for convenience
+
+That keeps the library honest to the n8n API instead of becoming a parallel abstraction layer.
+
+### 6. Flat, Predictable API
 
 n8n's API is flat. The client mirrors this:
 
@@ -93,6 +104,7 @@ Every handle works the same way: `list`, `get`, `create`, `update`, `delete` —
 - **Consistent** — same patterns across all 15 resources
 - **Resilient** — automatic retry with backoff
 - **Dependency-free** — native fetch, nothing else
+- **Spec-aligned** — the client prefers documented behavior over convenience-only abstractions
 
 It's a developer experience layer on top of the n8n REST API — perfect for automation scripts, CI/CD pipelines, admin tooling, and production integrations.
 

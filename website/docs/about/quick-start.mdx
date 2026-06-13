@@ -5,6 +5,12 @@ sidebar_position: 1
 
 # Quick Start
 
+`n8n-client` is easiest to understand if you think in three steps:
+
+1. Create `N8nClient` with your n8n base URL and one authentication method.
+2. Pick a typed handle such as `workflow()`, `execution()`, or `project()`.
+3. Call methods that map directly to the public API without hand-writing HTTP requests.
+
 ## Installation
 
 ```bash npm2yarn
@@ -14,6 +20,8 @@ npm install @egose/n8n-client --save
 ## Authentication
 
 The n8n Public API supports two authentication methods: **API key** and **Bearer token**.
+
+Use exactly one of them. The client rejects configurations that provide both or neither.
 
 ### API Key (recommended)
 
@@ -33,6 +41,25 @@ const client = new N8nClient({
   baseUrl: 'http://localhost:5678',
   bearerToken: 'your-jwt-token',
 });
+```
+
+## First Script
+
+This is the smallest useful script for checking that your instance URL, credentials, and client setup are correct:
+
+```ts
+import N8nClient from '@egose/n8n-client';
+
+const client = new N8nClient({
+  baseUrl: 'http://localhost:5678',
+  apiKey: process.env.N8N_API_KEY!,
+});
+
+const { data: workflows } = await client.workflow().list({ limit: 5 });
+
+for (const workflow of workflows) {
+  console.log(`${workflow.id} ${workflow.name}`);
+}
 ```
 
 ## Basic Usage
@@ -79,6 +106,13 @@ const { data: errors } = await client.execution().list({
 await client.execution().stop(executionId);
 ```
 
+## How The API Surface Is Organized
+
+- Use `client.workflow()` for workflow lifecycle and tagging.
+- Use `client.execution()` for monitoring, retrying, and stopping runs.
+- Use `client.project()` and `client.folder(projectId)` for structure and access control.
+- Use `client.get()`, `client.post()`, and the other low-level helpers only when you intentionally need to drop below a typed handle.
+
 ### Organize with Projects
 
 ```ts
@@ -114,4 +148,5 @@ Every n8n API resource has a typed handle:
 ## Next Steps
 
 - Browse the [API Reference](/api/n8n-client/) for the full method surface.
+- Read [Philosophy](/about/philosophy/) if you want the design rationale behind handles, retries, and low-level request helpers.
 - Check out [Examples](/example/overview/) for end-to-end walkthroughs.

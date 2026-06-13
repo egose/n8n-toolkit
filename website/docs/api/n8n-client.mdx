@@ -7,6 +7,8 @@ sidebar_position: 0
 
 `N8nClient` is the root entry point. It creates an HTTP client and provides access to all 15 resource handles.
 
+Use this page when you want to understand the shape of the client itself: configuration, handle access, low-level request helpers, and error behavior.
+
 ## Constructor
 
 ```ts
@@ -28,6 +30,19 @@ const client = new N8nClient({
 
 *Either `apiKey` or `bearerToken` must be provided.
 
+## Minimal Example
+
+```ts
+import N8nClient from '@egose/n8n-client';
+
+const client = new N8nClient({
+  baseUrl: 'http://localhost:5678',
+  apiKey: process.env.N8N_API_KEY!,
+});
+
+const { data: workflows } = await client.workflow().list({ limit: 10 });
+```
+
 ## Resource Handles
 
 | Method | Returns | Description |
@@ -48,6 +63,21 @@ const client = new N8nClient({
 | `discover()` | `DiscoverHandle` | Resource discovery |
 | `n8nPackage()` | `N8nPackageHandle` | Package import/export |
 
+## Choosing Between Handles And Low-Level Requests
+
+Prefer a handle when the library already exposes the endpoint you need:
+
+```ts
+await client.workflow().archive('wf-123');
+await client.execution().retry(42, { loadWorkflow: true });
+```
+
+Use the low-level helpers when:
+
+- you need to experiment against a newly added endpoint before the library wraps it
+- you want to attach custom headers for a one-off request
+- you are intentionally working at the HTTP layer
+
 ## Low-Level Requests
 
 If you need an endpoint or option that is not covered by a handle yet, `N8nClient` exposes thin request helpers without exposing the transport object itself:
@@ -59,6 +89,8 @@ const data = await client.get('/workflows', { limit: 5 });
 // Direct POST request
 await client.post('/workflows', { name: 'New Workflow', nodes: [], connections: {}, settings: {} });
 ```
+
+These helpers still use the same authentication, retry, and response parsing rules as the typed handles.
 
 ## Error Handling
 
@@ -87,6 +119,25 @@ Transient errors are retried automatically with exponential backoff:
 - **502** Bad Gateway
 - **503** Service Unavailable
 - **504** Gateway Timeout
+
+Non-transient failures are surfaced immediately as `HttpError`.
+
+## Handle Scope
+
+Most handles are unscoped:
+
+```ts
+client.workflow()
+client.execution()
+client.project()
+```
+
+`folder()` is the exception because folder endpoints are project-scoped in the n8n API:
+
+```ts
+const folder = client.folder('project-id');
+await folder.list();
+```
 
 ## Exports
 

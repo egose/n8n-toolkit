@@ -7,6 +7,8 @@ sidebar_position: 2
 
 `ExecutionHandle` monitors and controls workflow executions — list, get, stop, retry, and manage tags.
 
+This handle is for run history and operational control, not workflow definition changes. Pair it with `WorkflowHandle` when you need both deployment and runtime visibility.
+
 ## Access
 
 ```ts
@@ -14,6 +16,13 @@ const execution = client.execution();
 ```
 
 ## Methods
+
+## Common Tasks
+
+- inspect recent failures
+- fetch a single execution with payload data included
+- stop running executions in bulk
+- retry failed executions after updating the related workflow
 
 ### `list(params?)`
 
@@ -89,4 +98,16 @@ const tags = await client.execution().getTags(123);
 const updatedTags = await client.execution().updateTags(123, [
   { id: 'tag-1' },
 ]);
+```
+
+## Typical Flow
+
+```ts
+const execution = client.execution();
+
+const { data: failed } = await execution.list({ status: 'error', limit: 20 });
+
+for (const run of failed) {
+  await execution.retry(run.id, { loadWorkflow: true });
+}
 ```
