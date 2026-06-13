@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import DataTableClient from '../src/clients/data-table';
+import DataTableResource from '../src/resources/data-table';
 import { createMockHttpClient } from './test-utils';
 
 describe('Implementation Consistency: DataTable', () => {
@@ -38,6 +39,45 @@ describe('Implementation Consistency: DataTable', () => {
     expect(result).toEqual(created);
   });
 
+  test('getResource returns a bound data table resource', async () => {
+    const table = { id: 'dt-1', name: 'Users', columns: [], projectId: 'p-1', createdAt: '', updatedAt: '' };
+    const http = createMockHttpClient([{ body: table }]);
+    const handle = new DataTableClient(http);
+
+    const result = await handle.getResource('dt-1');
+
+    expect(result).toBeInstanceOf(DataTableResource);
+    expect(result.data).toEqual(table);
+  });
+
+  test('listResources wraps data tables as resources', async () => {
+    const http = createMockHttpClient([
+      {
+        body: {
+          data: [{ id: 'dt-1', name: 'Users', columns: [], projectId: 'p-1', createdAt: '', updatedAt: '' }],
+          nextCursor: 'next',
+        },
+      },
+    ]);
+    const handle = new DataTableClient(http);
+
+    const result = await handle.listResources({ limit: 1 });
+
+    expect(result.data[0]).toBeInstanceOf(DataTableResource);
+    expect(result.nextCursor).toBe('next');
+  });
+
+  test('createResource wraps created data table as a resource', async () => {
+    const table = { id: 'dt-1', name: 'Users', columns: [], projectId: 'p-1', createdAt: '', updatedAt: '' };
+    const http = createMockHttpClient([{ body: table }]);
+    const handle = new DataTableClient(http);
+
+    const result = await handle.createResource({ name: 'Users', columns: [] });
+
+    expect(result).toBeInstanceOf(DataTableResource);
+    expect(result.data).toEqual(table);
+  });
+
   test('update calls PATCH /data-tables/:id', async () => {
     const updated = { id: 'dt-1', name: 'Updated', columns: [], projectId: 'p-1', createdAt: '', updatedAt: '' };
     const http = createMockHttpClient([{ body: updated }]);
@@ -47,6 +87,17 @@ describe('Implementation Consistency: DataTable', () => {
 
     expect(http.patch).toHaveBeenCalledWith('/data-tables/dt-1', { name: 'Updated' });
     expect(result).toEqual(updated);
+  });
+
+  test('updateResource wraps updated data table as a resource', async () => {
+    const updated = { id: 'dt-1', name: 'Updated', columns: [], projectId: 'p-1', createdAt: '', updatedAt: '' };
+    const http = createMockHttpClient([{ body: updated }]);
+    const handle = new DataTableClient(http);
+
+    const result = await handle.updateResource('dt-1', { name: 'Updated' });
+
+    expect(result).toBeInstanceOf(DataTableResource);
+    expect(result.data).toEqual(updated);
   });
 
   test('delete calls DELETE /data-tables/:id', async () => {
@@ -188,5 +239,50 @@ describe('Implementation Consistency: DataTable', () => {
 
     expect(http.patch).toHaveBeenCalledWith('/data-tables/dt-1/columns/col-1', { name: 'email_address' });
     expect(result).toEqual(updated);
+  });
+
+  test('data table resource methods use bound dataTable id', async () => {
+    const updated = { id: 'dt-1', name: 'Users Updated', columns: [], projectId: 'p-1', createdAt: '', updatedAt: '' };
+    const column = { id: 'col-1', name: 'active', dataTableId: 'dt-1', type: 'boolean', index: 0 };
+    const updatedColumn = { id: 'col-1', name: 'is_active', dataTableId: 'dt-1', type: 'boolean', index: 0 };
+    const rows = { data: [], nextCursor: undefined };
+    const http = createMockHttpClient([
+      { body: updated },
+      { body: rows },
+      { body: { count: 1 } },
+      { body: false },
+      { body: false },
+      { body: false },
+      { body: [] },
+      { body: column },
+      { body: updatedColumn },
+      { body: undefined },
+      { body: undefined },
+    ]);
+    const handle = new DataTableClient(http);
+    const resource = new DataTableResource(handle, {
+      id: 'dt-1',
+      name: 'Users',
+      columns: [],
+      projectId: 'p-1',
+      createdAt: '',
+      updatedAt: '',
+    });
+
+    await resource.update({ name: 'Users Updated' });
+    await resource.listRows({ limit: 10 });
+    await resource.insertRows({ data: [{ email: 'alice@example.com' }] });
+    await resource.updateRows({ filter: { filters: [] }, data: {} });
+    await resource.upsertRow({ filter: { filters: [] }, data: {} });
+    await resource.deleteRows({ filter: '{}' });
+    await resource.listColumns();
+    await resource.createColumn({ name: 'active', type: 'boolean' });
+    await resource.updateColumn('col-1', { name: 'is_active' });
+    await resource.deleteColumn('col-1');
+    await resource.delete();
+
+    expect(resource.name).toBe('Users Updated');
+    expect(http.post).toHaveBeenCalledWith('/data-tables/dt-1/columns', { name: 'active', type: 'boolean' });
+    expect(http.delete).toHaveBeenCalledWith('/data-tables/dt-1');
   });
 });

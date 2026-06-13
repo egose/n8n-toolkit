@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import ExecutionClient from '../src/clients/execution';
+import ExecutionResource from '../src/resources/execution';
 import { createMockHttpClient } from './test-utils';
 
 describe('Implementation Consistency: Execution', () => {
@@ -22,6 +23,55 @@ describe('Implementation Consistency: Execution', () => {
 
     expect(http.get).toHaveBeenCalledWith('/executions/1', undefined);
     expect(result).toEqual(execution);
+  });
+
+  test('getResource returns a bound execution resource', async () => {
+    const execution = { id: 1, finished: true, mode: 'manual', startedAt: '', workflowId: 1, status: 'success' };
+    const http = createMockHttpClient([{ body: execution }]);
+    const handle = new ExecutionClient(http);
+
+    const result = await handle.getResource(1);
+
+    expect(result).toBeInstanceOf(ExecutionResource);
+    expect(result.data).toEqual(execution);
+  });
+
+  test('listResources wraps execution list items as resources', async () => {
+    const http = createMockHttpClient([
+      {
+        body: {
+          data: [{ id: 1, finished: true, mode: 'manual', startedAt: '', workflowId: 1, status: 'success' }],
+          nextCursor: 'next',
+        },
+      },
+    ]);
+    const handle = new ExecutionClient(http);
+
+    const result = await handle.listResources({ limit: 1 });
+
+    expect(result.data[0]).toBeInstanceOf(ExecutionResource);
+    expect(result.nextCursor).toBe('next');
+  });
+
+  test('execution resource refresh preserves list-time fetch options', async () => {
+    const http = createMockHttpClient([
+      {
+        body: {
+          data: [{ id: 1, finished: true, mode: 'manual', startedAt: '', workflowId: 1, status: 'success', data: {} }],
+          nextCursor: undefined,
+        },
+      },
+      { body: { id: 1, finished: true, mode: 'manual', startedAt: '', workflowId: 1, status: 'success', data: {} } },
+    ]);
+    const handle = new ExecutionClient(http);
+
+    const result = await handle.listResources({ includeData: true, redactExecutionData: false });
+    await result.data[0].refresh();
+
+    expect(http.get).toHaveBeenNthCalledWith(2, '/executions/1', {
+      includeData: true,
+      redactExecutionData: false,
+    });
   });
 
   test('delete calls DELETE /executions/:id', async () => {
@@ -87,5 +137,40 @@ describe('Implementation Consistency: Execution', () => {
 
     expect(http.put).toHaveBeenCalledWith('/executions/1/tags', [{ id: 't-1' }]);
     expect(result).toEqual(tags);
+  });
+
+  test('execution resource methods use bound execution id and update local state', async () => {
+    const retried = { id: 1, finished: false, mode: 'retry', startedAt: '', workflowId: 1, status: 'running' };
+    const stopped = { id: 1, finished: true, mode: 'retry', startedAt: '', workflowId: 1, status: 'canceled' };
+    const refreshed = { id: 1, finished: true, mode: 'retry', startedAt: '', workflowId: 1, status: 'success' };
+    const tags = [{ id: 't-1', name: 'prod', createdAt: '', updatedAt: '' }];
+    const deleted = { id: 1, finished: true, mode: 'retry', startedAt: '', workflowId: 1, status: 'success' };
+    const http = createMockHttpClient([
+      { body: retried },
+      { body: stopped },
+      { body: refreshed },
+      { body: tags },
+      { body: tags },
+      { body: deleted },
+    ]);
+    const handle = new ExecutionClient(http);
+    const resource = new ExecutionResource(handle, {
+      id: 1,
+      finished: false,
+      mode: 'manual',
+      startedAt: '',
+      workflowId: 1,
+      status: 'new',
+    });
+
+    await resource.retry({ loadWorkflow: true });
+    await resource.stop();
+    await resource.refresh();
+    await resource.getTags();
+    await resource.updateTags([{ id: 't-1' }]);
+    const result = await resource.delete();
+
+    expect(resource.status).toBe('success');
+    expect(result).toEqual(deleted);
   });
 });

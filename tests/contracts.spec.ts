@@ -15,6 +15,22 @@ import TagClient from '../src/clients/tag';
 import UserClient from '../src/clients/user';
 import VariableClient from '../src/clients/variable';
 import WorkflowClient from '../src/clients/workflow';
+import CredentialResource from '../src/resources/credential';
+import CommunityPackageResource from '../src/resources/community-package';
+import DataTableResource from '../src/resources/data-table';
+import ExecutionResource from '../src/resources/execution';
+import FolderResource from '../src/resources/folder';
+import type { ProjectDataTableResourceCollection } from '../src/resources/project';
+import type { ProjectExecutionResourceCollection } from '../src/resources/project';
+import ProjectResource from '../src/resources/project';
+import type { ProjectFolderResourceCollection } from '../src/resources/project';
+import type { ProjectVariableResourceCollection } from '../src/resources/project';
+import type { ProjectWorkflowResourceCollection } from '../src/resources/project';
+import TagResource from '../src/resources/tag';
+import UserResource from '../src/resources/user';
+import VariableResource from '../src/resources/variable';
+import type { WorkflowExecutionResourceCollection } from '../src/resources/workflow';
+import WorkflowResource from '../src/resources/workflow';
 import type {
   Audit,
   AuditCommunityLocation,
@@ -178,9 +194,15 @@ describe('Public API contracts', () => {
     const handle = new WorkflowClient(createMockHttpClient());
 
     expectTypeOf(handle.list({} satisfies WorkflowListParams)).toEqualTypeOf<Promise<WorkflowListResponse>>();
+    expectTypeOf<ReturnType<WorkflowClient['listResources']>>().toEqualTypeOf<
+      Promise<{ data: WorkflowResource[]; nextCursor?: string }>
+    >();
     expectTypeOf(handle.get('wf-1', {} satisfies WorkflowGetParams)).toEqualTypeOf<Promise<Workflow>>();
+    expectTypeOf<ReturnType<WorkflowClient['getResource']>>().toEqualTypeOf<Promise<WorkflowResource>>();
     expectTypeOf(handle.create({} as WorkflowCreate)).toEqualTypeOf<Promise<Workflow>>();
+    expectTypeOf<ReturnType<WorkflowClient['createResource']>>().toEqualTypeOf<Promise<WorkflowResource>>();
     expectTypeOf(handle.update('wf-1', {} as WorkflowUpdate)).toEqualTypeOf<Promise<Workflow>>();
+    expectTypeOf<ReturnType<WorkflowClient['updateResource']>>().toEqualTypeOf<Promise<WorkflowResource>>();
     expectTypeOf(handle.activate('wf-1', {} satisfies WorkflowActivateRequest)).toEqualTypeOf<Promise<Workflow>>();
     expectTypeOf(handle.transfer('wf-1', 'proj-1')).toEqualTypeOf<Promise<void>>();
     expectTypeOf(handle.getTags('wf-1')).toEqualTypeOf<Promise<Tag[]>>();
@@ -202,7 +224,11 @@ describe('Public API contracts', () => {
     const handle = new ExecutionClient(createMockHttpClient());
 
     expectTypeOf(handle.list({} satisfies ExecutionListParams)).toEqualTypeOf<Promise<ExecutionListResponse>>();
+    expectTypeOf<ReturnType<ExecutionClient['listResources']>>().toEqualTypeOf<
+      Promise<{ data: ExecutionResource[]; nextCursor?: string }>
+    >();
     expectTypeOf(handle.get(1, {} satisfies ExecutionGetParams)).toEqualTypeOf<Promise<Execution>>();
+    expectTypeOf<ReturnType<ExecutionClient['getResource']>>().toEqualTypeOf<Promise<ExecutionResource>>();
     expectTypeOf(handle.retry(1, {} satisfies ExecutionRetryRequest)).toEqualTypeOf<Promise<Execution>>();
     expectTypeOf(handle.stopMany({ status: ['running'] } satisfies StopManyExecutionsRequest)).toEqualTypeOf<
       Promise<StopManyExecutionsResponse>
@@ -215,9 +241,15 @@ describe('Public API contracts', () => {
     const handle = new CredentialClient(createMockHttpClient());
 
     expectTypeOf(handle.list({} satisfies PaginationParams)).toEqualTypeOf<Promise<CredentialListResponse>>();
+    expectTypeOf<ReturnType<CredentialClient['listResources']>>().toEqualTypeOf<
+      Promise<{ data: CredentialResource[]; nextCursor?: string }>
+    >();
     expectTypeOf(handle.get('cred-1')).toEqualTypeOf<Promise<CredentialResponse>>();
+    expectTypeOf<ReturnType<CredentialClient['getResource']>>().toEqualTypeOf<Promise<CredentialResource>>();
     expectTypeOf(handle.create({} as CredentialCreate)).toEqualTypeOf<Promise<CredentialResponse>>();
+    expectTypeOf<ReturnType<CredentialClient['createResource']>>().toEqualTypeOf<Promise<CredentialResource>>();
     expectTypeOf(handle.update('cred-1', {} as CredentialUpdate)).toEqualTypeOf<Promise<CredentialResponse>>();
+    expectTypeOf<ReturnType<CredentialClient['updateResource']>>().toEqualTypeOf<Promise<CredentialResource>>();
     expectTypeOf(handle.delete('cred-1')).toEqualTypeOf<Promise<Credential>>();
     expectTypeOf(handle.test('cred-1')).toEqualTypeOf<Promise<CredentialTestResponse>>();
     expectTypeOf(handle.transfer('cred-1', 'proj-1')).toEqualTypeOf<Promise<void>>();
@@ -228,6 +260,10 @@ describe('Public API contracts', () => {
     const handle = new ProjectClient(createMockHttpClient());
 
     expectTypeOf(handle.list({} satisfies PaginationParams)).toEqualTypeOf<Promise<ProjectListResponse>>();
+    expectTypeOf<ReturnType<ProjectClient['listResources']>>().toEqualTypeOf<
+      Promise<{ data: ProjectResource[]; nextCursor?: string }>
+    >();
+    expectTypeOf<ReturnType<ProjectClient['getResource']>>().toEqualTypeOf<Promise<ProjectResource>>();
     expectTypeOf(handle.create({ name: 'Project' } satisfies ProjectMutation)).toEqualTypeOf<Promise<void>>();
     expectTypeOf(handle.update('proj-1', { name: 'Renamed' } satisfies ProjectMutation)).toEqualTypeOf<Promise<void>>();
     expectTypeOf(handle.delete('proj-1')).toEqualTypeOf<Promise<void>>();
@@ -245,13 +281,19 @@ describe('Public API contracts', () => {
     const handle = new DataTableClient(createMockHttpClient());
 
     expectTypeOf(handle.list({} satisfies DataTableListParams)).toEqualTypeOf<Promise<DataTableListResponse>>();
+    expectTypeOf<ReturnType<DataTableClient['listResources']>>().toEqualTypeOf<
+      Promise<{ data: DataTableResource[]; nextCursor?: string }>
+    >();
     expectTypeOf(handle.get('dt-1')).toEqualTypeOf<Promise<DataTable>>();
+    expectTypeOf<ReturnType<DataTableClient['getResource']>>().toEqualTypeOf<Promise<DataTableResource>>();
     expectTypeOf(handle.create({ name: 'Table', columns: [] } satisfies CreateDataTableRequest)).toEqualTypeOf<
       Promise<DataTable>
     >();
+    expectTypeOf<ReturnType<DataTableClient['createResource']>>().toEqualTypeOf<Promise<DataTableResource>>();
     expectTypeOf(handle.update('dt-1', { name: 'Renamed' } satisfies UpdateDataTableRequest)).toEqualTypeOf<
       Promise<DataTable>
     >();
+    expectTypeOf<ReturnType<DataTableClient['updateResource']>>().toEqualTypeOf<Promise<DataTableResource>>();
     expectTypeOf(handle.delete('dt-1')).toEqualTypeOf<Promise<void>>();
     expectTypeOf(handle.listRows('dt-1', {} satisfies DataTableRowListParams)).toEqualTypeOf<
       Promise<DataTableRowListResponse>
@@ -292,9 +334,15 @@ describe('Public API contracts', () => {
     const handle = new FolderClient(createMockHttpClient(), 'proj-1');
 
     expectTypeOf(handle.list({} satisfies FolderListParams)).toEqualTypeOf<Promise<FolderListResponse>>();
+    expectTypeOf<ReturnType<FolderClient['listResources']>>().toEqualTypeOf<
+      Promise<{ data: FolderResource[]; nextCursor?: string }>
+    >();
     expectTypeOf(handle.get('folder-1')).toEqualTypeOf<Promise<FolderDetail>>();
+    expectTypeOf<ReturnType<FolderClient['getResource']>>().toEqualTypeOf<Promise<FolderResource>>();
     expectTypeOf(handle.create({ name: 'Folder' } satisfies FolderCreate)).toEqualTypeOf<Promise<Folder>>();
+    expectTypeOf<ReturnType<FolderClient['createResource']>>().toEqualTypeOf<Promise<FolderResource>>();
     expectTypeOf(handle.update('folder-1', {} satisfies FolderUpdate)).toEqualTypeOf<Promise<Folder>>();
+    expectTypeOf<ReturnType<FolderClient['updateResource']>>().toEqualTypeOf<Promise<FolderResource>>();
     expectTypeOf(handle.delete('folder-1')).toEqualTypeOf<Promise<void>>();
   });
 
@@ -302,9 +350,15 @@ describe('Public API contracts', () => {
     const handle = new TagClient(createMockHttpClient());
 
     expectTypeOf(handle.list({} satisfies PaginationParams)).toEqualTypeOf<Promise<TagListResponse>>();
+    expectTypeOf<ReturnType<TagClient['listResources']>>().toEqualTypeOf<
+      Promise<{ data: TagResource[]; nextCursor?: string }>
+    >();
     expectTypeOf(handle.get('tag-1')).toEqualTypeOf<Promise<Tag>>();
+    expectTypeOf<ReturnType<TagClient['getResource']>>().toEqualTypeOf<Promise<TagResource>>();
     expectTypeOf(handle.create({ name: 'Tag' } satisfies TagMutation)).toEqualTypeOf<Promise<Tag>>();
+    expectTypeOf<ReturnType<TagClient['createResource']>>().toEqualTypeOf<Promise<TagResource>>();
     expectTypeOf(handle.update('tag-1', { name: 'Renamed' } satisfies TagMutation)).toEqualTypeOf<Promise<Tag>>();
+    expectTypeOf<ReturnType<TagClient['updateResource']>>().toEqualTypeOf<Promise<TagResource>>();
     expectTypeOf(handle.delete('tag-1')).toEqualTypeOf<Promise<Tag>>();
   });
 
@@ -312,7 +366,11 @@ describe('Public API contracts', () => {
     const handle = new UserClient(createMockHttpClient());
 
     expectTypeOf(handle.list({} satisfies UserListParams)).toEqualTypeOf<Promise<UserListResponse>>();
+    expectTypeOf<ReturnType<UserClient['listResources']>>().toEqualTypeOf<
+      Promise<{ data: UserResource[]; nextCursor?: string }>
+    >();
     expectTypeOf(handle.get('user-1', {} satisfies UserGetParams)).toEqualTypeOf<Promise<User>>();
+    expectTypeOf<ReturnType<UserClient['getResource']>>().toEqualTypeOf<Promise<UserResource>>();
     expectTypeOf(handle.create([{ email: 'user@example.com' }] satisfies UserCreate[])).toEqualTypeOf<
       Promise<UserCreateResponse>
     >();
@@ -324,6 +382,11 @@ describe('Public API contracts', () => {
     const handle = new VariableClient(createMockHttpClient());
 
     expectTypeOf(handle.list({} satisfies VariableListParams)).toEqualTypeOf<Promise<VariableListResponse>>();
+    expectTypeOf<ReturnType<VariableClient['listResources']>>().toEqualTypeOf<
+      Promise<{ data: VariableResource[]; nextCursor?: string }>
+    >();
+    expectTypeOf<ReturnType<VariableClient['get']>>().toEqualTypeOf<Promise<Variable>>();
+    expectTypeOf<ReturnType<VariableClient['getResource']>>().toEqualTypeOf<Promise<VariableResource>>();
     expectTypeOf(handle.create({ key: 'x', value: 'y' } satisfies VariableCreate)).toEqualTypeOf<Promise<void>>();
     expectTypeOf(handle.update('var-1', { key: 'x', value: 'y' } satisfies VariableCreate)).toEqualTypeOf<
       Promise<void>
@@ -335,11 +398,23 @@ describe('Public API contracts', () => {
     const handle = new CommunityPackageClient(createMockHttpClient());
 
     expectTypeOf(handle.list()).toEqualTypeOf<Promise<CommunityPackage[]>>();
+    expectTypeOf<ReturnType<CommunityPackageClient['listResources']>>().toEqualTypeOf<
+      Promise<CommunityPackageResource[]>
+    >();
+    expectTypeOf<ReturnType<CommunityPackageClient['getResource']>>().toEqualTypeOf<
+      Promise<CommunityPackageResource>
+    >();
     expectTypeOf(handle.install({ name: 'n8n-nodes-test' } satisfies InstallCommunityPackageRequest)).toEqualTypeOf<
       Promise<CommunityPackage>
     >();
+    expectTypeOf<ReturnType<CommunityPackageClient['installResource']>>().toEqualTypeOf<
+      Promise<CommunityPackageResource>
+    >();
     expectTypeOf(handle.update('n8n-nodes-test', {} satisfies UpdateCommunityPackageRequest)).toEqualTypeOf<
       Promise<CommunityPackage>
+    >();
+    expectTypeOf<ReturnType<CommunityPackageClient['updateResource']>>().toEqualTypeOf<
+      Promise<CommunityPackageResource>
     >();
     expectTypeOf(handle.uninstall('n8n-nodes-test')).toEqualTypeOf<Promise<void>>();
   });
@@ -386,5 +461,181 @@ describe('Public API contracts', () => {
       nodeType: string;
       packageUrl: string;
     }>();
+  });
+
+  test('ProjectResource and WorkflowResource bind single-resource operations', () => {
+    const projects = new ProjectClient(createMockHttpClient());
+    const workflows = new WorkflowClient(createMockHttpClient());
+    const folders = new FolderClient(createMockHttpClient(), 'proj-1');
+    const variables = new VariableClient(createMockHttpClient());
+    const dataTables = new DataTableClient(createMockHttpClient());
+    const executions = new ExecutionClient(createMockHttpClient());
+    const project = new ProjectResource(projects, workflows, folders, variables, dataTables, executions, {
+      id: 'proj-1',
+      name: 'Project',
+    });
+    const workflow = new WorkflowResource(workflows, executions, {
+      id: 'wf-1',
+      name: 'Workflow',
+      active: false,
+      createdAt: '',
+      updatedAt: '',
+      isArchived: false,
+      versionId: 'v1',
+      triggerCount: 0,
+      nodes: [],
+      connections: {},
+    });
+
+    expectTypeOf(project.workflows()).toEqualTypeOf<ProjectWorkflowResourceCollection>();
+    expectTypeOf(project.folders()).toEqualTypeOf<ProjectFolderResourceCollection>();
+    expectTypeOf(project.variables()).toEqualTypeOf<ProjectVariableResourceCollection>();
+    expectTypeOf(project.dataTables()).toEqualTypeOf<ProjectDataTableResourceCollection>();
+    expectTypeOf(project.executions()).toEqualTypeOf<ProjectExecutionResourceCollection>();
+    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['getResource']>>().toEqualTypeOf<
+      Promise<WorkflowResource>
+    >();
+    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['createResource']>>().toEqualTypeOf<
+      Promise<WorkflowResource>
+    >();
+    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['updateResource']>>().toEqualTypeOf<
+      Promise<WorkflowResource>
+    >();
+    expectTypeOf<ReturnType<ProjectFolderResourceCollection['getResource']>>().toEqualTypeOf<Promise<FolderResource>>();
+    expectTypeOf<ReturnType<ProjectFolderResourceCollection['updateResource']>>().toEqualTypeOf<
+      Promise<FolderResource>
+    >();
+    expectTypeOf<ReturnType<ProjectVariableResourceCollection['getResource']>>().toEqualTypeOf<
+      Promise<VariableResource>
+    >();
+    expectTypeOf<ReturnType<ProjectVariableResourceCollection['updateResource']>>().toEqualTypeOf<
+      Promise<VariableResource>
+    >();
+    expectTypeOf<ReturnType<ProjectDataTableResourceCollection['getResource']>>().toEqualTypeOf<
+      Promise<DataTableResource>
+    >();
+    expectTypeOf<ReturnType<ProjectDataTableResourceCollection['createResource']>>().toEqualTypeOf<
+      Promise<DataTableResource>
+    >();
+    expectTypeOf<ReturnType<ProjectDataTableResourceCollection['updateResource']>>().toEqualTypeOf<
+      Promise<DataTableResource>
+    >();
+    expectTypeOf<ReturnType<ProjectExecutionResourceCollection['getResource']>>().toEqualTypeOf<
+      Promise<ExecutionResource>
+    >();
+    expectTypeOf(workflow.executions()).toEqualTypeOf<WorkflowExecutionResourceCollection>();
+    expectTypeOf<ReturnType<WorkflowExecutionResourceCollection['get']>>().toEqualTypeOf<Promise<Execution>>();
+    expectTypeOf<ReturnType<WorkflowExecutionResourceCollection['getResource']>>().toEqualTypeOf<
+      Promise<ExecutionResource>
+    >();
+    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['get']>>().toEqualTypeOf<Promise<Workflow>>();
+    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['create']>>().toEqualTypeOf<Promise<Workflow>>();
+    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['update']>>().toEqualTypeOf<Promise<Workflow>>();
+    expectTypeOf<ReturnType<ProjectVariableResourceCollection['get']>>().toEqualTypeOf<Promise<Variable>>();
+    expectTypeOf<ReturnType<ProjectFolderResourceCollection['create']>>().toEqualTypeOf<Promise<Folder>>();
+    expectTypeOf<ReturnType<ProjectFolderResourceCollection['update']>>().toEqualTypeOf<Promise<Folder>>();
+    expectTypeOf<ReturnType<ProjectDataTableResourceCollection['get']>>().toEqualTypeOf<Promise<DataTable>>();
+    expectTypeOf<ReturnType<ProjectDataTableResourceCollection['create']>>().toEqualTypeOf<Promise<DataTable>>();
+    expectTypeOf<ReturnType<ProjectDataTableResourceCollection['update']>>().toEqualTypeOf<Promise<DataTable>>();
+    expectTypeOf<ReturnType<ProjectExecutionResourceCollection['get']>>().toEqualTypeOf<Promise<Execution>>();
+    expectTypeOf(project.update({ name: 'Renamed' })).toEqualTypeOf<Promise<ProjectResource>>();
+    expectTypeOf(workflow.activate()).toEqualTypeOf<Promise<WorkflowResource>>();
+    expectTypeOf(workflow.update({ name: 'Updated', nodes: [], connections: {}, settings: {} })).toEqualTypeOf<
+      Promise<WorkflowResource>
+    >();
+  });
+
+  test('CredentialResource, FolderResource, TagResource, and UserResource bind single-resource operations', () => {
+    const credentials = new CredentialClient(createMockHttpClient());
+    const folders = new FolderClient(createMockHttpClient(), 'proj-1');
+    const tags = new TagClient(createMockHttpClient());
+    const users = new UserClient(createMockHttpClient());
+
+    const credential = new CredentialResource(credentials, {
+      id: 'cred-1',
+      name: 'Credential',
+      type: 'githubApi',
+      isManaged: false,
+      isGlobal: true,
+      isResolvable: true,
+      createdAt: '',
+      updatedAt: '',
+    });
+    const folder = new FolderResource(folders, { id: 'folder-1', name: 'Folder', createdAt: '', updatedAt: '' });
+    const tag = new TagResource(tags, { id: 'tag-1', name: 'Tag', createdAt: '', updatedAt: '' });
+    const user = new UserResource(users, {
+      id: 'user-1',
+      email: 'user@example.com',
+      isPending: false,
+      createdAt: '',
+      updatedAt: '',
+    });
+
+    expectTypeOf(credential.update({ name: 'Renamed' })).toEqualTypeOf<Promise<CredentialResource>>();
+    expectTypeOf(folder.update({ name: 'Renamed' })).toEqualTypeOf<Promise<FolderResource>>();
+    expectTypeOf(tag.update({ name: 'Renamed' })).toEqualTypeOf<Promise<TagResource>>();
+    expectTypeOf(user.changeRole('global:admin')).toEqualTypeOf<Promise<UserResource>>();
+  });
+
+  test('ExecutionResource, VariableResource, and DataTableResource bind single-resource operations', () => {
+    const executions = new ExecutionClient(createMockHttpClient());
+    const variables = new VariableClient(createMockHttpClient());
+    const dataTables = new DataTableClient(createMockHttpClient());
+
+    const execution = new ExecutionResource(executions, {
+      id: 1,
+      finished: false,
+      mode: 'manual',
+      startedAt: '',
+      workflowId: 1,
+      status: 'new',
+    });
+    const variable = new VariableResource(variables, { id: 'var-1', key: 'KEY', value: 'VALUE' });
+    const dataTable = new DataTableResource(dataTables, {
+      id: 'dt-1',
+      name: 'Table',
+      columns: [],
+      projectId: 'proj-1',
+      createdAt: '',
+      updatedAt: '',
+    });
+
+    expectTypeOf(execution.retry()).toEqualTypeOf<Promise<ExecutionResource>>();
+    expectTypeOf(variable.update({ key: 'KEY', value: 'NEXT' })).toEqualTypeOf<Promise<VariableResource>>();
+    expectTypeOf(dataTable.update({ name: 'Renamed' })).toEqualTypeOf<Promise<DataTableResource>>();
+  });
+
+  test('CommunityPackageResource binds package-level operations', () => {
+    const communityPackages = new CommunityPackageClient(createMockHttpClient());
+    const communityPackage = new CommunityPackageResource(communityPackages, {
+      packageName: 'n8n-nodes-test',
+      installedVersion: '1.0.0',
+      authorName: '',
+      authorEmail: '',
+      installedNodes: [],
+      createdAt: '',
+      updatedAt: '',
+    });
+
+    expectTypeOf(communityPackage.update({ version: '2.0.0' })).toEqualTypeOf<Promise<CommunityPackageResource>>();
+  });
+
+  test('resources expose toObject() and keep toJSON() as an alias', () => {
+    const executions = new ExecutionClient(createMockHttpClient());
+    const workflow = new WorkflowResource(new WorkflowClient(createMockHttpClient()), executions, {
+      id: 'wf-1',
+      name: 'Workflow',
+      active: false,
+      createdAt: '',
+      updatedAt: '',
+      isArchived: false,
+      versionId: 'v1',
+      triggerCount: 0,
+      nodes: [],
+      connections: {},
+    });
+
+    expectTypeOf(workflow.toObject()).toEqualTypeOf<Workflow>();
+    expectTypeOf(workflow.toJSON()).toEqualTypeOf<Workflow>();
   });
 });
