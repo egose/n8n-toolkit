@@ -44,8 +44,16 @@ const toc = [{
   "id": "config-options",
   "level": 3
 }, {
+  "value": "Minimal Example",
+  "id": "minimal-example",
+  "level": 2
+}, {
   "value": "Resource Handles",
   "id": "resource-handles",
+  "level": 2
+}, {
+  "value": "Choosing Between Handles And Low-Level Requests",
+  "id": "choosing-between-handles-and-low-level-requests",
   "level": 2
 }, {
   "value": "Low-Level Requests",
@@ -58,6 +66,10 @@ const toc = [{
 }, {
   "value": "Retry Behavior",
   "id": "retry-behavior",
+  "level": 2
+}, {
+  "value": "Handle Scope",
+  "id": "handle-scope",
   "level": 2
 }, {
   "value": "Exports",
@@ -95,6 +107,8 @@ function _createMdxContent(props) {
       children: [(0,jsx_runtime.jsx)(_components.code, {
         children: "N8nClient"
       }), " is the root entry point. It creates an HTTP client and provides access to all 15 resource handles."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Use this page when you want to understand the shape of the client itself: configuration, handle access, low-level request helpers, and error behavior."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "constructor",
       children: "Constructor"
@@ -176,6 +190,14 @@ function _createMdxContent(props) {
       }), " or ", (0,jsx_runtime.jsx)(_components.code, {
         children: "bearerToken"
       }), " must be provided."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "minimal-example",
+      children: "Minimal Example"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "import N8nClient from '@egose/n8n-client';\n\nconst client = new N8nClient({\n  baseUrl: 'http://localhost:5678',\n  apiKey: process.env.N8N_API_KEY!,\n});\n\nconst { data: workflows } = await client.workflow().list({ limit: 10 });\n"
+      })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "resource-handles",
       children: "Resource Handles"
@@ -374,6 +396,26 @@ function _createMdxContent(props) {
         })]
       })]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "choosing-between-handles-and-low-level-requests",
+      children: "Choosing Between Handles And Low-Level Requests"
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Prefer a handle when the library already exposes the endpoint you need:"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "await client.workflow().archive('wf-123');\nawait client.execution().retry(42, { loadWorkflow: true });\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Use the low-level helpers when:"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "you need to experiment against a newly added endpoint before the library wraps it"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "you want to attach custom headers for a one-off request"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "you are intentionally working at the HTTP layer"
+      }), "\n"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "low-level-requests",
       children: "Low-Level Requests"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
@@ -385,6 +427,8 @@ function _createMdxContent(props) {
         className: "language-ts",
         children: "// Direct GET request\nconst data = await client.get('/workflows', { limit: 5 });\n\n// Direct POST request\nawait client.post('/workflows', { name: 'New Workflow', nodes: [], connections: {}, settings: {} });\n"
       })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "These helpers still use the same authentication, retry, and response parsing rules as the typed handles."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "error-handling",
       children: "Error Handling"
@@ -428,6 +472,29 @@ function _createMdxContent(props) {
           children: "504"
         }), " Gateway Timeout"]
       }), "\n"]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Non-transient failures are surfaced immediately as ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "HttpError"
+      }), "."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "handle-scope",
+      children: "Handle Scope"
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Most handles are unscoped:"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "client.workflow()\nclient.execution()\nclient.project()\n"
+      })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "folder()"
+      }), " is the exception because folder endpoints are project-scoped in the n8n API:"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const folder = client.folder('project-id');\nawait folder.list();\n"
+      })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "exports",
       children: "Exports"

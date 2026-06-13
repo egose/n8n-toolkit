@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["806"], {
-2374(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["889"], {
+9416(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_credential_mdx_9ca_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_project_mdx_925_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-credential-mdx-9ca.json
-var site_docs_api_credential_mdx_9ca_namespaceObject = JSON.parse('{"id":"api/credential","title":"Credential API","description":"CredentialHandle manages n8n credentials — create, read, update, delete, test, and transfer between projects.","source":"@site/docs/api/credential.mdx","sourceDirName":"api","slug":"/api/credential","permalink":"/api/credential","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":3,"frontMatter":{"sidebar_label":"Credential","sidebar_position":3},"sidebar":"api","previous":{"title":"Execution","permalink":"/api/execution"},"next":{"title":"Tag","permalink":"/api/tag"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-project-mdx-925.json
+var site_docs_api_project_mdx_925_namespaceObject = JSON.parse('{"id":"api/project","title":"Project API","description":"ProjectHandle manages n8n projects and their members.","source":"@site/docs/api/project.mdx","sourceDirName":"api","slug":"/api/project","permalink":"/api/project","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":7,"frontMatter":{"sidebar_label":"Project","sidebar_position":7},"sidebar":"api","previous":{"title":"Variable","permalink":"/api/variable"},"next":{"title":"Data Table","permalink":"/api/data-table"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/credential.mdx
+;// CONCATENATED MODULE: ./docs/api/project.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Credential',
-	sidebar_position: 3
+	sidebar_label: 'Project',
+	sidebar_position: 7
 };
-const contentTitle = 'Credential API';
+const contentTitle = 'Project API';
 
 const assets = {
 
@@ -44,12 +44,12 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
+  "value": "Common Tasks",
+  "id": "common-tasks",
+  "level": 2
+}, {
   "value": "<code>list(params?)</code>",
   "id": "listparams",
-  "level": 3
-}, {
-  "value": "<code>get(id)</code>",
-  "id": "getid",
   "level": 3
 }, {
   "value": "<code>create(data)</code>",
@@ -64,17 +64,25 @@ const toc = [{
   "id": "deleteid",
   "level": 3
 }, {
-  "value": "<code>test(id)</code>",
-  "id": "testid",
+  "value": "<code>listMembers(projectId, params?)</code>",
+  "id": "listmembersprojectid-params",
   "level": 3
 }, {
-  "value": "<code>transfer(id, destinationProjectId)</code>",
-  "id": "transferid-destinationprojectid",
+  "value": "<code>addMembers(projectId, relations)</code>",
+  "id": "addmembersprojectid-relations",
   "level": 3
 }, {
-  "value": "<code>getSchema(credentialTypeName)</code>",
-  "id": "getschemacredentialtypename",
+  "value": "<code>removeMember(projectId, userId)</code>",
+  "id": "removememberprojectid-userid",
   "level": 3
+}, {
+  "value": "<code>changeMemberRole(projectId, userId, role)</code>",
+  "id": "changememberroleprojectid-userid-role",
+  "level": 3
+}, {
+  "value": "Important Note",
+  "id": "important-note",
+  "level": 2
 }];
 function _createMdxContent(props) {
   const _components = {
@@ -83,55 +91,60 @@ function _createMdxContent(props) {
     h2: "h2",
     h3: "h3",
     header: "header",
+    li: "li",
     p: "p",
     pre: "pre",
+    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "credential-api",
-        children: "Credential API"
+        id: "project-api",
+        children: "Project API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "CredentialHandle"
-      }), " manages n8n credentials — create, read, update, delete, test, and transfer between projects."]
+        children: "ProjectHandle"
+      }), " manages n8n projects and their members."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "This handle is the entry point for organization-level operations: project creation, renaming, deletion, and project membership changes."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const credential = client.credential();\n"
+        children: "const project = client.project();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "common-tasks",
+      children: "Common Tasks"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "create projects for teams or environments"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "list and audit project membership"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "grant or revoke access for specific users"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "move users between viewer, editor, and admin roles"
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "listparams",
       children: (0,jsx_runtime.jsx)(_components.code, {
         children: "list(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List credentials."
+      children: "List all projects visible to the authenticated caller."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.credential().list({\n  limit: 10,\n  cursor: 'abc123',\n});\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getid",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "get(id)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get a credential by ID."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const credential = await client.credential().get('cred-123');\n"
+        children: "const { data, nextCursor } = await client.project().list({ limit: 10 });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
@@ -139,11 +152,11 @@ function _createMdxContent(props) {
         children: "create(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create a new credential."
+      children: "Create a new project."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const created = await client.credential().create({\n  name: 'AWS Credentials',\n  type: 'aws',\n  data: { accessKey: 'AKIA123', secretKey: 'secret456' }, // pragma: allowlist secret\n  projectId: 'proj-1',\n});\n"
+        children: "await client.project().create({ name: 'Production' });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updateid-data",
@@ -151,11 +164,11 @@ function _createMdxContent(props) {
         children: "update(id, data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a credential."
+      children: "Update a project."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const updated = await client.credential().update('cred-123', {\n  name: 'Updated AWS Credentials',\n  data: { accessKey: 'AKIA789', secretKey: 'newsecret' }, // pragma: allowlist secret\n});\n"
+        children: "await client.project().update('proj-123', { name: 'Production v2' });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleteid",
@@ -163,48 +176,69 @@ function _createMdxContent(props) {
         children: "delete(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a credential."
+      children: "Delete a project."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const deleted = await client.credential().delete('cred-123');\n"
+        children: "await client.project().delete('proj-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "testid",
+      id: "listmembersprojectid-params",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "test(id)"
+        children: "listMembers(projectId, params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Test a credential's connection."
+      children: "List members of a project."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const result = await client.credential().test('cred-123');\n// result.success, result.message\n"
+        children: "const { data } = await client.project().listMembers('proj-123', { limit: 50 });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "transferid-destinationprojectid",
+      id: "addmembersprojectid-relations",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "transfer(id, destinationProjectId)"
+        children: "addMembers(projectId, relations)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Move a credential to another project."
+      children: "Add members to a project."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.credential().transfer('cred-123', 'proj-456');\n"
+        children: "await client.project().addMembers('proj-123', [\n  { userId: 'user-1', role: 'project:admin' },\n  { userId: 'user-2', role: 'project:editor' },\n]);\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getschemacredentialtypename",
+      id: "removememberprojectid-userid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "getSchema(credentialTypeName)"
+        children: "removeMember(projectId, userId)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get the schema for a credential type."
+      children: "Remove a member from a project."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const schema = await client.credential().getSchema('httpHeaderAuth');\n"
+        children: "await client.project().removeMember('proj-123', 'user-1');\n"
       })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "changememberroleprojectid-userid-role",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "changeMemberRole(projectId, userId, role)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Change a member's role in a project."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "await client.project().changeMemberRole('proj-123', 'user-1', 'project:viewer');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "important-note",
+      children: "Important Note"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["The public API does not expose ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "project().get(id)"
+      }), ". Use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "list()"
+      }), " and then select the project you want, or work from IDs you already have."]
     })]
   });
 }

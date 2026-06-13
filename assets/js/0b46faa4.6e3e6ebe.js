@@ -41,12 +41,17 @@ const assets = {
 
 
 
-const toc = [];
+const toc = [{
+  "value": "What This Example Covers",
+  "id": "what-this-example-covers",
+  "level": 2
+}];
 function _createMdxContent(props) {
   const _components = {
     a: "a",
     code: "code",
     h1: "h1",
+    h2: "h2",
     header: "header",
     hr: "hr",
     li: "li",
@@ -67,6 +72,8 @@ function _createMdxContent(props) {
       }), ". It shows how to authenticate, manage workflows, credentials, projects, and users through the typed API."]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "The snippet is intentionally comprehensive to illustrate how different building blocks fit together in a real-world scenario. In practice, you would typically split this logic across smaller scripts or services."
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Use this section when you want to see how multiple handles work together in one script. If you already know which resource you care about, jump directly to the focused pages below."
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "For focused walkthroughs, use the dedicated pages:"
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
@@ -90,6 +97,21 @@ function _createMdxContent(props) {
           href: "/example/project-organization/",
           children: "Project Organization"
         }), " for projects, folders, and member management."]
+      }), "\n"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "what-this-example-covers",
+      children: "What This Example Covers"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "creating the root client"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "reading paginated resources"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "creating and updating typed payloads"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "combining organization and automation operations in one flow"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "using the same client instance across multiple handles"
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.hr, {}), "\n", "\n", (0,jsx_runtime.jsx)(CodeBlock/* ["default"] */.A, {
       language: "ts",

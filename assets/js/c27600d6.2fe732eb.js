@@ -44,6 +44,10 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
+  "value": "Common Tasks",
+  "id": "common-tasks",
+  "level": 2
+}, {
   "value": "<code>list()</code>",
   "id": "list",
   "level": 3
@@ -67,8 +71,10 @@ function _createMdxContent(props) {
     h2: "h2",
     h3: "h3",
     header: "header",
+    li: "li",
     p: "p",
     pre: "pre",
+    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
@@ -82,6 +88,8 @@ function _createMdxContent(props) {
       children: [(0,jsx_runtime.jsx)(_components.code, {
         children: "CommunityPackageHandle"
       }), " manages n8n community packages — install, update, and uninstall npm packages."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Use this handle for package lifecycle operations in n8n instances that allow community nodes."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
@@ -93,6 +101,19 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "common-tasks",
+      children: "Common Tasks"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "list installed community packages"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "install a package from npm"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "update a package to a specific version"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "uninstall packages that are no longer used"
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "list",
       children: (0,jsx_runtime.jsx)(_components.code, {
@@ -115,7 +136,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const pkg = await client.communityPackage().install({\n  packageName: 'n8n-nodes-base',\n});\n"
+        children: "const pkg = await client.communityPackage().install({\n  name: 'n8n-nodes-test',\n  verify: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updatename-data",
@@ -127,7 +148,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const updated = await client.communityPackage().update('n8n-nodes-base', {\n  version: '1.0.0',\n  verify: true,\n});\n"
+        children: "const updated = await client.communityPackage().update('n8n-nodes-test', {\n  version: '1.0.0',\n  verify: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "uninstallname",
@@ -139,7 +160,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.communityPackage().uninstall('n8n-nodes-base');\n"
+        children: "await client.communityPackage().uninstall('n8n-nodes-test');\n"
       })
     })]
   });

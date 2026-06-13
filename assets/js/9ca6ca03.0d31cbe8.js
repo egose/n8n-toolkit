@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["16"], {
-1683(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["806"], {
+2374(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_folder_mdx_474_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_credential_mdx_9ca_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-folder-mdx-474.json
-var site_docs_api_folder_mdx_474_namespaceObject = JSON.parse('{"id":"api/folder","title":"Folder API","description":"FolderHandle manages project-scoped folders. Folders are always scoped to a project.","source":"@site/docs/api/folder.mdx","sourceDirName":"api","slug":"/api/folder","permalink":"/api/folder","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":9,"frontMatter":{"sidebar_label":"Folder","sidebar_position":9},"sidebar":"api","previous":{"title":"Data Table","permalink":"/api/data-table"},"next":{"title":"Community Package","permalink":"/api/community-package"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-credential-mdx-9ca.json
+var site_docs_api_credential_mdx_9ca_namespaceObject = JSON.parse('{"id":"api/credential","title":"Credential API","description":"CredentialHandle manages n8n credentials — create, read, update, delete, test, and transfer between projects.","source":"@site/docs/api/credential.mdx","sourceDirName":"api","slug":"/api/credential","permalink":"/api/credential","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":3,"frontMatter":{"sidebar_label":"Credential","sidebar_position":3},"sidebar":"api","previous":{"title":"Execution","permalink":"/api/execution"},"next":{"title":"Tag","permalink":"/api/tag"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/folder.mdx
+;// CONCATENATED MODULE: ./docs/api/credential.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Folder',
-	sidebar_position: 9
+	sidebar_label: 'Credential',
+	sidebar_position: 3
 };
-const contentTitle = 'Folder API';
+const contentTitle = 'Credential API';
 
 const assets = {
 
@@ -44,92 +44,123 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
+  "value": "Common Tasks",
+  "id": "common-tasks",
+  "level": 2
+}, {
   "value": "<code>list(params?)</code>",
   "id": "listparams",
   "level": 3
 }, {
-  "value": "<code>get(folderId)</code>",
-  "id": "getfolderid",
+  "value": "<code>get(id)</code>",
+  "id": "getid",
   "level": 3
 }, {
   "value": "<code>create(data)</code>",
   "id": "createdata",
   "level": 3
 }, {
-  "value": "<code>update(folderId, data)</code>",
-  "id": "updatefolderid-data",
+  "value": "<code>update(id, data)</code>",
+  "id": "updateid-data",
   "level": 3
 }, {
-  "value": "<code>delete(folderId, transferToFolderId?)</code>",
-  "id": "deletefolderid-transfertofolderid",
+  "value": "<code>delete(id)</code>",
+  "id": "deleteid",
   "level": 3
+}, {
+  "value": "<code>test(id)</code>",
+  "id": "testid",
+  "level": 3
+}, {
+  "value": "<code>transfer(id, destinationProjectId)</code>",
+  "id": "transferid-destinationprojectid",
+  "level": 3
+}, {
+  "value": "<code>getSchema(credentialTypeName)</code>",
+  "id": "getschemacredentialtypename",
+  "level": 3
+}, {
+  "value": "Typical Flow",
+  "id": "typical-flow",
+  "level": 2
 }];
 function _createMdxContent(props) {
   const _components = {
-    admonition: "admonition",
     code: "code",
     h1: "h1",
     h2: "h2",
     h3: "h3",
     header: "header",
+    li: "li",
     p: "p",
     pre: "pre",
+    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "folder-api",
-        children: "Folder API"
+        id: "credential-api",
+        children: "Credential API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "FolderHandle"
-      }), " manages project-scoped folders. Folders are always scoped to a project."]
+        children: "CredentialHandle"
+      }), " manages n8n credentials — create, read, update, delete, test, and transfer between projects."]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Credential payloads are intentionally flexible because the exact ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "data"
+      }), " shape depends on the credential type you are working with."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const folder = client.folder('project-id');\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.admonition, {
-      type: "note",
-      children: (0,jsx_runtime.jsxs)(_components.p, {
-        children: ["Unlike other handles, ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "FolderHandle"
-        }), " requires a ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "projectId"
-        }), " at construction time because folder endpoints are project-scoped."]
+        children: "const credential = client.credential();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "common-tasks",
+      children: "Common Tasks"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "list credentials for audit or cleanup work"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "create credentials in a target project"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "update secret material or display names"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "test a credential before attaching it to workflows"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "move credentials between projects"
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "listparams",
       children: (0,jsx_runtime.jsx)(_components.code, {
         children: "list(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List folders in the project."
+      children: "List credentials."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.folder('proj-123').list({\n  limit: 10,\n  filter: 'name',\n  sortBy: 'name:asc',\n});\n"
+        children: "const { data, nextCursor } = await client.credential().list({\n  limit: 10,\n  cursor: 'abc123',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getfolderid",
+      id: "getid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "get(folderId)"
+        children: "get(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get a folder by ID."
+      children: "Get a credential by ID."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const folder = await client.folder('proj-123').get('folder-456');\n"
+        children: "const credential = await client.credential().get('cred-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
@@ -137,35 +168,79 @@ function _createMdxContent(props) {
         children: "create(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create a new folder."
+      children: "Create a new credential."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const folder = await client.folder('proj-123').create({\n  name: 'Production Workflows',\n});\n"
+        children: "const created = await client.credential().create({\n  name: 'AWS Credentials',\n  type: 'aws',\n  data: { accessKey: 'AKIA123', secretKey: 'secret456' }, // pragma: allowlist secret\n  projectId: 'proj-1',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "updatefolderid-data",
+      id: "updateid-data",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "update(folderId, data)"
+        children: "update(id, data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a folder."
+      children: "Update a credential."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const updated = await client.folder('proj-123').update('folder-456', {\n  name: 'Prod Workflows',\n});\n"
+        children: "const updated = await client.credential().update('cred-123', {\n  name: 'Updated AWS Credentials',\n  data: { accessKey: 'AKIA789', secretKey: 'newsecret' }, // pragma: allowlist secret\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "deletefolderid-transfertofolderid",
+      id: "deleteid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "delete(folderId, transferToFolderId?)"
+        children: "delete(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a folder, optionally transferring its contents to another folder."
+      children: "Delete a credential."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.folder('proj-123').delete('folder-456');\n// or transfer contents first\nawait client.folder('proj-123').delete('folder-456', 'other-folder-789');\n"
+        children: "const deleted = await client.credential().delete('cred-123');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "testid",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "test(id)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Test a credential's connection."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const result = await client.credential().test('cred-123');\n// result.status, result.message\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "transferid-destinationprojectid",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "transfer(id, destinationProjectId)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Move a credential to another project."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "await client.credential().transfer('cred-123', 'proj-456');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "getschemacredentialtypename",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "getSchema(credentialTypeName)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Get the schema for a credential type."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const schema = await client.credential().getSchema('httpHeaderAuth');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "typical-flow",
+      children: "Typical Flow"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const credential = client.credential();\n\nconst created = await credential.create({\n  name: 'Internal API Token',\n  type: 'httpHeaderAuth',\n  data: {\n    name: 'Authorization',\n    value: 'Bearer token',\n  },\n});\n\nawait credential.test(created.id);\n"
       })
     })]
   });

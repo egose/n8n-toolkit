@@ -66,8 +66,12 @@ const toc = [{
   "id": "4-zero-dependencies",
   "level": 3
 }, {
-  "value": "5. Flat, Predictable API",
-  "id": "5-flat-predictable-api",
+  "value": "5. Strict Where It Matters",
+  "id": "5-strict-where-it-matters",
+  "level": 3
+}, {
+  "value": "6. Flat, Predictable API",
+  "id": "6-flat-predictable-api",
   "level": 3
 }, {
   "value": "Summary",
@@ -118,6 +122,8 @@ function _createMdxContent(props) {
         children: "Remembering query parameter names for pagination, filtering, and sorting."
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
         children: "Building retry logic for rate limits, timeouts, and server errors."
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "Recreating request and response types in every codebase that wants safer integrations."
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
@@ -192,8 +198,23 @@ function _createMdxContent(props) {
         children: "fetch"
       }), ". No axios, no node-fetch, no extra packages to audit or maintain."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "5-flat-predictable-api",
-      children: "5. Flat, Predictable API"
+      id: "5-strict-where-it-matters",
+      children: "5. Strict Where It Matters"
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "The client is intentionally opinionated in a few places:"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "exactly one authentication method must be configured"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "handles follow the public API instead of inventing idempotent helpers"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "unsupported endpoints are not added for convenience"
+      }), "\n"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "That keeps the library honest to the n8n API instead of becoming a parallel abstraction layer."
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "6-flat-predictable-api",
+      children: "6. Flat, Predictable API"
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "n8n's API is flat. The client mirrors this:"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
@@ -237,6 +258,10 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
           children: "Dependency-free"
         }), " — native fetch, nothing else"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Spec-aligned"
+        }), " — the client prefers documented behavior over convenience-only abstractions"]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "It's a developer experience layer on top of the n8n REST API — perfect for automation scripts, CI/CD pipelines, admin tooling, and production integrations."

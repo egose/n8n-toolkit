@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["135"], {
-8340(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["175"], {
+2096(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_source_control_mdx_e8c_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_audit_mdx_baf_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-source-control-mdx-e8c.json
-var site_docs_api_source_control_mdx_e8c_namespaceObject = JSON.parse('{"id":"api/source-control","title":"Source Control API","description":"SourceControlHandle manages git-based source control operations.","source":"@site/docs/api/source-control.mdx","sourceDirName":"api","slug":"/api/source-control","permalink":"/api/source-control","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":13,"frontMatter":{"sidebar_label":"Source Control","sidebar_position":13},"sidebar":"api","previous":{"title":"Insights","permalink":"/api/insights"},"next":{"title":"Discover","permalink":"/api/discover"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-audit-mdx-baf.json
+var site_docs_api_audit_mdx_baf_namespaceObject = JSON.parse('{"id":"api/audit","title":"Audit API","description":"AuditHandle generates audit reports for your n8n instance.","source":"@site/docs/api/audit.mdx","sourceDirName":"api","slug":"/api/audit","permalink":"/api/audit","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":11,"frontMatter":{"sidebar_label":"Audit","sidebar_position":11},"sidebar":"api","previous":{"title":"Community Package","permalink":"/api/community-package"},"next":{"title":"Insights","permalink":"/api/insights"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/source-control.mdx
+;// CONCATENATED MODULE: ./docs/api/audit.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Source Control',
-	sidebar_position: 13
+	sidebar_label: 'Audit',
+	sidebar_position: 11
 };
-const contentTitle = 'Source Control API';
+const contentTitle = 'Audit API';
 
 const assets = {
 
@@ -44,8 +44,12 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
-  "value": "<code>pull(data?)</code>",
-  "id": "pulldata",
+  "value": "Common Tasks",
+  "id": "common-tasks",
+  "level": 2
+}, {
+  "value": "<code>generate(data?)</code>",
+  "id": "generatedata",
   "level": 3
 }];
 function _createMdxContent(props) {
@@ -55,44 +59,67 @@ function _createMdxContent(props) {
     h2: "h2",
     h3: "h3",
     header: "header",
+    li: "li",
     p: "p",
     pre: "pre",
+    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "source-control-api",
-        children: "Source Control API"
+        id: "audit-api",
+        children: "Audit API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "SourceControlHandle"
-      }), " manages git-based source control operations."]
+        children: "AuditHandle"
+      }), " generates audit reports for your n8n instance."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Audit reports are grouped by risk category and are useful for operational reviews, credential hygiene checks, and identifying risky node usage."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const sourceControl = client.sourceControl();\n"
+        children: "const audit = client.audit();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "common-tasks",
+      children: "Common Tasks"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "generate a full audit report for the instance"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "limit the report to selected risk categories"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "review credential, filesystem, node, database, and instance findings"
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "pulldata",
+      id: "generatedata",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "pull(data?)"
+        children: "generate(data?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Pull changes from the remote source control repository."
+      children: "Generate an audit report."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const files = await client.sourceControl().pull({\n  // Optional pull parameters\n});\n// files is SourceControlledFile[]\n"
+        children: "const report = await client.audit().generate({\n  additionalOptions: {\n    categories: ['credentials', 'nodes', 'filesystem'],\n    daysAbandonedWorkflow: 90,\n  },\n});\n"
       })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["The response is grouped into report sections such as ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "Credentials Risk Report"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "Nodes Risk Report"
+      }), ", and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "Instance Risk Report"
+      }), " when those findings are present."]
     })]
   });
 }

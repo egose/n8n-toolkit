@@ -44,6 +44,10 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
+  "value": "Common Tasks",
+  "id": "common-tasks",
+  "level": 2
+}, {
   "value": "<code>getSummary(params?)</code>",
   "id": "getsummaryparams",
   "level": 3
@@ -55,8 +59,10 @@ function _createMdxContent(props) {
     h2: "h2",
     h3: "h3",
     header: "header",
+    li: "li",
     p: "p",
     pre: "pre",
+    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
@@ -70,6 +76,8 @@ function _createMdxContent(props) {
       children: [(0,jsx_runtime.jsx)(_components.code, {
         children: "InsightsHandle"
       }), " retrieves execution insights and summaries."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Use this handle for reporting and dashboards rather than per-execution inspection."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
@@ -81,6 +89,17 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "common-tasks",
+      children: "Common Tasks"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "fetch a summary for a date range"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "compare project activity over time"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "drive dashboards with failure rate and runtime metrics"
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "getsummaryparams",
       children: (0,jsx_runtime.jsx)(_components.code, {
@@ -91,7 +110,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const summary = await client.insights().getSummary({\n  startDate: '2024-01-01',\n  endDate: '2024-01-31',\n  projectId: 'proj-123',\n});\n"
+        children: "const summary = await client.insights().getSummary({\n  startDate: '2024-01-01T00:00:00Z',\n  endDate: '2024-01-31T23:59:59Z',\n  projectId: 'proj-123',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "The summary includes execution counts, success rates, and performance metrics."

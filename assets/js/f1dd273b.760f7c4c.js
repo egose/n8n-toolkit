@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-about-quick-start-mdx-f1d.json
-var site_docs_about_quick_start_mdx_f1d_namespaceObject = JSON.parse('{"id":"about/quick-start","title":"Quick Start","description":"Installation","source":"@site/docs/about/quick-start.mdx","sourceDirName":"about","slug":"/about/quick-start","permalink":"/about/quick-start","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":1,"frontMatter":{"sidebar_label":"Quick Start","sidebar_position":1},"sidebar":"about","previous":{"title":"Philosophy","permalink":"/about/philosophy"}}')
+var site_docs_about_quick_start_mdx_f1d_namespaceObject = JSON.parse('{"id":"about/quick-start","title":"Quick Start","description":"n8n-client is easiest to understand if you think in three steps:","source":"@site/docs/about/quick-start.mdx","sourceDirName":"about","slug":"/about/quick-start","permalink":"/about/quick-start","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":1,"frontMatter":{"sidebar_label":"Quick Start","sidebar_position":1},"sidebar":"about","previous":{"title":"Philosophy","permalink":"/about/philosophy"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -58,6 +58,10 @@ const toc = [{
   "id": "bearer-token-jwt",
   "level": 3
 }, {
+  "value": "First Script",
+  "id": "first-script",
+  "level": 2
+}, {
   "value": "Basic Usage",
   "id": "basic-usage",
   "level": 2
@@ -77,6 +81,10 @@ const toc = [{
   "value": "Manage Executions",
   "id": "manage-executions",
   "level": 3
+}, {
+  "value": "How The API Surface Is Organized",
+  "id": "how-the-api-surface-is-organized",
+  "level": 2
 }, {
   "value": "Organize with Projects",
   "id": "organize-with-projects",
@@ -99,6 +107,7 @@ function _createMdxContent(props) {
     h3: "h3",
     header: "header",
     li: "li",
+    ol: "ol",
     p: "p",
     pre: "pre",
     strong: "strong",
@@ -118,6 +127,26 @@ function _createMdxContent(props) {
         id: "quick-start",
         children: "Quick Start"
       })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "n8n-client"
+      }), " is easiest to understand if you think in three steps:"]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ol, {
+      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Create ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "N8nClient"
+        }), " with your n8n base URL and one authentication method."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Pick a typed handle such as ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "workflow()"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "execution()"
+        }), ", or ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "project()"
+        }), "."]
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "Call methods that map directly to the public API without hand-writing HTTP requests."
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "installation",
       children: "Installation"
@@ -168,6 +197,8 @@ function _createMdxContent(props) {
       }), " and ", (0,jsx_runtime.jsx)(_components.strong, {
         children: "Bearer token"
       }), "."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Use exactly one of them. The client rejects configurations that provide both or neither."
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "api-key-recommended",
       children: "API Key (recommended)"
@@ -183,6 +214,16 @@ function _createMdxContent(props) {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
         children: "const client = new N8nClient({\n  baseUrl: 'http://localhost:5678',\n  bearerToken: 'your-jwt-token',\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "first-script",
+      children: "First Script"
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "This is the smallest useful script for checking that your instance URL, credentials, and client setup are correct:"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "import N8nClient from '@egose/n8n-client';\n\nconst client = new N8nClient({\n  baseUrl: 'http://localhost:5678',\n  apiKey: process.env.N8N_API_KEY!,\n});\n\nconst { data: workflows } = await client.workflow().list({ limit: 5 });\n\nfor (const workflow of workflows) {\n  console.log(`${workflow.id} ${workflow.name}`);\n}\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "basic-usage",
@@ -219,6 +260,31 @@ function _createMdxContent(props) {
         className: "language-ts",
         children: "// List error executions\nconst { data: errors } = await client.execution().list({\n  status: 'error',\n  workflowId: 'workflow-id',\n});\n\n// Stop a running execution\nawait client.execution().stop(executionId);\n"
       })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "how-the-api-surface-is-organized",
+      children: "How The API Surface Is Organized"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "client.workflow()"
+        }), " for workflow lifecycle and tagging."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "client.execution()"
+        }), " for monitoring, retrying, and stopping runs."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "client.project()"
+        }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "client.folder(projectId)"
+        }), " for structure and access control."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "client.get()"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "client.post()"
+        }), ", and the other low-level helpers only when you intentionally need to drop below a typed handle."]
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "organize-with-projects",
       children: "Organize with Projects"
@@ -435,6 +501,11 @@ function _createMdxContent(props) {
           href: "/api/n8n-client/",
           children: "API Reference"
         }), " for the full method surface."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Read ", (0,jsx_runtime.jsx)(_components.a, {
+          href: "/about/philosophy/",
+          children: "Philosophy"
+        }), " if you want the design rationale behind handles, retries, and low-level request helpers."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: ["Check out ", (0,jsx_runtime.jsx)(_components.a, {
           href: "/example/overview/",

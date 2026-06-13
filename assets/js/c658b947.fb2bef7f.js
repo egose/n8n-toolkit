@@ -44,6 +44,10 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
+  "value": "Common Tasks",
+  "id": "common-tasks",
+  "level": 2
+}, {
   "value": "<code>get(params?)</code>",
   "id": "getparams",
   "level": 3
@@ -55,8 +59,10 @@ function _createMdxContent(props) {
     h2: "h2",
     h3: "h3",
     header: "header",
+    li: "li",
     p: "p",
     pre: "pre",
+    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
@@ -70,6 +76,8 @@ function _createMdxContent(props) {
       children: [(0,jsx_runtime.jsx)(_components.code, {
         children: "DiscoverHandle"
       }), " discovers available resources and operations in the n8n instance."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "This is especially useful for tooling, schema-aware integrations, or admin interfaces that need to adapt to the caller's scopes."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
@@ -81,6 +89,17 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "common-tasks",
+      children: "Common Tasks"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "inspect what the current credentials are allowed to access"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "fetch request schemas for dynamic tools or generators"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "filter to a single resource or operation family"
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "getparams",
       children: (0,jsx_runtime.jsx)(_components.code, {
@@ -93,6 +112,26 @@ function _createMdxContent(props) {
         className: "language-ts",
         children: "const resources = await client.discover().get({\n  include: 'schemas',\n  resource: 'workflow',\n  operation: 'list',\n});\n"
       })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "The response includes:"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "data.scopes"
+        }), ": active scopes for the current credentials"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "data.resources"
+        }), ": grouped operations and endpoints"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "data.filters"
+        }), ": filter metadata for discovery queries"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "data.specUrl"
+        }), ": URL for the full OpenAPI document"]
+      }), "\n"]
     })]
   });
 }

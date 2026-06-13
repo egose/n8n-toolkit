@@ -44,6 +44,10 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
+  "value": "Common Tasks",
+  "id": "common-tasks",
+  "level": 2
+}, {
   "value": "<code>list(params?)</code>",
   "id": "listparams",
   "level": 3
@@ -107,6 +111,10 @@ const toc = [{
   "value": "<code>deleteColumn(dataTableId, columnId)</code>",
   "id": "deletecolumndatatableid-columnid",
   "level": 3
+}, {
+  "value": "Return Type Narrowing",
+  "id": "return-type-narrowing",
+  "level": 2
 }];
 function _createMdxContent(props) {
   const _components = {
@@ -115,8 +123,10 @@ function _createMdxContent(props) {
     h2: "h2",
     h3: "h3",
     header: "header",
+    li: "li",
     p: "p",
     pre: "pre",
+    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
@@ -130,6 +140,12 @@ function _createMdxContent(props) {
       children: [(0,jsx_runtime.jsx)(_components.code, {
         children: "DataTableHandle"
       }), " manages n8n data tables — tables, columns, and rows with filtering and upsert support."]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["This is one of the most flexible handles in the client. The row methods have typed overloads so the return type changes based on flags like ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "returnType"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "returnData"
+      }), "."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
@@ -141,6 +157,21 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "common-tasks",
+      children: "Common Tasks"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "create tables for lightweight operational data"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "insert rows in batches"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "update rows with filters"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "upsert one logical record based on a filter"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "manage table columns separately from row data"
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "listparams",
       children: (0,jsx_runtime.jsx)(_components.code, {
@@ -175,7 +206,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const table = await client.dataTable().create({\n  name: 'User Events',\n  columns: [\n    { name: 'event', type: 'string' },\n    { name: 'timestamp', type: 'datetime' },\n  ],\n});\n"
+        children: "const table = await client.dataTable().create({\n  name: 'User Events',\n  columns: [\n    { name: 'event', type: 'string' },\n    { name: 'createdAt', type: 'date' },\n  ],\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updateid-data",
@@ -226,7 +257,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const result = await client.dataTable().insertRows('dt-123', {\n  rows: [\n    { event: 'login', timestamp: '2024-01-01T00:00:00Z' },\n    { event: 'logout', timestamp: '2024-01-01T01:00:00Z' },\n  ],\n});\n"
+        children: "const rowIds = await client.dataTable().insertRows('dt-123', {\n  data: [\n    { event: 'login', createdAt: '2024-01-01T00:00:00Z' },\n    { event: 'logout', createdAt: '2024-01-01T01:00:00Z' },\n  ],\n  returnType: 'id',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updaterowsdatatableid-data",
@@ -238,7 +269,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const result = await client.dataTable().updateRows('dt-123', {\n  filter: 'event=login',\n  updates: { event: 'sign_in' },\n});\n"
+        children: "const updatedRows = await client.dataTable().updateRows('dt-123', {\n  filter: {\n    filters: [{ columnName: 'event', condition: 'eq', value: 'login' }],\n  },\n  data: { event: 'sign_in' },\n  returnData: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "upsertrowdatatableid-data",
@@ -250,7 +281,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const row = await client.dataTable().upsertRow('dt-123', {\n  filter: 'event=login',\n  row: { event: 'login', timestamp: '2024-01-01T00:00:00Z' },\n});\n"
+        children: "const row = await client.dataTable().upsertRow('dt-123', {\n  filter: {\n    filters: [{ columnName: 'event', condition: 'eq', value: 'login' }],\n  },\n  data: { event: 'login', createdAt: '2024-01-01T00:00:00Z' },\n  returnData: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleterowsdatatableid-params",
@@ -262,7 +293,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const result = await client.dataTable().deleteRows('dt-123', {\n  filter: 'event=logout',\n  returnData: true,\n  dryRun: false,\n});\n"
+        children: "const result = await client.dataTable().deleteRows('dt-123', {\n  filter: JSON.stringify({\n    type: 'and',\n    filters: [{ columnName: 'event', condition: 'eq', value: 'logout' }],\n  }),\n  returnData: true,\n  dryRun: false,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "column-operations",
@@ -314,6 +345,16 @@ function _createMdxContent(props) {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
         children: "await client.dataTable().deleteColumn('dt-123', 'col-1');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "return-type-narrowing",
+      children: "Return Type Narrowing"
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Some row operations change their return type based on the request flags:"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const count = await client.dataTable().insertRows('dt-123', {\n  data: [{ event: 'login' }],\n});\n// { count: number }\n\nconst ids = await client.dataTable().insertRows('dt-123', {\n  data: [{ event: 'login' }],\n  returnType: 'id',\n});\n// number[]\n"
       })
     })]
   });

@@ -44,11 +44,15 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
+  "value": "Common Tasks",
+  "id": "common-tasks",
+  "level": 2
+}, {
   "value": "<code>exportWorkflows(data)</code>",
   "id": "exportworkflowsdata",
   "level": 3
 }, {
-  "value": "<code>importPackage(pkg, options?)</code>",
+  "value": "<code>importPackage(pkg, options)</code>",
   "id": "importpackagepkg-options",
   "level": 3
 }, {
@@ -64,6 +68,7 @@ function _createMdxContent(props) {
     h3: "h3",
     h4: "h4",
     header: "header",
+    li: "li",
     p: "p",
     pre: "pre",
     table: "table",
@@ -72,6 +77,7 @@ function _createMdxContent(props) {
     th: "th",
     thead: "thead",
     tr: "tr",
+    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
@@ -85,6 +91,8 @@ function _createMdxContent(props) {
       children: [(0,jsx_runtime.jsx)(_components.code, {
         children: "N8nPackageHandle"
       }), " manages workflow import and export packages."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "This handle is beta-aligned with the public API and is useful when you need to move groups of workflows between instances or environments."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
@@ -96,6 +104,17 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "common-tasks",
+      children: "Common Tasks"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "export one or more workflows as a gzipped package"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "import a package into a target project or folder"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "decide how workflow conflicts should be handled during import"
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "exportworkflowsdata",
       children: (0,jsx_runtime.jsx)(_components.code, {
@@ -111,7 +130,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "importpackagepkg-options",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "importPackage(pkg, options?)"
+        children: "importPackage(pkg, options)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "Import a workflow package (zip file)."
@@ -120,6 +139,10 @@ function _createMdxContent(props) {
         className: "language-ts",
         children: "const result = await client.n8nPackage().importPackage(\n  fileBlob,\n  {\n    projectId: 'proj-123',\n    folderId: 'folder-456',\n    credentialMatchingMode: 'id-only',\n    credentialMissingMode: 'must-preexist',\n    workflowConflictPolicy: 'new-version',\n  },\n);\n"
       })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "workflowConflictPolicy"
+      }), " is required. Use it to make import behavior explicit instead of relying on defaults."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h4, {
       id: "import-options",
       children: "Import Options"
