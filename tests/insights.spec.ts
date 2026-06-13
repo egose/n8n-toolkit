@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import InsightsHandle from '../src/handles/insights';
+import InsightsClient from '../src/clients/insights';
 import { createMockHttpClient } from './test-utils';
 
 describe('Implementation Consistency: Insights', () => {
@@ -12,7 +12,7 @@ describe('Implementation Consistency: Insights', () => {
       averageRunTime: { value: 3000, deviation: null, unit: 'millisecond' },
     };
     const http = createMockHttpClient([{ body: summary }]);
-    const handle = new InsightsHandle(http);
+    const handle = new InsightsClient(http);
 
     const result = await handle.getSummary({
       startDate: '2024-01-01T00:00:00Z',

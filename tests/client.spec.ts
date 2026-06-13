@@ -5,12 +5,12 @@ import { HttpClient } from '../src/http-client';
 describe('N8nClient', () => {
   test('creates client with API key config', () => {
     const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
-    expect(client.workflow()).toBeDefined();
+    expect(client.workflows()).toBeDefined();
   });
 
   test('creates client with bearer token config', () => {
     const client = new N8nClient({ baseUrl: 'http://localhost:5678', bearerToken: 'test-token' });
-    expect(client.execution()).toBeDefined();
+    expect(client.executions()).toBeDefined();
   });
 
   test('rejects config with both auth methods', () => {
@@ -25,18 +25,18 @@ describe('N8nClient', () => {
     );
   });
 
-  test('resource handles are created from client', () => {
+  test('resource clients are created from client', () => {
     const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
-    expect(client.workflow()).toBeDefined();
-    expect(client.execution()).toBeDefined();
-    expect(client.credential()).toBeDefined();
-    expect(client.tag()).toBeDefined();
-    expect(client.user()).toBeDefined();
-    expect(client.variable()).toBeDefined();
-    expect(client.project()).toBeDefined();
-    expect(client.dataTable()).toBeDefined();
-    expect(client.folder('proj-1')).toBeDefined();
-    expect(client.communityPackage()).toBeDefined();
+    expect(client.workflows()).toBeDefined();
+    expect(client.executions()).toBeDefined();
+    expect(client.credentials()).toBeDefined();
+    expect(client.tags()).toBeDefined();
+    expect(client.users()).toBeDefined();
+    expect(client.variables()).toBeDefined();
+    expect(client.projects()).toBeDefined();
+    expect(client.dataTables()).toBeDefined();
+    expect(client.folders('proj-1')).toBeDefined();
+    expect(client.communityPackages()).toBeDefined();
     expect(client.audit()).toBeDefined();
     expect(client.insights()).toBeDefined();
     expect(client.sourceControl()).toBeDefined();

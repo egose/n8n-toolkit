@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import AuditHandle from '../src/handles/audit';
+import AuditClient from '../src/clients/audit';
 import { createMockHttpClient } from './test-utils';
 
 describe('Implementation Consistency: Audit', () => {
@@ -9,7 +9,7 @@ describe('Implementation Consistency: Audit', () => {
       'Database Risk Report': { risk: 'medium', sections: [] },
     };
     const http = createMockHttpClient([{ body: auditResult }]);
-    const handle = new AuditHandle(http);
+    const handle = new AuditClient(http);
 
     const result = await handle.generate({ additionalOptions: { daysAbandonedWorkflow: 30 } });
 
@@ -19,7 +19,7 @@ describe('Implementation Consistency: Audit', () => {
 
   test('generate without params calls POST /audit with undefined body', async () => {
     const http = createMockHttpClient([{ body: {} }]);
-    const handle = new AuditHandle(http);
+    const handle = new AuditClient(http);
 
     await handle.generate();
 

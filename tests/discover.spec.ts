@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import DiscoverHandle from '../src/handles/discover';
+import DiscoverClient from '../src/clients/discover';
 import { createMockHttpClient } from './test-utils';
 
 describe('Implementation Consistency: Discover', () => {
@@ -8,7 +8,7 @@ describe('Implementation Consistency: Discover', () => {
       data: { scopes: [], resources: {}, filters: {}, specUrl: '/api/v1/spec' },
     };
     const http = createMockHttpClient([{ body: discover }]);
-    const handle = new DiscoverHandle(http);
+    const handle = new DiscoverClient(http);
 
     const result = await handle.get();
 
@@ -18,7 +18,7 @@ describe('Implementation Consistency: Discover', () => {
 
   test('get with params passes query', async () => {
     const http = createMockHttpClient([{ body: { data: { scopes: [], resources: {}, filters: {}, specUrl: '' } } }]);
-    const handle = new DiscoverHandle(http);
+    const handle = new DiscoverClient(http);
 
     await handle.get({ include: 'schemas', resource: 'workflows', operation: 'getWorkflows' });
 

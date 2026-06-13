@@ -5,12 +5,12 @@ sidebar_position: 5
 
 # User API
 
-`UserHandle` manages n8n users — list, get, create, delete, and change roles.
+`UserClient` manages n8n users — list, get, create, delete, and change roles.
 
 ## Access
 
 ```ts
-const user = client.user();
+const user = client.users();
 ```
 
 ## Methods
@@ -20,7 +20,7 @@ const user = client.user();
 List users with optional filters.
 
 ```ts
-const { data, nextCursor } = await client.user().list({
+const { data, nextCursor } = await client.users().list({
   limit: 10,
   offset: 0,
   includeRole: true,
@@ -33,7 +33,7 @@ const { data, nextCursor } = await client.user().list({
 Get a user by ID.
 
 ```ts
-const user = await client.user().get('user-123', { includeRole: true });
+const user = await client.users().get('user-123', { includeRole: true });
 ```
 
 ### `create(data)`
@@ -41,7 +41,7 @@ const user = await client.user().get('user-123', { includeRole: true });
 Create one or more users.
 
 ```ts
-const result = await client.user().create([
+const result = await client.users().create([
   { email: 'alice@example.com', role: 'global:member' },
   { email: 'bob@example.com', role: 'global:admin' },
 ]);
@@ -53,7 +53,7 @@ const result = await client.user().create([
 Delete a user.
 
 ```ts
-await client.user().delete('user-123');
+await client.users().delete('user-123');
 ```
 
 ### `changeRole(id, newRoleName)`
@@ -61,5 +61,5 @@ await client.user().delete('user-123');
 Change a user's global role.
 
 ```ts
-await client.user().changeRole('user-123', 'global:admin');
+await client.users().changeRole('user-123', 'global:admin');
 ```

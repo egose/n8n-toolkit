@@ -1,8 +1,8 @@
 import type { HttpClient } from '../http-client.js';
 import type { ExportWorkflowsRequest, ImportPackageOptions, ImportPackageResponse } from '../types.js';
-import BaseHandle from './base.js';
+import BaseClient from './base.js';
 
-export default class N8nPackageHandle extends BaseHandle {
+export default class N8nPackageClient extends BaseClient {
   async exportWorkflows(data: ExportWorkflowsRequest): Promise<ArrayBuffer> {
     return this.http.post<ArrayBuffer>('/n8n-packages/export', data, undefined, { Accept: 'application/gzip' });
   }

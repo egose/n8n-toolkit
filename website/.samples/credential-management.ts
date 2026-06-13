@@ -7,7 +7,7 @@ const client = new N8nClient({
 
 // ─── Create Credentials ─────────────────────────────────────────────────────
 
-const apiKeyCred = await client.credential().create({
+const apiKeyCred = await client.credentials().create({
   name: 'Service API Key',
   type: 'httpHeaderAuth',
   data: {
@@ -17,7 +17,7 @@ const apiKeyCred = await client.credential().create({
 });
 console.log(`Created API key credential: ${apiKeyCred.id}`);
 
-const dbCred = await client.credential().create({
+const dbCred = await client.credentials().create({
   name: 'PostgreSQL Connection',
   type: 'postgresDb',
   data: {
@@ -33,12 +33,12 @@ console.log(`Created DB credential: ${dbCred.id}`);
 
 // ─── List Credentials ───────────────────────────────────────────────────────
 
-const { data: credentials } = await client.credential().list({ limit: 20 });
+const { data: credentials } = await client.credentials().list({ limit: 20 });
 console.log(`Total credentials: ${credentials.length}`);
 
 // ─── Test Credentials ───────────────────────────────────────────────────────
 
-const testResult = await client.credential().test(apiKeyCred.id);
+const testResult = await client.credentials().test(apiKeyCred.id);
 if (testResult.success) {
   console.log('API key credential is valid');
 } else {
@@ -47,7 +47,7 @@ if (testResult.success) {
 
 // ─── Update Credentials ─────────────────────────────────────────────────────
 
-const updated = await client.credential().update(apiKeyCred.id, {
+const updated = await client.credentials().update(apiKeyCred.id, {
   name: 'Production API Key',
   data: {
     headerName: 'X-API-Key',
@@ -58,15 +58,15 @@ console.log(`Updated credential: ${updated.name}`);
 
 // ─── Get Credential Schema ──────────────────────────────────────────────────
 
-const schema = await client.credential().getSchema('httpHeaderAuth');
+const schema = await client.credentials().getSchema('httpHeaderAuth');
 console.log('HTTP Header Auth schema:', Object.keys(schema));
 
 // ─── Transfer Credential ────────────────────────────────────────────────────
 
-await client.credential().transfer(dbCred.id, 'target-project-id');
+await client.credentials().transfer(dbCred.id, 'target-project-id');
 console.log('Credential transferred to another project');
 
 // ─── Delete Credential ──────────────────────────────────────────────────────
 
-const deleted = await client.credential().delete(apiKeyCred.id);
+const deleted = await client.credentials().delete(apiKeyCred.id);
 console.log(`Deleted credential: ${deleted.id}`);

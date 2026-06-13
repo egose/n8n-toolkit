@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import SourceControlHandle from '../src/handles/source-control';
+import SourceControlClient from '../src/clients/source-control';
 import { createMockHttpClient } from './test-utils';
 
 describe('Implementation Consistency: SourceControl', () => {
@@ -17,7 +17,7 @@ describe('Implementation Consistency: SourceControl', () => {
       },
     ];
     const http = createMockHttpClient([{ body: files }]);
-    const handle = new SourceControlHandle(http);
+    const handle = new SourceControlClient(http);
 
     const result = await handle.pull({ force: false, autoPublish: 'none' });
 
@@ -27,7 +27,7 @@ describe('Implementation Consistency: SourceControl', () => {
 
   test('pull requires a request body', async () => {
     const http = createMockHttpClient([{ body: [] }]);
-    const handle = new SourceControlHandle(http);
+    const handle = new SourceControlClient(http);
 
     await handle.pull({});
 

@@ -1,7 +1,7 @@
 import type { InsightsSummary, InsightsSummaryParams } from '../types.js';
-import BaseHandle from './base.js';
+import BaseClient from './base.js';
 
-export default class InsightsHandle extends BaseHandle {
+export default class InsightsClient extends BaseClient {
   async getSummary(params?: InsightsSummaryParams): Promise<InsightsSummary> {
     return this.http.get<InsightsSummary>('/insights/summary', params);
   }

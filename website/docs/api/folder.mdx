@@ -5,16 +5,16 @@ sidebar_position: 9
 
 # Folder API
 
-`FolderHandle` manages project-scoped folders. Folders are always scoped to a project.
+`FolderClient` manages project-scoped folders. Folders are always scoped to a project.
 
 ## Access
 
 ```ts
-const folder = client.folder('project-id');
+const folder = client.folders('project-id');
 ```
 
 :::note
-Unlike other handles, `FolderHandle` requires a `projectId` at construction time because folder endpoints are project-scoped.
+Unlike other resource clients, `FolderClient` requires a `projectId` at construction time because folder endpoints are project-scoped.
 :::
 
 ## Methods
@@ -31,7 +31,7 @@ Unlike other handles, `FolderHandle` requires a `projectId` at construction time
 List folders in the project.
 
 ```ts
-const { data } = await client.folder('proj-123').list({
+const { data } = await client.folders('proj-123').list({
   limit: 10,
   filter: 'name',
   sortBy: 'name:asc',
@@ -43,7 +43,7 @@ const { data } = await client.folder('proj-123').list({
 Get a folder by ID.
 
 ```ts
-const folder = await client.folder('proj-123').get('folder-456');
+const folder = await client.folders('proj-123').get('folder-456');
 ```
 
 ### `create(data)`
@@ -51,7 +51,7 @@ const folder = await client.folder('proj-123').get('folder-456');
 Create a new folder.
 
 ```ts
-const folder = await client.folder('proj-123').create({
+const folder = await client.folders('proj-123').create({
   name: 'Production Workflows',
 });
 ```
@@ -61,7 +61,7 @@ const folder = await client.folder('proj-123').create({
 Update a folder.
 
 ```ts
-const updated = await client.folder('proj-123').update('folder-456', {
+const updated = await client.folders('proj-123').update('folder-456', {
   name: 'Prod Workflows',
 });
 ```
@@ -71,15 +71,15 @@ const updated = await client.folder('proj-123').update('folder-456', {
 Delete a folder, optionally transferring its contents to another folder.
 
 ```ts
-await client.folder('proj-123').delete('folder-456');
+await client.folders('proj-123').delete('folder-456');
 // or transfer contents first
-await client.folder('proj-123').delete('folder-456', 'other-folder-789');
+await client.folders('proj-123').delete('folder-456', 'other-folder-789');
 ```
 
 ## Typical Flow
 
 ```ts
-const folder = client.folder('proj-123');
+const folder = client.folders('proj-123');
 
 const created = await folder.create({ name: 'Ops Workflows' });
 await folder.update(created.id, { name: 'Operations Workflows' });

@@ -6,7 +6,7 @@ import YAML from 'yaml';
 
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const OPENAPI_PATH = join(REPO_ROOT, '.public-api/v1/openapi.yml');
-const HANDLES_DIR = join(REPO_ROOT, 'src/handles');
+const CLIENTS_DIR = join(REPO_ROOT, 'src/clients');
 const METHOD_KEYS = ['get', 'post', 'put', 'patch', 'delete'] as const;
 
 interface OpenApiDocument {
@@ -53,15 +53,15 @@ function readSpecOperations(): Set<string> {
   return operations;
 }
 
-function readHandleOperations(): Set<string> {
+function readClientOperations(): Set<string> {
   const operations = new Set<string>();
 
-  for (const fileName of readdirSync(HANDLES_DIR)) {
+  for (const fileName of readdirSync(CLIENTS_DIR)) {
     if (!fileName.endsWith('.ts')) {
       continue;
     }
 
-    const source = readFileSync(join(HANDLES_DIR, fileName), 'utf8');
+    const source = readFileSync(join(CLIENTS_DIR, fileName), 'utf8');
 
     const directCallRegex = /this\.http\.(get|post|put|patch|delete)(?:<[^\n]+?>)?\(\s*([`'"])(.*?)\2/gs;
     for (const match of source.matchAll(directCallRegex)) {
@@ -87,12 +87,12 @@ function readHandleOperations(): Set<string> {
 }
 
 describe('Spec coverage', () => {
-  test('handle operations cover the documented public API paths', () => {
+  test('client operations cover the documented public API paths', () => {
     const specOperations = readSpecOperations();
-    const handleOperations = readHandleOperations();
+    const clientOperations = readClientOperations();
 
-    const missing = [...specOperations].filter((operation) => !handleOperations.has(operation));
-    const extra = [...handleOperations].filter((operation) => !specOperations.has(operation));
+    const missing = [...specOperations].filter((operation) => !clientOperations.has(operation));
+    const extra = [...clientOperations].filter((operation) => !specOperations.has(operation));
 
     expect(missing).toEqual([]);
     expect(extra).toEqual([]);

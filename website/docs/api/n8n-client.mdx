@@ -5,9 +5,9 @@ sidebar_position: 0
 
 # N8nClient API
 
-`N8nClient` is the root entry point. It creates an HTTP client and provides access to all 15 resource handles.
+`N8nClient` is the root entry point. It creates an HTTP client and provides access to all 15 resource clients.
 
-Use this page when you want to understand the shape of the client itself: configuration, handle access, low-level request helpers, and error behavior.
+Use this page when you want to understand the shape of the client itself: configuration, collection client access, low-level request helpers, and error behavior.
 
 ## Constructor
 
@@ -40,36 +40,36 @@ const client = new N8nClient({
   apiKey: process.env.N8N_API_KEY!,
 });
 
-const { data: workflows } = await client.workflow().list({ limit: 10 });
+const { data: workflows } = await client.workflows().list({ limit: 10 });
 ```
 
-## Resource Handles
+## Resource Clients
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `workflow()` | `WorkflowHandle` | Workflow management |
-| `execution()` | `ExecutionHandle` | Execution monitoring |
-| `credential()` | `CredentialHandle` | Credential management |
-| `tag()` | `TagHandle` | Tag management |
-| `user()` | `UserHandle` | User management |
-| `variable()` | `VariableHandle` | Variable management |
-| `project()` | `ProjectHandle` | Project management |
-| `dataTable()` | `DataTableHandle` | Data table management |
-| `folder(projectId)` | `FolderHandle` | Folder management (project-scoped) |
-| `communityPackage()` | `CommunityPackageHandle` | Community package management |
-| `audit()` | `AuditHandle` | Audit report generation |
-| `insights()` | `InsightsHandle` | Execution insights |
-| `sourceControl()` | `SourceControlHandle` | Source control operations |
-| `discover()` | `DiscoverHandle` | Resource discovery |
-| `n8nPackage()` | `N8nPackageHandle` | Package import/export |
+| `workflows()` | `WorkflowClient` | Workflow management |
+| `executions()` | `ExecutionClient` | Execution monitoring |
+| `credentials()` | `CredentialClient` | Credential management |
+| `tags()` | `TagClient` | Tag management |
+| `users()` | `UserClient` | User management |
+| `variables()` | `VariableClient` | Variable management |
+| `projects()` | `ProjectClient` | Project management |
+| `dataTables()` | `DataTableClient` | Data table management |
+| `folders(projectId)` | `FolderClient` | Folder management (project-scoped) |
+| `communityPackages()` | `CommunityPackageClient` | Community package management |
+| `audit()` | `AuditClient` | Audit report generation |
+| `insights()` | `InsightsClient` | Execution insights |
+| `sourceControl()` | `SourceControlClient` | Source control operations |
+| `discover()` | `DiscoverClient` | Resource discovery |
+| `n8nPackage()` | `N8nPackageClient` | Package import/export |
 
 ## Choosing Between Handles And Low-Level Requests
 
-Prefer a handle when the library already exposes the endpoint you need:
+Prefer a resource client when the library already exposes the endpoint you need:
 
 ```ts
-await client.workflow().archive('wf-123');
-await client.execution().retry(42, { loadWorkflow: true });
+await client.workflows().archive('wf-123');
+await client.executions().retry(42, { loadWorkflow: true });
 ```
 
 Use the low-level helpers when:
@@ -78,9 +78,119 @@ Use the low-level helpers when:
 - you want to attach custom headers for a one-off request
 - you are intentionally working at the HTTP layer
 
+## Plain Objects Vs Resources
+
+Collection client methods like `list()` and `get()` return plain API DTOs.
+
+When you want an instance with bound methods, use the opt-in resource methods:
+
+```ts
+const project = await client.projects().getResource('proj-1');
+await project.update({ name: 'Ops' });
+
+const workflow = await client.workflows().getResource('wf-1');
+await workflow.activate();
+
+const folders = await project.folders().listResources({ take: '10' });
+await folders.data[0]?.update({ name: 'Archived Workflows' });
+
+const renamedFolder = await project.folders().updateResource('folder-id', { name: 'Archived Workflows' });
+
+await project.variables().create({ key: 'API_URL', value: 'https://example.com' });
+
+const createdWorkflow = await project.workflows().create({
+  name: 'Sync',
+  nodes: [],
+  connections: {},
+  settings: {},
+});
+
+const createdFolder = await project.folders().create({ name: 'Operations' });
+
+const table = await project.dataTables().createResource({
+  name: 'Users',
+  columns: [{ name: 'email', type: 'string' }],
+});
+
+await table.createColumn({ name: 'active', type: 'boolean' });
+
+const recentRuns = await project.executions().listResources({ limit: 10, status: 'success' });
+await recentRuns.data[0]?.getTags();
+
+const workflowResource = await client.workflows().getResource('wf-1');
+const workflowRuns = await workflowResource.executions().listResources({ limit: 10 });
+```
+
+The current resource layer covers:
+
+- `CommunityPackageResource`
+- `ProjectResource`
+- `WorkflowResource`
+- `CredentialResource`
+- `DataTableResource`
+- `ExecutionResource`
+- `FolderResource`
+- `TagResource`
+- `UserResource`
+- `VariableResource`
+
+## Nested Collections
+
+Some bound resources expose nested collections for related resources:
+
+```ts
+const project = await client.projects().getResource('proj-1');
+
+const workflow = await project.workflows().get('wf-1');
+const workflowResource = await project.workflows().getResource('wf-1');
+
+const updatedFolder = await project.folders().update('folder-id', { name: 'Archive' });
+const updatedFolderResource = await project.folders().updateResource('folder-id', { name: 'Archive' });
+
+const run = await workflowResource.executions().get(123);
+const runResource = await workflowResource.executions().getResource(123);
+```
+
+Rule of thumb:
+
+- raw nested methods mirror the underlying client/API return type
+- `getResource()` / `createResource()` / `updateResource()` return bound resource instances
+- nested collections only expose the pairs the API can support honestly
+
+Some nested collections are true scoped relationships, while others are filtered or verified convenience relationships:
+
+- `project.folders()` is truly project-scoped by endpoint path
+- `project.workflows()`, `project.variables()`, and `project.executions()` use project filters and explicit membership checks where needed
+- `project.dataTables()` currently supports project-scoped creation plus guarded single-resource access
+
+When a create endpoint returns the created entity, the matching client also exposes `createResource()`:
+
+```ts
+const workflow = await client.workflows().createResource({
+  name: 'Sync',
+  nodes: [],
+  connections: {},
+  settings: {},
+});
+
+const folder = await client.folders('proj-1').createResource({
+  name: 'Operations',
+});
+```
+
+Rule of thumb:
+
+- `create()` mirrors the underlying API/client return type
+- `createResource()` returns a bound resource instance when the API returns the created entity
+- `updateResource()` follows the same rule for update endpoints that return the updated entity
+
+`projects().createResource()` is intentionally not available because the n8n public API returns no project ID or entity body from `POST /projects`.
+
+For community packages, the equivalent opt-in method is `installResource()` because the public API uses install/uninstall verbs.
+
 ## Low-Level Requests
 
-If you need an endpoint or option that is not covered by a handle yet, `N8nClient` exposes thin request helpers without exposing the transport object itself:
+If you need an endpoint or option that is not covered by a resource client yet, `N8nClient` exposes thin request helpers without exposing the transport object itself:
 
 ```ts
 // Direct GET request
@@ -90,7 +200,7 @@ const data = await client.get('/workflows', { limit: 5 });
 await client.post('/workflows', { name: 'New Workflow', nodes: [], connections: {}, settings: {} });
 ```
 
-These helpers still use the same authentication, retry, and response parsing rules as the typed handles.
+These helpers still use the same authentication, retry, and response parsing rules as the typed clients.
 
 ## Error Handling
 
@@ -100,7 +210,7 @@ The client throws `HttpError` for non-2xx responses:
 import { HttpError } from '@egose/n8n-client';
 
 try {
-  await client.workflow().get('nonexistent');
+  await client.workflows().get('nonexistent');
 } catch (error) {
   if (error instanceof HttpError) {
     console.log(error.status);  // 404
@@ -122,20 +232,20 @@ Transient errors are retried automatically with exponential backoff:
 
 Non-transient failures are surfaced immediately as `HttpError`.
 
-## Handle Scope
+## Client Scope
 
-Most handles are unscoped:
+Most resource clients are unscoped:
 
 ```ts
-client.workflow()
-client.execution()
-client.project()
+client.workflows()
+client.executions()
+client.projects()
 ```
 
-`folder()` is the exception because folder endpoints are project-scoped in the n8n API:
+`folders()` is the exception because folder endpoints are project-scoped in the n8n API:
 
 ```ts
-const folder = client.folder('project-id');
+const folder = client.folders('project-id');
 await folder.list();
 ```
 

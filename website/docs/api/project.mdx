@@ -5,14 +5,14 @@ sidebar_position: 7
 
 # Project API
 
-`ProjectHandle` manages n8n projects and their members.
+`ProjectClient` manages n8n projects and their members.
 
 This handle is the entry point for organization-level operations: project creation, renaming, deletion, and project membership changes.
 
 ## Access
 
 ```ts
-const project = client.project();
+const project = client.projects();
 ```
 
 ## Methods
@@ -29,7 +29,7 @@ const project = client.project();
 List all projects visible to the authenticated caller.
 
 ```ts
-const { data, nextCursor } = await client.project().list({ limit: 10 });
+const { data, nextCursor } = await client.projects().list({ limit: 10 });
 ```
 
 ### `create(data)`
@@ -37,7 +37,7 @@ const { data, nextCursor } = await client.project().list({ limit: 10 });
 Create a new project.
 
 ```ts
-await client.project().create({ name: 'Production' });
+await client.projects().create({ name: 'Production' });
 ```
 
 ### `update(id, data)`
@@ -45,7 +45,7 @@ await client.project().create({ name: 'Production' });
 Update a project.
 
 ```ts
-await client.project().update('proj-123', { name: 'Production v2' });
+await client.projects().update('proj-123', { name: 'Production v2' });
 ```
 
 ### `delete(id)`
@@ -53,7 +53,7 @@ await client.project().update('proj-123', { name: 'Production v2' });
 Delete a project.
 
 ```ts
-await client.project().delete('proj-123');
+await client.projects().delete('proj-123');
 ```
 
 ### `listMembers(projectId, params?)`
@@ -61,7 +61,7 @@ await client.project().delete('proj-123');
 List members of a project.
 
 ```ts
-const { data } = await client.project().listMembers('proj-123', { limit: 50 });
+const { data } = await client.projects().listMembers('proj-123', { limit: 50 });
 ```
 
 ### `addMembers(projectId, relations)`
@@ -69,7 +69,7 @@ const { data } = await client.project().listMembers('proj-123', { limit: 50 });
 Add members to a project.
 
 ```ts
-await client.project().addMembers('proj-123', [
+await client.projects().addMembers('proj-123', [
   { userId: 'user-1', role: 'project:admin' },
   { userId: 'user-2', role: 'project:editor' },
 ]);
@@ -80,7 +80,7 @@ await client.project().addMembers('proj-123', [
 Remove a member from a project.
 
 ```ts
-await client.project().removeMember('proj-123', 'user-1');
+await client.projects().removeMember('proj-123', 'user-1');
 ```
 
 ### `changeMemberRole(projectId, userId, role)`
@@ -88,7 +88,7 @@ await client.project().removeMember('proj-123', 'user-1');
 Change a member's role in a project.
 
 ```ts
-await client.project().changeMemberRole('proj-123', 'user-1', 'project:viewer');
+await client.projects().changeMemberRole('proj-123', 'user-1', 'project:viewer');
 ```
 
 ## Important Note

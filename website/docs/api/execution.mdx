@@ -5,14 +5,14 @@ sidebar_position: 2
 
 # Execution API
 
-`ExecutionHandle` monitors and controls workflow executions — list, get, stop, retry, and manage tags.
+`ExecutionClient` monitors and controls workflow executions — list, get, stop, retry, and manage tags.
 
-This handle is for run history and operational control, not workflow definition changes. Pair it with `WorkflowHandle` when you need both deployment and runtime visibility.
+This client is for run history and operational control, not workflow definition changes. Pair it with `WorkflowClient` when you need both deployment and runtime visibility.
 
 ## Access
 
 ```ts
-const execution = client.execution();
+const execution = client.executions();
 ```
 
 ## Methods
@@ -29,7 +29,7 @@ const execution = client.execution();
 List executions with optional filters.
 
 ```ts
-const { data, nextCursor } = await client.execution().list({
+const { data, nextCursor } = await client.executions().list({
   limit: 25,
   status: 'error',
   workflowId: 'wf-123',
@@ -44,7 +44,7 @@ const { data, nextCursor } = await client.execution().list({
 Get an execution by ID.
 
 ```ts
-const execution = await client.execution().get(123, {
+const execution = await client.executions().get(123, {
   includeData: true,
   redactExecutionData: false,
 });
@@ -55,7 +55,7 @@ const execution = await client.execution().get(123, {
 Delete an execution.
 
 ```ts
-const deleted = await client.execution().delete(123);
+const deleted = await client.executions().delete(123);
 ```
 
 ### `retry(id, data?)`
@@ -63,7 +63,7 @@ const deleted = await client.execution().delete(123);
 Retry a failed execution.
 
 ```ts
-const retried = await client.execution().retry(123, {
+const retried = await client.executions().retry(123, {
   loadWorkflow: true,
 });
 ```
@@ -73,7 +73,7 @@ const retried = await client.execution().retry(123, {
 Stop a running execution.
 
 ```ts
-const stopped = await client.execution().stop(123);
+const stopped = await client.executions().stop(123);
 ```
 
 ### `stopMany(data)`
@@ -81,7 +81,7 @@ const stopped = await client.execution().stop(123);
 Stop multiple executions matching filters.
 
 ```ts
-const { stopped } = await client.execution().stopMany({
+const { stopped } = await client.executions().stopMany({
   status: ['running', 'queued', 'waiting'],
   workflowId: 'wf-123',
   startedAfter: '2024-01-01T00:00:00Z',
@@ -94,8 +94,8 @@ const { stopped } = await client.execution().stopMany({
 Get or update tags on an execution.
 
 ```ts
-const tags = await client.execution().getTags(123);
-const updatedTags = await client.execution().updateTags(123, [
+const tags = await client.executions().getTags(123);
+const updatedTags = await client.executions().updateTags(123, [
   { id: 'tag-1' },
 ]);
 ```
@@ -103,7 +103,7 @@ const updatedTags = await client.execution().updateTags(123, [
 ## Typical Flow
 
 ```ts
-const execution = client.execution();
+const execution = client.executions();
 
 const { data: failed } = await execution.list({ status: 'error', limit: 20 });
 

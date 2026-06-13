@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import WorkflowHandle from '../src/handles/workflow';
-import ExecutionHandle from '../src/handles/execution';
-import CredentialHandle from '../src/handles/credential';
+import WorkflowClient from '../src/clients/workflow';
+import ExecutionClient from '../src/clients/execution';
+import CredentialClient from '../src/clients/credential';
 import { createMockHttpClient } from './test-utils';
 
 describe('Implementation Consistency: Regressions', () => {
   test('workflow list passes all filter params correctly', async () => {
     const http = createMockHttpClient([{ body: { data: [], nextCursor: undefined } }]);
-    const handle = new WorkflowHandle(http);
+    const handle = new WorkflowClient(http);
 
     await handle.list({
       limit: 25,
@@ -30,7 +30,7 @@ describe('Implementation Consistency: Regressions', () => {
 
   test('execution list passes all filter params correctly', async () => {
     const http = createMockHttpClient([{ body: { data: [], nextCursor: undefined } }]);
-    const handle = new ExecutionHandle(http);
+    const handle = new ExecutionClient(http);
 
     await handle.list({
       limit: 50,
@@ -66,7 +66,7 @@ describe('Implementation Consistency: Regressions', () => {
         },
       },
     ]);
-    const handle = new CredentialHandle(http);
+    const handle = new CredentialClient(http);
 
     await handle.create({
       name: 'AWS Credentials',
@@ -85,7 +85,7 @@ describe('Implementation Consistency: Regressions', () => {
 
   test('workflow activate passes optional body', async () => {
     const http = createMockHttpClient([{ body: { id: 'wf-1', active: true } }]);
-    const handle = new WorkflowHandle(http);
+    const handle = new WorkflowClient(http);
 
     await handle.activate('wf-1', { versionId: 'v-2', name: 'Updated Name', description: 'New desc' });
 
@@ -98,7 +98,7 @@ describe('Implementation Consistency: Regressions', () => {
 
   test('execution stopMany passes complex filter', async () => {
     const http = createMockHttpClient([{ body: { stopped: 3 } }]);
-    const handle = new ExecutionHandle(http);
+    const handle = new ExecutionClient(http);
 
     await handle.stopMany({
       status: ['running', 'queued', 'waiting'],

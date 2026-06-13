@@ -5,14 +5,14 @@ sidebar_position: 1
 
 # Workflow API
 
-`WorkflowHandle` manages n8n workflows — create, list, activate, deactivate, archive, transfer, and manage tags and versions.
+`WorkflowClient` manages n8n workflows — create, list, activate, deactivate, archive, transfer, and manage tags and versions.
 
 Use this handle when you are working with workflow lifecycle operations. It is the largest handle in the client because the n8n API exposes both CRUD operations and workflow-specific actions here.
 
 ## Access
 
 ```ts
-const workflow = client.workflow();
+const workflow = client.workflows();
 ```
 
 ## Methods
@@ -29,7 +29,7 @@ const workflow = client.workflow();
 List workflows with optional filters.
 
 ```ts
-const { data, nextCursor } = await client.workflow().list({
+const { data, nextCursor } = await client.workflows().list({
   limit: 10,
   active: true,
   tags: 'production',
@@ -44,7 +44,7 @@ const { data, nextCursor } = await client.workflow().list({
 Get a workflow by ID.
 
 ```ts
-const workflow = await client.workflow().get('wf-123', {
+const workflow = await client.workflows().get('wf-123', {
   excludePinnedData: false,
 });
 ```
@@ -54,7 +54,7 @@ const workflow = await client.workflow().get('wf-123', {
 Create a new workflow.
 
 ```ts
-const workflow = await client.workflow().create({
+const workflow = await client.workflows().create({
   name: 'My Workflow',
   nodes: [{ name: 'Start', type: 'n8n-nodes-base.start', position: [0, 0], parameters: {} }],
   connections: {},
@@ -67,9 +67,9 @@ const workflow = await client.workflow().create({
 Update a workflow. The public API expects the full workflow body, not a partial patch.
 
 ```ts
-const current = await client.workflow().get('wf-123');
+const current = await client.workflows().get('wf-123');
 
-const updated = await client.workflow().update('wf-123', {
+const updated = await client.workflows().update('wf-123', {
   name: 'Updated Name',
   description: current.description,
   nodes: current.nodes,
@@ -85,7 +85,7 @@ const updated = await client.workflow().update('wf-123', {
 Delete a workflow.
 
 ```ts
-const deleted = await client.workflow().delete('wf-123');
+const deleted = await client.workflows().delete('wf-123');
 ```
 
 ### `activate(id, data?)`
@@ -93,7 +93,7 @@ const deleted = await client.workflow().delete('wf-123');
 Activate a workflow. You can optionally send version metadata when activating a specific revision.
 
 ```ts
-const activated = await client.workflow().activate('wf-123', {
+const activated = await client.workflows().activate('wf-123', {
   versionId: 'v-2',
   name: 'Production version',
 });
@@ -104,7 +104,7 @@ const activated = await client.workflow().activate('wf-123', {
 Deactivate a workflow.
 
 ```ts
-const deactivated = await client.workflow().deactivate('wf-123');
+const deactivated = await client.workflows().deactivate('wf-123');
 ```
 
 ### `archive(id)` / `unarchive(id)`
@@ -112,8 +112,8 @@ const deactivated = await client.workflow().deactivate('wf-123');
 Archive or unarchive a workflow.
 
 ```ts
-await client.workflow().archive('wf-123');
-await client.workflow().unarchive('wf-123');
+await client.workflows().archive('wf-123');
+await client.workflows().unarchive('wf-123');
 ```
 
 ### `transfer(id, destinationProjectId)`
@@ -121,7 +121,7 @@ await client.workflow().unarchive('wf-123');
 Move a workflow to another project.
 
 ```ts
-await client.workflow().transfer('wf-123', 'proj-456');
+await client.workflows().transfer('wf-123', 'proj-456');
 ```
 
 ### `getTags(id)` / `updateTags(id, tags)`
@@ -129,8 +129,8 @@ await client.workflow().transfer('wf-123', 'proj-456');
 Get or update tags on a workflow.
 
 ```ts
-const tags = await client.workflow().getTags('wf-123');
-const updatedTags = await client.workflow().updateTags('wf-123', [
+const tags = await client.workflows().getTags('wf-123');
+const updatedTags = await client.workflows().updateTags('wf-123', [
   { id: 'tag-1' },
   { id: 'tag-2' },
 ]);
@@ -141,13 +141,13 @@ const updatedTags = await client.workflow().updateTags('wf-123', [
 Get a specific workflow version.
 
 ```ts
-const version = await client.workflow().getVersion('wf-123', 'v-1');
+const version = await client.workflows().getVersion('wf-123', 'v-1');
 ```
 
 ## Typical Flow
 
 ```ts
-const workflow = client.workflow();
+const workflow = client.workflows();
 
 const { data } = await workflow.list({ projectId: 'proj-1', active: false, limit: 10 });
 

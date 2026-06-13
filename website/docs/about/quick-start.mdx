@@ -8,7 +8,7 @@ sidebar_position: 1
 `n8n-client` is easiest to understand if you think in three steps:
 
 1. Create `N8nClient` with your n8n base URL and one authentication method.
-2. Pick a typed handle such as `workflow()`, `execution()`, or `project()`.
+2. Pick a typed resource client such as `workflows()`, `executions()`, or `projects()`.
 3. Call methods that map directly to the public API without hand-writing HTTP requests.
 
 ## Installation
@@ -55,7 +55,7 @@ const client = new N8nClient({
   apiKey: process.env.N8N_API_KEY!,
 });
 
-const { data: workflows } = await client.workflow().list({ limit: 5 });
+const { data: workflows } = await client.workflows().list({ limit: 5 });
 
 for (const workflow of workflows) {
   console.log(`${workflow.id} ${workflow.name}`);
@@ -67,7 +67,7 @@ for (const workflow of workflows) {
 ### List Workflows
 
 ```ts
-const { data: workflows, nextCursor } = await client.workflow().list({
+const { data: workflows, nextCursor } = await client.workflows().list({
   limit: 10,
   active: true,
 });
@@ -76,14 +76,14 @@ const { data: workflows, nextCursor } = await client.workflow().list({
 ### Get a Workflow
 
 ```ts
-const workflow = await client.workflow().get('workflow-id');
+const workflow = await client.workflows().get('workflow-id');
 console.log(workflow.name, workflow.active);
 ```
 
 ### Create a Credential
 
 ```ts
-const credential = await client.credential().create({
+const credential = await client.credentials().create({
   name: 'My API Key',
   type: 'httpHeaderAuth',
   data: {
@@ -97,56 +97,58 @@ const credential = await client.credential().create({
 
 ```ts
 // List error executions
-const { data: errors } = await client.execution().list({
+const { data: errors } = await client.executions().list({
   status: 'error',
   workflowId: 'workflow-id',
 });
 
 // Stop a running execution
-await client.execution().stop(executionId);
+await client.executions().stop(executionId);
 ```
 
 ## How The API Surface Is Organized
 
-- Use `client.workflow()` for workflow lifecycle and tagging.
-- Use `client.execution()` for monitoring, retrying, and stopping runs.
-- Use `client.project()` and `client.folder(projectId)` for structure and access control.
-- Use `client.get()`, `client.post()`, and the other low-level helpers only when you intentionally need to drop below a typed handle.
+- Use `client.workflows()` for workflow lifecycle and tagging.
+- Use `client.executions()` for monitoring, retrying, and stopping runs.
+- Use `client.projects()` and `client.folders(projectId)` for structure and access control.
+- Use `client.get()`, `client.post()`, and the other low-level helpers only when you intentionally need to drop below a typed resource client.
 
 ### Organize with Projects
 
 ```ts
-await client.project().create({ name: 'Production' });
+await client.projects().create({ name: 'Production' });
 
-await client.project().addMembers('project-id', [
+await client.projects().addMembers('project-id', [
   { userId: 'user-id', role: 'project:admin' },
 ]);
 ```
 
-## Resource Handles
+## Resource Clients
 
-Every n8n API resource has a typed handle:
+Every n8n API resource has a typed client:
 
-| Handle | Access | Description |
+| Client | Access | Description |
 |--------|--------|-------------|
-| `WorkflowHandle` | `client.workflow()` | Create, list, activate, archive workflows |
-| `ExecutionHandle` | `client.execution()` | List, get, stop, retry executions |
-| `CredentialHandle` | `client.credential()` | CRUD, test, transfer credentials |
-| `TagHandle` | `client.tag()` | Manage workflow/execution tags |
-| `UserHandle` | `client.user()` | List, create, delete users |
-| `VariableHandle` | `client.variable()` | Manage environment variables |
-| `ProjectHandle` | `client.project()` | CRUD projects and members |
-| `DataTableHandle` | `client.dataTable()` | Tables, columns, and rows |
-| `FolderHandle` | `client.folder(projectId)` | Project-scoped folder management |
-| `CommunityPackageHandle` | `client.communityPackage()` | Install, update, uninstall packages |
-| `AuditHandle` | `client.audit()` | Generate audit reports |
-| `InsightsHandle` | `client.insights()` | Execution insights summary |
-| `SourceControlHandle` | `client.sourceControl()` | Git-based source control |
-| `DiscoverHandle` | `client.discover()` | Discover available resources |
-| `N8nPackageHandle` | `client.n8nPackage()` | Import/export workflow packages |
+| `WorkflowClient` | `client.workflows()` | Create, list, activate, archive workflows |
+| `ExecutionClient` | `client.executions()` | List, get, stop, retry executions |
+| `CredentialClient` | `client.credentials()` | CRUD, test, transfer credentials |
+| `TagClient` | `client.tags()` | Manage workflow/execution tags |
+| `UserClient` | `client.users()` | List, create, delete users |
+| `VariableClient` | `client.variables()` | Manage environment variables |
+| `ProjectClient` | `client.projects()` | CRUD projects and members |
+| `DataTableClient` | `client.dataTables()` | Tables, columns, and rows |
+| `FolderClient` | `client.folders(projectId)` | Project-scoped folder management |
+| `CommunityPackageClient` | `client.communityPackages()` | Install, update, uninstall packages |
+| `AuditClient` | `client.audit()` | Generate audit reports |
+| `InsightsClient` | `client.insights()` | Execution insights summary |
+| `SourceControlClient` | `client.sourceControl()` | Git-based source control |
+| `DiscoverClient` | `client.discover()` | Discover available resources |
+| `N8nPackageClient` | `client.n8nPackage()` | Import/export workflow packages |
+
+When you want bound instance methods instead of plain API objects, use `getResource()` or `listResources()`. The full model is documented on the [N8nClient API](/api/n8n-client/) page.
 
 ## Next Steps
 
 - Browse the [API Reference](/api/n8n-client/) for the full method surface.
-- Read [Philosophy](/about/philosophy/) if you want the design rationale behind handles, retries, and low-level request helpers.
+- Read [Philosophy](/about/philosophy/) if you want the design rationale behind resource clients, retries, and low-level request helpers.
 - Check out [Examples](/example/overview/) for end-to-end walkthroughs.

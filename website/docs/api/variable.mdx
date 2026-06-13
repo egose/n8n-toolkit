@@ -5,12 +5,12 @@ sidebar_position: 6
 
 # Variable API
 
-`VariableHandle` manages n8n environment variables.
+`VariableClient` manages n8n environment variables.
 
 ## Access
 
 ```ts
-const variable = client.variable();
+const variable = client.variables();
 ```
 
 ## Methods
@@ -20,7 +20,7 @@ const variable = client.variable();
 List variables with optional filters.
 
 ```ts
-const { data, nextCursor } = await client.variable().list({
+const { data, nextCursor } = await client.variables().list({
   limit: 50,
   projectId: 'proj-1',
   state: 'empty',
@@ -32,7 +32,7 @@ const { data, nextCursor } = await client.variable().list({
 Create a new variable.
 
 ```ts
-await client.variable().create({
+await client.variables().create({
   key: 'MY_API_KEY',
   value: 'secret-value',
   projectId: 'proj-1',
@@ -44,7 +44,7 @@ await client.variable().create({
 Update a variable.
 
 ```ts
-await client.variable().update('var-123', {
+await client.variables().update('var-123', {
   key: 'MY_API_KEY',
   value: 'new-value',
 });
@@ -55,5 +55,5 @@ await client.variable().update('var-123', {
 Delete a variable.
 
 ```ts
-await client.variable().delete('var-123');
+await client.variables().delete('var-123');
 ```

@@ -8,7 +8,7 @@ import TabItem from '@theme/TabItem';
 
 # Philosophy
 
-`n8n-client` is a typed TypeScript client for the **n8n Public API v1**. It wraps native `fetch` with resource-scoped handles so you can manage workflows, executions, credentials, projects, and every other n8n API resource through a consistent, discoverable interface.
+`n8n-client` is a typed TypeScript client for the **n8n Public API v1**. It wraps native `fetch` with resource-scoped clients so you can manage workflows, executions, credentials, projects, and every other n8n API resource through a consistent, discoverable interface.
 
 ---
 
@@ -25,7 +25,7 @@ The n8n Public API is well-documented, but calling it directly means:
 - **Transparent authentication** — API key or Bearer token, validated at construction.
 - **Automatic retry** with exponential backoff on transient errors.
 - **Native fetch** — zero external dependencies.
-- **Resource-scoped handles** that make the API discoverable without memorizing endpoints.
+- **Resource-scoped clients** that make the API discoverable without memorizing endpoints.
 
 ---
 
@@ -33,25 +33,25 @@ The n8n Public API is well-documented, but calling it directly means:
 
 ### 1. Resource-Centric Design
 
-Each n8n API resource gets its own handle:
+Each n8n API resource gets its own client:
 
 ```ts
 const client = new N8nClient({ baseUrl, apiKey });
 
-client.workflow()      // WorkflowHandle
-client.execution()     // ExecutionHandle
-client.credential()    // CredentialHandle
-client.project()       // ProjectHandle
+client.workflows()     // WorkflowClient
+client.executions()    // ExecutionClient
+client.credentials()   // CredentialClient
+client.projects()      // ProjectClient
 ```
 
-No need to remember endpoint paths — follow the handle chain.
+No need to remember endpoint paths — follow the client chain.
 
 ### 2. Typed End-to-End
 
 Every method is fully typed:
 
 ```ts
-const { data, nextCursor } = await client.workflow().list({ limit: 10, active: true });
+const { data, nextCursor } = await client.workflows().list({ limit: 10, active: true });
 // data is Workflow[], nextCursor is string | undefined
 ```
 
@@ -64,7 +64,7 @@ Transient errors are retried automatically:
 ```ts
 // Automatically retries on 408, 429, 500, 502, 503, 504
 // with exponential backoff and jitter
-const workflow = await client.workflow().get('wf-123');
+const workflow = await client.workflows().get('wf-123');
 ```
 
 No need for wrapper libraries or manual retry loops.
@@ -78,7 +78,7 @@ The client uses Node.js 20+ built-in `fetch`. No axios, no node-fetch, no extra 
 The client is intentionally opinionated in a few places:
 
 - exactly one authentication method must be configured
-- handles follow the public API instead of inventing idempotent helpers
+- resource clients follow the public API instead of inventing idempotent helpers
 - unsupported endpoints are not added for convenience
 
 That keeps the library honest to the n8n API instead of becoming a parallel abstraction layer.
@@ -88,12 +88,12 @@ That keeps the library honest to the n8n API instead of becoming a parallel abst
 n8n's API is flat. The client mirrors this:
 
 ```ts
-await client.workflow().list();           // GET /api/v1/workflows
-await client.execution().get(123);        // GET /api/v1/executions/123
-await client.credential().create({...});  // POST /api/v1/credentials
+await client.workflows().list();           // GET /api/v1/workflows
+await client.executions().get(123);        // GET /api/v1/executions/123
+await client.credentials().create({...});  // POST /api/v1/credentials
 ```
 
-Every handle works the same way: `list`, `get`, `create`, `update`, `delete` — plus resource-specific actions.
+Every resource client works the same way: `list`, `get`, `create`, `update`, `delete` — plus resource-specific actions.
 
 ---
 
@@ -134,7 +134,7 @@ It's a developer experience layer on top of the n8n REST API — perfect for aut
       apiKey: process.env.N8N_API_KEY,
     });
 
-    const { data, nextCursor } = await client.workflow().list({
+    const { data, nextCursor } = await client.workflows().list({
       limit: 10,
       active: true,
     });

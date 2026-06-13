@@ -5,12 +5,12 @@ sidebar_position: 4
 
 # Tag API
 
-`TagHandle` manages tags for workflows and executions.
+`TagClient` manages tags for workflows and executions.
 
 ## Access
 
 ```ts
-const tag = client.tag();
+const tag = client.tags();
 ```
 
 ## Methods
@@ -20,7 +20,7 @@ const tag = client.tag();
 List all tags.
 
 ```ts
-const { data, nextCursor } = await client.tag().list({ limit: 20 });
+const { data, nextCursor } = await client.tags().list({ limit: 20 });
 ```
 
 ### `get(id)`
@@ -28,7 +28,7 @@ const { data, nextCursor } = await client.tag().list({ limit: 20 });
 Get a tag by ID.
 
 ```ts
-const tag = await client.tag().get('tag-123');
+const tag = await client.tags().get('tag-123');
 ```
 
 ### `create(data)`
@@ -36,7 +36,7 @@ const tag = await client.tag().get('tag-123');
 Create a new tag.
 
 ```ts
-const tag = await client.tag().create({ name: 'production' });
+const tag = await client.tags().create({ name: 'production' });
 ```
 
 ### `update(id, data)`
@@ -44,7 +44,7 @@ const tag = await client.tag().create({ name: 'production' });
 Update a tag.
 
 ```ts
-const updated = await client.tag().update('tag-123', { name: 'prod' });
+const updated = await client.tags().update('tag-123', { name: 'prod' });
 ```
 
 ### `delete(id)`
@@ -52,5 +52,5 @@ const updated = await client.tag().update('tag-123', { name: 'prod' });
 Delete a tag.
 
 ```ts
-const deleted = await client.tag().delete('tag-123');
+const deleted = await client.tags().delete('tag-123');
 ```

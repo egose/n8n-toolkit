@@ -1,21 +1,21 @@
 import { HttpClient } from './http-client.js';
 import type { RequestOptions } from './http-client.js';
 import type { N8nClientConfig } from './types.js';
-import WorkflowHandle from './handles/workflow.js';
-import ExecutionHandle from './handles/execution.js';
-import CredentialHandle from './handles/credential.js';
-import TagHandle from './handles/tag.js';
-import UserHandle from './handles/user.js';
-import VariableHandle from './handles/variable.js';
-import ProjectHandle from './handles/project.js';
-import DataTableHandle from './handles/data-table.js';
-import FolderHandle from './handles/folder.js';
-import CommunityPackageHandle from './handles/community-package.js';
-import AuditHandle from './handles/audit.js';
-import InsightsHandle from './handles/insights.js';
-import SourceControlHandle from './handles/source-control.js';
-import DiscoverHandle from './handles/discover.js';
-import N8nPackageHandle from './handles/n8n-package.js';
+import WorkflowClient from './clients/workflow.js';
+import ExecutionClient from './clients/execution.js';
+import CredentialClient from './clients/credential.js';
+import TagClient from './clients/tag.js';
+import UserClient from './clients/user.js';
+import VariableClient from './clients/variable.js';
+import ProjectClient from './clients/project.js';
+import DataTableClient from './clients/data-table.js';
+import FolderClient from './clients/folder.js';
+import CommunityPackageClient from './clients/community-package.js';
+import AuditClient from './clients/audit.js';
+import InsightsClient from './clients/insights.js';
+import SourceControlClient from './clients/source-control.js';
+import DiscoverClient from './clients/discover.js';
+import N8nPackageClient from './clients/n8n-package.js';
 
 export default class N8nClient {
   readonly #http: HttpClient;
@@ -48,69 +48,85 @@ export default class N8nClient {
     return this.#http.delete<T>(path, query, headers);
   }
 
-  workflow() {
-    return new WorkflowHandle(this.#http);
+  workflows() {
+    return new WorkflowClient(this.#http);
   }
 
-  execution() {
-    return new ExecutionHandle(this.#http);
+  executions() {
+    return new ExecutionClient(this.#http);
   }
 
-  credential() {
-    return new CredentialHandle(this.#http);
+  credentials() {
+    return new CredentialClient(this.#http);
   }
 
-  tag() {
-    return new TagHandle(this.#http);
+  tags() {
+    return new TagClient(this.#http);
   }
 
-  user() {
-    return new UserHandle(this.#http);
+  users() {
+    return new UserClient(this.#http);
   }
 
-  variable() {
-    return new VariableHandle(this.#http);
+  variables() {
+    return new VariableClient(this.#http);
   }
 
-  project() {
-    return new ProjectHandle(this.#http);
+  projects() {
+    return new ProjectClient(this.#http);
   }
 
-  dataTable() {
-    return new DataTableHandle(this.#http);
+  dataTables() {
+    return new DataTableClient(this.#http);
   }
 
-  folder(projectId: string) {
-    return new FolderHandle(this.#http, projectId);
+  folders(projectId: string) {
+    return new FolderClient(this.#http, projectId);
   }
 
-  communityPackage() {
-    return new CommunityPackageHandle(this.#http);
+  communityPackages() {
+    return new CommunityPackageClient(this.#http);
   }
 
   audit() {
-    return new AuditHandle(this.#http);
+    return new AuditClient(this.#http);
   }
 
   insights() {
-    return new InsightsHandle(this.#http);
+    return new InsightsClient(this.#http);
   }
 
   sourceControl() {
-    return new SourceControlHandle(this.#http);
+    return new SourceControlClient(this.#http);
   }
 
   discover() {
-    return new DiscoverHandle(this.#http);
+    return new DiscoverClient(this.#http);
   }
 
   n8nPackage() {
-    return new N8nPackageHandle(this.#http);
+    return new N8nPackageClient(this.#http);
   }
 }
 
 export { HttpClient } from './http-client.js';
 export { HttpError } from './http-client.js';
+export { default as CredentialResource } from './resources/credential.js';
+export { default as CommunityPackageResource } from './resources/community-package.js';
+export { default as DataTableResource } from './resources/data-table.js';
+export { default as ExecutionResource } from './resources/execution.js';
+export { default as FolderResource } from './resources/folder.js';
+export { default as ProjectResource } from './resources/project.js';
+export type { ProjectDataTableResourceCollection } from './resources/project.js';
+export type { ProjectExecutionResourceCollection } from './resources/project.js';
+export type { ProjectFolderResourceCollection } from './resources/project.js';
+export type { ProjectVariableResourceCollection } from './resources/project.js';
+export type { ProjectWorkflowResourceCollection } from './resources/project.js';
+export { default as TagResource } from './resources/tag.js';
+export { default as UserResource } from './resources/user.js';
+export { default as VariableResource } from './resources/variable.js';
+export type { WorkflowExecutionResourceCollection } from './resources/workflow.js';
+export { default as WorkflowResource } from './resources/workflow.js';
 export type { RequestOptions } from './http-client.js';
 export type * from './types.js';
 export type { PaginationParams, PaginatedResponse } from './pagination.js';

@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'vitest';
-import N8nPackageHandle from '../src/handles/n8n-package';
+import N8nPackageClient from '../src/clients/n8n-package';
 import { createMockHttpClient } from './test-utils';
 
 describe('Implementation Consistency: N8nPackage', () => {
   test('exportWorkflows calls POST /n8n-packages/export', async () => {
     const buffer = new ArrayBuffer(100);
     const http = createMockHttpClient([{ body: buffer }]);
-    const handle = new N8nPackageHandle(http);
+    const handle = new N8nPackageClient(http);
 
     const result = await handle.exportWorkflows({ workflowIds: ['wf-1', 'wf-2'] });
 
@@ -23,7 +23,7 @@ describe('Implementation Consistency: N8nPackage', () => {
       bindings: { workflows: {}, credentials: {} },
     };
     const http = createMockHttpClient([{ body: response }]);
-    const handle = new N8nPackageHandle(http);
+    const handle = new N8nPackageClient(http);
     const pkg = new Blob(['test']);
 
     const result = await handle.importPackage(pkg, {
