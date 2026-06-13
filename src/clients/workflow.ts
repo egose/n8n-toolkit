@@ -1,3 +1,5 @@
+import type { PaginatedResponse } from '../pagination.js';
+import ExecutionClient from './execution.js';
 import type {
   Workflow,
   WorkflowCreate,
@@ -11,6 +13,7 @@ import type {
   TagId,
 } from '../types.js';
 import BaseClient from './base.js';
+import WorkflowResource from '../resources/workflow.js';
 
 export default class WorkflowClient extends BaseClient {
   async list(params?: WorkflowListParams): Promise<WorkflowListResponse> {
@@ -21,12 +24,33 @@ export default class WorkflowClient extends BaseClient {
     return this.http.get<Workflow>(`/workflows/${id}`, params);
   }
 
+  async getResource(id: string, params?: WorkflowGetParams): Promise<WorkflowResource> {
+    return new WorkflowResource(this, new ExecutionClient(this.http), await this.get(id, params));
+  }
+
+  async listResources(params?: WorkflowListParams): Promise<PaginatedResponse<WorkflowResource>> {
+    const response = await this.list(params);
+
+    return {
+      data: response.data.map((workflow) => new WorkflowResource(this, new ExecutionClient(this.http), workflow)),
+      nextCursor: response.nextCursor,
+    };
+  }
+
   async create(data: WorkflowCreate): Promise<Workflow> {
     return this.http.post<Workflow>('/workflows', data);
   }
 
+  async createResource(data: WorkflowCreate): Promise<WorkflowResource> {
+    return new WorkflowResource(this, new ExecutionClient(this.http), await this.create(data));
+  }
+
   async update(id: string, data: WorkflowUpdate): Promise<Workflow> {
     return this.http.put<Workflow>(`/workflows/${id}`, data);
+  }
+
+  async updateResource(id: string, data: WorkflowUpdate): Promise<WorkflowResource> {
+    return new WorkflowResource(this, new ExecutionClient(this.http), await this.update(id, data));
   }
 
   async delete(id: string): Promise<Workflow> {

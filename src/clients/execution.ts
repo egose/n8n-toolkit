@@ -1,3 +1,4 @@
+import type { PaginatedResponse } from '../pagination.js';
 import type {
   Execution,
   ExecutionListResponse,
@@ -10,6 +11,7 @@ import type {
   TagId,
 } from '../types.js';
 import BaseClient from './base.js';
+import ExecutionResource from '../resources/execution.js';
 
 export default class ExecutionClient extends BaseClient {
   async list(params?: ExecutionListParams): Promise<ExecutionListResponse> {
@@ -18,6 +20,25 @@ export default class ExecutionClient extends BaseClient {
 
   async get(id: number, params?: ExecutionGetParams): Promise<Execution> {
     return this.http.get<Execution>(`/executions/${id}`, params);
+  }
+
+  async getResource(id: number, params?: ExecutionGetParams): Promise<ExecutionResource> {
+    return new ExecutionResource(this, await this.get(id, params), params);
+  }
+
+  async listResources(params?: ExecutionListParams): Promise<PaginatedResponse<ExecutionResource>> {
+    const response = await this.list(params);
+    const getParams = params
+      ? {
+          includeData: params.includeData,
+          redactExecutionData: params.redactExecutionData,
+        }
+      : undefined;
+
+    return {
+      data: response.data.map((execution) => new ExecutionResource(this, execution, getParams)),
+      nextCursor: response.nextCursor,
+    };
   }
 
   async delete(id: number): Promise<Execution> {

@@ -1,3 +1,4 @@
+import type { PaginatedResponse } from '../pagination.js';
 import type {
   DataTable,
   DataTableColumn,
@@ -25,6 +26,7 @@ import type {
   UpsertRowRequest,
 } from '../types.js';
 import BaseClient from './base.js';
+import DataTableResource from '../resources/data-table.js';
 
 export default class DataTableClient extends BaseClient {
   async list(params?: DataTableListParams): Promise<DataTableListResponse> {
@@ -35,12 +37,33 @@ export default class DataTableClient extends BaseClient {
     return this.http.get<DataTable>(`/data-tables/${id}`);
   }
 
+  async getResource(id: string): Promise<DataTableResource> {
+    return new DataTableResource(this, await this.get(id));
+  }
+
+  async listResources(params?: DataTableListParams): Promise<PaginatedResponse<DataTableResource>> {
+    const response = await this.list(params);
+
+    return {
+      data: response.data.map((dataTable) => new DataTableResource(this, dataTable)),
+      nextCursor: response.nextCursor,
+    };
+  }
+
   async create(data: CreateDataTableRequest): Promise<DataTable> {
     return this.http.post<DataTable>('/data-tables', data);
   }
 
+  async createResource(data: CreateDataTableRequest): Promise<DataTableResource> {
+    return new DataTableResource(this, await this.create(data));
+  }
+
   async update(id: string, data: UpdateDataTableRequest): Promise<DataTable> {
     return this.http.patch<DataTable>(`/data-tables/${id}`, data);
+  }
+
+  async updateResource(id: string, data: UpdateDataTableRequest): Promise<DataTableResource> {
+    return new DataTableResource(this, await this.update(id, data));
   }
 
   async delete(id: string): Promise<void> {

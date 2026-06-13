@@ -111,6 +111,22 @@ export default class N8nClient {
 
 export { HttpClient } from './http-client.js';
 export { HttpError } from './http-client.js';
+export { default as CredentialResource } from './resources/credential.js';
+export { default as CommunityPackageResource } from './resources/community-package.js';
+export { default as DataTableResource } from './resources/data-table.js';
+export { default as ExecutionResource } from './resources/execution.js';
+export { default as FolderResource } from './resources/folder.js';
+export { default as ProjectResource } from './resources/project.js';
+export type { ProjectDataTableResourceCollection } from './resources/project.js';
+export type { ProjectExecutionResourceCollection } from './resources/project.js';
+export type { ProjectFolderResourceCollection } from './resources/project.js';
+export type { ProjectVariableResourceCollection } from './resources/project.js';
+export type { ProjectWorkflowResourceCollection } from './resources/project.js';
+export { default as TagResource } from './resources/tag.js';
+export { default as UserResource } from './resources/user.js';
+export { default as VariableResource } from './resources/variable.js';
+export type { WorkflowExecutionResourceCollection } from './resources/workflow.js';
+export { default as WorkflowResource } from './resources/workflow.js';
 export type { RequestOptions } from './http-client.js';
 export type * from './types.js';
 export type { PaginationParams, PaginatedResponse } from './pagination.js';

@@ -71,6 +71,7 @@ const workflow = await client.workflows().create({
   name: 'My Workflow',
   nodes: [{ name: 'Start', type: 'n8n-nodes-base.start', position: [250, 300] }],
   connections: {},
+  settings: {},
 });
 
 // Activate it
@@ -96,6 +97,13 @@ await client.workflows().updateTags(workflow.id, [{ id: tag.id }]);
 // Manage projects
 const projects = await client.projects().list();
 await client.projects().addMembers(projects.data[0].id, [{ userId: 'user-1', role: 'project:editor' }]);
+
+// Opt into bound resource objects when you want instance methods
+const project = await client.projects().getResource(projects.data[0].id);
+await project.update({ name: 'Production' });
+
+const workflow = await client.workflows().getResource('wf-1');
+await workflow.activate();
 
 // Insights
 const summary = await client.insights().getSummary({
@@ -128,6 +136,125 @@ const client = new N8nClient({
 
 ## Resource Clients
 
+Raw collection methods like `list()` and `get()` return plain API response objects.
+
+Opt into bound resource objects when you want instance methods:
+
+```ts
+const project = await client.projects().getResource('proj-1');
+await project.update({ name: 'Ops' });
+
+const workflows = await project.workflows().listResources();
+await workflows.data[0]?.archive();
+
+const folders = await project.folders().listResources({ take: '10' });
+await folders.data[0]?.update({ name: 'Archived Workflows' });
+
+const renamedFolder = await project.folders().updateResource('folder-id', { name: 'Archived Workflows' });
+
+await project.variables().create({ key: 'API_URL', value: 'https://example.com' });
+
+const createdWorkflow = await project.workflows().create({
+  name: 'Sync',
+  nodes: [],
+  connections: {},
+  settings: {},
+});
+
+const createdFolder = await project.folders().create({ name: 'Operations' });
+
+const table = await project.dataTables().createResource({
+  name: 'Users',
+  columns: [{ name: 'email', type: 'string' }],
+});
+
+await table.createColumn({ name: 'active', type: 'boolean' });
+
+const recentRuns = await project.executions().listResources({ limit: 10, status: 'success' });
+await recentRuns.data[0]?.getTags();
+
+const workflowResource = await client.workflows().getResource('wf-1');
+const workflowRuns = await workflowResource.executions().listResources({ limit: 10 });
+```
+
+Nested collections follow the same pairing pattern when the API can support it:
+
+```ts
+const rawWorkflow = await project.workflows().get('wf-1');
+const workflowResource = await project.workflows().getResource('wf-1');
+
+const rawFolder = await project.folders().update('folder-id', { name: 'Archive' });
+const folderResource = await project.folders().updateResource('folder-id', { name: 'Archive' });
+```
+
+The same rule applies at the top-level clients: use `get()` for raw API objects and `getResource()` for bound instances.
+
+The current resource layer covers projects, workflows, credentials, folders, tags, and users:
+
+```ts
+const credential = await client.credentials().getResource('cred-1');
+await credential.test();
+
+const folder = await client.folders('proj-1').getResource('folder-1');
+await folder.update({ name: 'Archived Workflows' });
+
+const user = await client.users().getResource('user-1', { includeRole: true });
+await user.changeRole('global:admin');
+```
+
+It also includes resources for executions, variables, and data tables:
+
+```ts
+const execution = await client.executions().getResource(42, { includeData: true });
+await execution.stop();
+
+const variable = await client.variables().getResource('var-1');
+await variable.update({ key: 'API_URL', value: 'https://example.com' });
+
+const dataTable = await client.dataTables().createResource({
+  name: 'Users',
+  columns: [{ name: 'email', type: 'string' }],
+});
+
+await dataTable.createColumn({ name: 'active', type: 'boolean' });
+```
+
+Community packages use install/uninstall terminology instead of create/delete:
+
+```ts
+const pkg = await client.communityPackages().installResource({
+  name: 'n8n-nodes-foo',
+});
+
+await pkg.update({ version: '2.0.0' });
+await pkg.uninstall();
+```
+
+When the create endpoint returns the created entity, the client also exposes `createResource()`:
+
+```ts
+const workflow = await client.workflows().createResource({
+  name: 'Sync',
+  nodes: [],
+  connections: {},
+  settings: {},
+});
+
+const credential = await client.credentials().createResource({
+  name: 'Internal API Token',
+  type: 'httpHeaderAuth',
+  data: { name: 'Authorization', value: 'Bearer token' },
+});
+```
+
+Rule of thumb:
+
+- `create()` mirrors the underlying API/client return type
+- `createResource()` returns a bound resource instance when the API returns the created entity
+- `updateResource()` returns a bound resource instance when the updated result can be represented honestly, either from the update response itself or from a verified follow-up fetch
+
+`projects().createResource()` is intentionally not available because `POST /projects` returns no entity or identifier.
+
 ### Workflow
 
 ```ts
@@ -144,8 +271,15 @@ const { data, nextCursor } = await workflowApi.list({
 
 // CRUD
 const workflow = await workflowApi.get('wf-1');
-const created = await workflowApi.create({ name: 'New', nodes: [], connections: {} });
+const workflowResource = await workflowApi.getResource('wf-1');
+const created = await workflowApi.create({ name: 'New', nodes: [], connections: {}, settings: {} });
 const updated = await workflowApi.update('wf-1', { name: 'Updated' });
+const updatedResource = await workflowApi.updateResource('wf-1', {
+  name: 'Updated Again',
+  nodes: [],
+  connections: {},
+  settings: {},
+});
 await workflowApi.delete('wf-1');
 
 // Actions
@@ -161,6 +295,9 @@ await workflowApi.updateTags('wf-1', [{ id: 'tag-1' }]);
 
 // Versioning
 const version = await workflowApi.getVersion('wf-1', 'v-1');
+
+// Nested executions
+const runs = await workflowResource.executions().listResources({ limit: 10 });
 ```
 
 ### Execution
@@ -192,6 +329,7 @@ const created = await credentialApi.create({
   data: { accessToken: 'ghp_xxx' },
 });
 const updated = await credentialApi.update('c-1', { name: 'GitHub Updated' });
+const updatedResource = await credentialApi.updateResource('c-1', { name: 'GitHub Updated Again' });
 await credentialApi.delete('c-1');
 await credentialApi.test('c-1');
 await credentialApi.transfer('c-1', 'proj-2');
@@ -207,6 +345,7 @@ const { data } = await tagApi.list({ limit: 10 });
 const tag = await tagApi.get('t-1');
 const created = await tagApi.create({ name: 'production' });
 const updated = await tagApi.update('t-1', { name: 'prod' });
+const updatedResource = await tagApi.updateResource('t-1', { name: 'production' });
 await tagApi.delete('t-1');
 ```
 
@@ -265,6 +404,7 @@ const created = await dataTableApi.create({
   ],
 });
 await dataTableApi.update('dt-1', { name: 'Users Updated' });
+const updatedTable = await dataTableApi.updateResource('dt-1', { name: 'Users Final' });
 await dataTableApi.delete('dt-1');
 
 // Rows
@@ -287,6 +427,7 @@ const { data } = await folderApi.list({ take: '10' });
 const folder = await folderApi.get('f-1');
 const created = await folderApi.create({ name: 'My Folder' });
 const updated = await folderApi.update('f-1', { name: 'Renamed' });
+const updatedResource = await folderApi.updateResource('f-1', { name: 'Renamed Again' });
 await folderApi.delete('f-1', 'f-2'); // transfer contents to f-2
 ```
 
@@ -298,6 +439,7 @@ const pkgApi = client.communityPackages();
 const packages = await pkgApi.list();
 const installed = await pkgApi.install({ name: 'n8n-nodes-foo' });
 await pkgApi.update('n8n-nodes-foo', { version: '2.0.0' });
+const updatedResource = await pkgApi.updateResource('n8n-nodes-foo', { version: '2.1.0' });
 await pkgApi.uninstall('n8n-nodes-foo');
 ```
 
