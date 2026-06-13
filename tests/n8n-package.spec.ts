@@ -32,7 +32,7 @@ describe('Implementation Consistency: N8nPackage', () => {
     });
 
     expect(http.request).toHaveBeenCalledTimes(1);
-    const request = (http.request as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0][0];
+    const request = http.request.mock.calls[0][0] as Record<string, unknown>;
     expect(request.method).toBe('POST');
     expect(request.path).toBe('/n8n-packages/import');
     expect(request.body).toBeInstanceOf(FormData);
