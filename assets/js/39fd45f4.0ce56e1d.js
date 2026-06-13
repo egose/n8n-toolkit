@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-execution-mdx-39f.json
-var site_docs_api_execution_mdx_39f_namespaceObject = JSON.parse('{"id":"api/execution","title":"Execution API","description":"ExecutionHandle monitors and controls workflow executions — list, get, stop, retry, and manage tags.","source":"@site/docs/api/execution.mdx","sourceDirName":"api","slug":"/api/execution","permalink":"/api/execution","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":2,"frontMatter":{"sidebar_label":"Execution","sidebar_position":2},"sidebar":"api","previous":{"title":"Workflow","permalink":"/api/workflow"},"next":{"title":"Credential","permalink":"/api/credential"}}')
+var site_docs_api_execution_mdx_39f_namespaceObject = JSON.parse('{"id":"api/execution","title":"Execution API","description":"ExecutionClient monitors and controls workflow executions — list, get, stop, retry, and manage tags.","source":"@site/docs/api/execution.mdx","sourceDirName":"api","slug":"/api/execution","permalink":"/api/execution","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":2,"frontMatter":{"sidebar_label":"Execution","sidebar_position":2},"sidebar":"api","previous":{"title":"Workflow","permalink":"/api/workflow"},"next":{"title":"Credential","permalink":"/api/credential"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -102,11 +102,11 @@ function _createMdxContent(props) {
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "ExecutionHandle"
+        children: "ExecutionClient"
       }), " monitors and controls workflow executions — list, get, stop, retry, and manage tags."]
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["This handle is for run history and operational control, not workflow definition changes. Pair it with ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "WorkflowHandle"
+      children: ["This client is for run history and operational control, not workflow definition changes. Pair it with ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "WorkflowClient"
       }), " when you need both deployment and runtime visibility."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
@@ -114,7 +114,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const execution = client.execution();\n"
+        children: "const execution = client.executions();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -142,7 +142,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.execution().list({\n  limit: 25,\n  status: 'error',\n  workflowId: 'wf-123',\n  projectId: 'proj-1',\n  includeData: true,\n  redactExecutionData: false,\n});\n"
+        children: "const { data, nextCursor } = await client.executions().list({\n  limit: 25,\n  status: 'error',\n  workflowId: 'wf-123',\n  projectId: 'proj-1',\n  includeData: true,\n  redactExecutionData: false,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "getid-params",
@@ -154,7 +154,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const execution = await client.execution().get(123, {\n  includeData: true,\n  redactExecutionData: false,\n});\n"
+        children: "const execution = await client.executions().get(123, {\n  includeData: true,\n  redactExecutionData: false,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleteid",
@@ -166,7 +166,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const deleted = await client.execution().delete(123);\n"
+        children: "const deleted = await client.executions().delete(123);\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "retryid-data",
@@ -178,7 +178,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const retried = await client.execution().retry(123, {\n  loadWorkflow: true,\n});\n"
+        children: "const retried = await client.executions().retry(123, {\n  loadWorkflow: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "stopid",
@@ -190,7 +190,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const stopped = await client.execution().stop(123);\n"
+        children: "const stopped = await client.executions().stop(123);\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "stopmanydata",
@@ -202,7 +202,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { stopped } = await client.execution().stopMany({\n  status: ['running', 'queued', 'waiting'],\n  workflowId: 'wf-123',\n  startedAfter: '2024-01-01T00:00:00Z',\n  startedBefore: '2024-01-02T00:00:00Z',\n});\n"
+        children: "const { stopped } = await client.executions().stopMany({\n  status: ['running', 'queued', 'waiting'],\n  workflowId: 'wf-123',\n  startedAfter: '2024-01-01T00:00:00Z',\n  startedBefore: '2024-01-02T00:00:00Z',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.h3, {
       id: "gettagsid--updatetagsid-tags",
@@ -216,7 +216,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const tags = await client.execution().getTags(123);\nconst updatedTags = await client.execution().updateTags(123, [\n  { id: 'tag-1' },\n]);\n"
+        children: "const tags = await client.executions().getTags(123);\nconst updatedTags = await client.executions().updateTags(123, [\n  { id: 'tag-1' },\n]);\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "typical-flow",
@@ -224,7 +224,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const execution = client.execution();\n\nconst { data: failed } = await execution.list({ status: 'error', limit: 20 });\n\nfor (const run of failed) {\n  await execution.retry(run.id, { loadWorkflow: true });\n}\n"
+        children: "const execution = client.executions();\n\nconst { data: failed } = await execution.list({ status: 'error', limit: 20 });\n\nfor (const run of failed) {\n  await execution.retry(run.id, { loadWorkflow: true });\n}\n"
       })
     })]
   });

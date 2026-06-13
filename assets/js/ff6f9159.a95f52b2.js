@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["758"], {
-7626(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["68"], {
+669(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_tag_mdx_e9a_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_user_mdx_ff6_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-tag-mdx-e9a.json
-var site_docs_api_tag_mdx_e9a_namespaceObject = JSON.parse('{"id":"api/tag","title":"Tag API","description":"TagHandle manages tags for workflows and executions.","source":"@site/docs/api/tag.mdx","sourceDirName":"api","slug":"/api/tag","permalink":"/api/tag","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":4,"frontMatter":{"sidebar_label":"Tag","sidebar_position":4},"sidebar":"api","previous":{"title":"Credential","permalink":"/api/credential"},"next":{"title":"User","permalink":"/api/user"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-user-mdx-ff6.json
+var site_docs_api_user_mdx_ff6_namespaceObject = JSON.parse('{"id":"api/user","title":"User API","description":"UserClient manages n8n users — list, get, create, delete, and change roles.","source":"@site/docs/api/user.mdx","sourceDirName":"api","slug":"/api/user","permalink":"/api/user","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":5,"frontMatter":{"sidebar_label":"User","sidebar_position":5},"sidebar":"api","previous":{"title":"Tag","permalink":"/api/tag"},"next":{"title":"Variable","permalink":"/api/variable"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/tag.mdx
+;// CONCATENATED MODULE: ./docs/api/user.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Tag',
-	sidebar_position: 4
+	sidebar_label: 'User',
+	sidebar_position: 5
 };
-const contentTitle = 'Tag API';
+const contentTitle = 'User API';
 
 const assets = {
 
@@ -48,20 +48,20 @@ const toc = [{
   "id": "listparams",
   "level": 3
 }, {
-  "value": "<code>get(id)</code>",
-  "id": "getid",
+  "value": "<code>get(id, params?)</code>",
+  "id": "getid-params",
   "level": 3
 }, {
   "value": "<code>create(data)</code>",
   "id": "createdata",
   "level": 3
 }, {
-  "value": "<code>update(id, data)</code>",
-  "id": "updateid-data",
-  "level": 3
-}, {
   "value": "<code>delete(id)</code>",
   "id": "deleteid",
+  "level": 3
+}, {
+  "value": "<code>changeRole(id, newRoleName)</code>",
+  "id": "changeroleid-newrolename",
   "level": 3
 }];
 function _createMdxContent(props) {
@@ -79,20 +79,20 @@ function _createMdxContent(props) {
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "tag-api",
-        children: "Tag API"
+        id: "user-api",
+        children: "User API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "TagHandle"
-      }), " manages tags for workflows and executions."]
+        children: "UserClient"
+      }), " manages n8n users — list, get, create, delete, and change roles."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const tag = client.tag();\n"
+        children: "const user = client.users();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -103,23 +103,23 @@ function _createMdxContent(props) {
         children: "list(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List all tags."
+      children: "List users with optional filters."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.tag().list({ limit: 20 });\n"
+        children: "const { data, nextCursor } = await client.users().list({\n  limit: 10,\n  offset: 0,\n  includeRole: true,\n  projectId: 'proj-1',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getid",
+      id: "getid-params",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "get(id)"
+        children: "get(id, params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get a tag by ID."
+      children: "Get a user by ID."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const tag = await client.tag().get('tag-123');\n"
+        children: "const user = await client.users().get('user-123', { includeRole: true });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
@@ -127,23 +127,11 @@ function _createMdxContent(props) {
         children: "create(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create a new tag."
+      children: "Create one or more users."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const tag = await client.tag().create({ name: 'production' });\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "updateid-data",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "update(id, data)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a tag."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const updated = await client.tag().update('tag-123', { name: 'prod' });\n"
+        children: "const result = await client.users().create([\n  { email: 'alice@example.com', role: 'global:member' },\n  { email: 'bob@example.com', role: 'global:admin' },\n]);\n// result.user contains the created user info\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleteid",
@@ -151,11 +139,23 @@ function _createMdxContent(props) {
         children: "delete(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a tag."
+      children: "Delete a user."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const deleted = await client.tag().delete('tag-123');\n"
+        children: "await client.users().delete('user-123');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "changeroleid-newrolename",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "changeRole(id, newRoleName)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Change a user's global role."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "await client.users().changeRole('user-123', 'global:admin');\n"
       })
     })]
   });

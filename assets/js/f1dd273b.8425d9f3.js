@@ -90,8 +90,8 @@ const toc = [{
   "id": "organize-with-projects",
   "level": 3
 }, {
-  "value": "Resource Handles",
-  "id": "resource-handles",
+  "value": "Resource Clients",
+  "id": "resource-clients",
   "level": 2
 }, {
   "value": "Next Steps",
@@ -137,12 +137,12 @@ function _createMdxContent(props) {
           children: "N8nClient"
         }), " with your n8n base URL and one authentication method."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
-        children: ["Pick a typed handle such as ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "workflow()"
+        children: ["Pick a typed resource client such as ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "workflows()"
         }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "execution()"
+          children: "executions()"
         }), ", or ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "project()"
+          children: "projects()"
         }), "."]
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
         children: "Call methods that map directly to the public API without hand-writing HTTP requests."
@@ -223,7 +223,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "import N8nClient from '@egose/n8n-client';\n\nconst client = new N8nClient({\n  baseUrl: 'http://localhost:5678',\n  apiKey: process.env.N8N_API_KEY!,\n});\n\nconst { data: workflows } = await client.workflow().list({ limit: 5 });\n\nfor (const workflow of workflows) {\n  console.log(`${workflow.id} ${workflow.name}`);\n}\n"
+        children: "import N8nClient from '@egose/n8n-client';\n\nconst client = new N8nClient({\n  baseUrl: 'http://localhost:5678',\n  apiKey: process.env.N8N_API_KEY!,\n});\n\nconst { data: workflows } = await client.workflows().list({ limit: 5 });\n\nfor (const workflow of workflows) {\n  console.log(`${workflow.id} ${workflow.name}`);\n}\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "basic-usage",
@@ -234,7 +234,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data: workflows, nextCursor } = await client.workflow().list({\n  limit: 10,\n  active: true,\n});\n"
+        children: "const { data: workflows, nextCursor } = await client.workflows().list({\n  limit: 10,\n  active: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "get-a-workflow",
@@ -242,7 +242,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const workflow = await client.workflow().get('workflow-id');\nconsole.log(workflow.name, workflow.active);\n"
+        children: "const workflow = await client.workflows().get('workflow-id');\nconsole.log(workflow.name, workflow.active);\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "create-a-credential",
@@ -250,7 +250,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const credential = await client.credential().create({\n  name: 'My API Key',\n  type: 'httpHeaderAuth',\n  data: {\n    headerName: 'Authorization',\n    headerValue: 'Bearer secret-token',\n  },\n});\n"
+        children: "const credential = await client.credentials().create({\n  name: 'My API Key',\n  type: 'httpHeaderAuth',\n  data: {\n    headerName: 'Authorization',\n    headerValue: 'Bearer secret-token',\n  },\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "manage-executions",
@@ -258,7 +258,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "// List error executions\nconst { data: errors } = await client.execution().list({\n  status: 'error',\n  workflowId: 'workflow-id',\n});\n\n// Stop a running execution\nawait client.execution().stop(executionId);\n"
+        children: "// List error executions\nconst { data: errors } = await client.executions().list({\n  status: 'error',\n  workflowId: 'workflow-id',\n});\n\n// Stop a running execution\nawait client.executions().stop(executionId);\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "how-the-api-surface-is-organized",
@@ -266,24 +266,24 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "client.workflow()"
+          children: "client.workflows()"
         }), " for workflow lifecycle and tagging."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "client.execution()"
+          children: "client.executions()"
         }), " for monitoring, retrying, and stopping runs."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "client.project()"
+          children: "client.projects()"
         }), " and ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "client.folder(projectId)"
+          children: "client.folders(projectId)"
         }), " for structure and access control."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
           children: "client.get()"
         }), ", ", (0,jsx_runtime.jsx)(_components.code, {
           children: "client.post()"
-        }), ", and the other low-level helpers only when you intentionally need to drop below a typed handle."]
+        }), ", and the other low-level helpers only when you intentionally need to drop below a typed resource client."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "organize-with-projects",
@@ -291,18 +291,18 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.project().create({ name: 'Production' });\n\nawait client.project().addMembers('project-id', [\n  { userId: 'user-id', role: 'project:admin' },\n]);\n"
+        children: "await client.projects().create({ name: 'Production' });\n\nawait client.projects().addMembers('project-id', [\n  { userId: 'user-id', role: 'project:admin' },\n]);\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "resource-handles",
-      children: "Resource Handles"
+      id: "resource-clients",
+      children: "Resource Clients"
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Every n8n API resource has a typed handle:"
+      children: "Every n8n API resource has a typed client:"
     }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
       children: [(0,jsx_runtime.jsx)(_components.thead, {
         children: (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.th, {
-            children: "Handle"
+            children: "Client"
           }), (0,jsx_runtime.jsx)(_components.th, {
             children: "Access"
           }), (0,jsx_runtime.jsx)(_components.th, {
@@ -313,11 +313,11 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "WorkflowHandle"
+              children: "WorkflowClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "client.workflow()"
+              children: "client.workflows()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Create, list, activate, archive workflows"
@@ -325,11 +325,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "ExecutionHandle"
+              children: "ExecutionClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "client.execution()"
+              children: "client.executions()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "List, get, stop, retry executions"
@@ -337,11 +337,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "CredentialHandle"
+              children: "CredentialClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "client.credential()"
+              children: "client.credentials()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "CRUD, test, transfer credentials"
@@ -349,11 +349,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "TagHandle"
+              children: "TagClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "client.tag()"
+              children: "client.tags()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Manage workflow/execution tags"
@@ -361,11 +361,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "UserHandle"
+              children: "UserClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "client.user()"
+              children: "client.users()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "List, create, delete users"
@@ -373,11 +373,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "VariableHandle"
+              children: "VariableClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "client.variable()"
+              children: "client.variables()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Manage environment variables"
@@ -385,11 +385,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "ProjectHandle"
+              children: "ProjectClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "client.project()"
+              children: "client.projects()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "CRUD projects and members"
@@ -397,11 +397,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "DataTableHandle"
+              children: "DataTableClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "client.dataTable()"
+              children: "client.dataTables()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Tables, columns, and rows"
@@ -409,11 +409,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "FolderHandle"
+              children: "FolderClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "client.folder(projectId)"
+              children: "client.folders(projectId)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Project-scoped folder management"
@@ -421,11 +421,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "CommunityPackageHandle"
+              children: "CommunityPackageClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "client.communityPackage()"
+              children: "client.communityPackages()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Install, update, uninstall packages"
@@ -433,7 +433,7 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "AuditHandle"
+              children: "AuditClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
@@ -445,7 +445,7 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "InsightsHandle"
+              children: "InsightsClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
@@ -457,7 +457,7 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "SourceControlHandle"
+              children: "SourceControlClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
@@ -469,7 +469,7 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "DiscoverHandle"
+              children: "DiscoverClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
@@ -481,7 +481,7 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "N8nPackageHandle"
+              children: "N8nPackageClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
@@ -492,6 +492,15 @@ function _createMdxContent(props) {
           })]
         })]
       })]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["When you want bound instance methods instead of plain API objects, use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "getResource()"
+      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "listResources()"
+      }), ". The full model is documented on the ", (0,jsx_runtime.jsx)(_components.a, {
+        href: "/api/n8n-client/",
+        children: "N8nClient API"
+      }), " page."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "next-steps",
       children: "Next Steps"
@@ -505,7 +514,7 @@ function _createMdxContent(props) {
         children: ["Read ", (0,jsx_runtime.jsx)(_components.a, {
           href: "/about/philosophy/",
           children: "Philosophy"
-        }), " if you want the design rationale behind handles, retries, and low-level request helpers."]
+        }), " if you want the design rationale behind resource clients, retries, and low-level request helpers."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: ["Check out ", (0,jsx_runtime.jsx)(_components.a, {
           href: "/example/overview/",

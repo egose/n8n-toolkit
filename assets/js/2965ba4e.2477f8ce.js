@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-example-project-organization-mdx-296.json
-var site_docs_example_project_organization_mdx_296_namespaceObject = JSON.parse('{"id":"example/project-organization","title":"Project Organization","description":"This example covers creating projects, managing folders, adding and removing members, and organizing workflows using ProjectHandle and FolderHandle.","source":"@site/docs/example/project-organization.mdx","sourceDirName":"example","slug":"/example/project-organization","permalink":"/example/project-organization","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":4,"frontMatter":{"sidebar_label":"Project Organization","sidebar_position":4},"sidebar":"example","previous":{"title":"Credential Management","permalink":"/example/credential-management"}}')
+var site_docs_example_project_organization_mdx_296_namespaceObject = JSON.parse('{"id":"example/project-organization","title":"Project Organization","description":"This example covers creating projects, managing folders, adding and removing members, and organizing workflows using ProjectClient and FolderClient.","source":"@site/docs/example/project-organization.mdx","sourceDirName":"example","slug":"/example/project-organization","permalink":"/example/project-organization","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":4,"frontMatter":{"sidebar_label":"Project Organization","sidebar_position":4},"sidebar":"example","previous":{"title":"Credential Management","permalink":"/example/credential-management"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -60,9 +60,9 @@ function _createMdxContent(props) {
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["This example covers creating projects, managing folders, adding and removing members, and organizing workflows using ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "ProjectHandle"
+        children: "ProjectClient"
       }), " and ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "FolderHandle"
+        children: "FolderClient"
       }), "."]
     }), "\n", (0,jsx_runtime.jsx)(_components.hr, {}), "\n", "\n", (0,jsx_runtime.jsx)(CodeBlock/* ["default"] */.A, {
       language: "ts",

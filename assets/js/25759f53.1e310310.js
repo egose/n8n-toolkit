@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-about-philosophy-mdx-257.json
-var site_docs_about_philosophy_mdx_257_namespaceObject = JSON.parse('{"id":"about/philosophy","title":"Philosophy","description":"n8n-client is a typed TypeScript client for the n8n Public API v1. It wraps native fetch with resource-scoped handles so you can manage workflows, executions, credentials, projects, and every other n8n API resource through a consistent, discoverable interface.","source":"@site/docs/about/philosophy.mdx","sourceDirName":"about","slug":"/about/philosophy","permalink":"/about/philosophy","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":0,"frontMatter":{"sidebar_label":"Philosophy","sidebar_position":0},"sidebar":"about","next":{"title":"Quick Start","permalink":"/about/quick-start"}}')
+var site_docs_about_philosophy_mdx_257_namespaceObject = JSON.parse('{"id":"about/philosophy","title":"Philosophy","description":"n8n-client is a typed TypeScript client for the n8n Public API v1. It wraps native fetch with resource-scoped clients so you can manage workflows, executions, credentials, projects, and every other n8n API resource through a consistent, discoverable interface.","source":"@site/docs/about/philosophy.mdx","sourceDirName":"about","slug":"/about/philosophy","permalink":"/about/philosophy","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":0,"frontMatter":{"sidebar_label":"Philosophy","sidebar_position":0},"sidebar":"about","next":{"title":"Quick Start","permalink":"/about/quick-start"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -107,7 +107,7 @@ function _createMdxContent(props) {
         children: "n8n Public API v1"
       }), ". It wraps native ", (0,jsx_runtime.jsx)(_components.code, {
         children: "fetch"
-      }), " with resource-scoped handles so you can manage workflows, executions, credentials, projects, and every other n8n API resource through a consistent, discoverable interface."]
+      }), " with resource-scoped clients so you can manage workflows, executions, credentials, projects, and every other n8n API resource through a consistent, discoverable interface."]
     }), "\n", (0,jsx_runtime.jsx)(_components.hr, {}), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "why",
       children: "Why?"
@@ -148,7 +148,7 @@ function _createMdxContent(props) {
         }), " — zero external dependencies."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
-          children: "Resource-scoped handles"
+          children: "Resource-scoped clients"
         }), " that make the API discoverable without memorizing endpoints."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.hr, {}), "\n", (0,jsx_runtime.jsx)(_components.h2, {
@@ -158,14 +158,14 @@ function _createMdxContent(props) {
       id: "1-resource-centric-design",
       children: "1. Resource-Centric Design"
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Each n8n API resource gets its own handle:"
+      children: "Each n8n API resource gets its own client:"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const client = new N8nClient({ baseUrl, apiKey });\n\nclient.workflow()      // WorkflowHandle\nclient.execution()     // ExecutionHandle\nclient.credential()    // CredentialHandle\nclient.project()       // ProjectHandle\n"
+        children: "const client = new N8nClient({ baseUrl, apiKey });\n\nclient.workflows()     // WorkflowClient\nclient.executions()    // ExecutionClient\nclient.credentials()   // CredentialClient\nclient.projects()      // ProjectClient\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "No need to remember endpoint paths — follow the handle chain."
+      children: "No need to remember endpoint paths — follow the client chain."
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "2-typed-end-to-end",
       children: "2. Typed End-to-End"
@@ -174,7 +174,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.workflow().list({ limit: 10, active: true });\n// data is Workflow[], nextCursor is string | undefined\n"
+        children: "const { data, nextCursor } = await client.workflows().list({ limit: 10, active: true });\n// data is Workflow[], nextCursor is string | undefined\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "Your IDE autocompletes parameters, return types are clear, and refactors are safe."
@@ -186,7 +186,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "// Automatically retries on 408, 429, 500, 502, 503, 504\n// with exponential backoff and jitter\nconst workflow = await client.workflow().get('wf-123');\n"
+        children: "// Automatically retries on 408, 429, 500, 502, 503, 504\n// with exponential backoff and jitter\nconst workflow = await client.workflows().get('wf-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "No need for wrapper libraries or manual retry loops."
@@ -206,7 +206,7 @@ function _createMdxContent(props) {
       children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
         children: "exactly one authentication method must be configured"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "handles follow the public API instead of inventing idempotent helpers"
+        children: "resource clients follow the public API instead of inventing idempotent helpers"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
         children: "unsupported endpoints are not added for convenience"
       }), "\n"]
@@ -220,10 +220,10 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.workflow().list();           // GET /api/v1/workflows\nawait client.execution().get(123);        // GET /api/v1/executions/123\nawait client.credential().create({...});  // POST /api/v1/credentials\n"
+        children: "await client.workflows().list();           // GET /api/v1/workflows\nawait client.executions().get(123);        // GET /api/v1/executions/123\nawait client.credentials().create({...});  // POST /api/v1/credentials\n"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Every handle works the same way: ", (0,jsx_runtime.jsx)(_components.code, {
+      children: ["Every resource client works the same way: ", (0,jsx_runtime.jsx)(_components.code, {
         children: "list"
       }), ", ", (0,jsx_runtime.jsx)(_components.code, {
         children: "get"
@@ -281,7 +281,7 @@ function _createMdxContent(props) {
         children: (0,jsx_runtime.jsx)(_components.pre, {
           children: (0,jsx_runtime.jsx)(_components.code, {
             className: "language-ts",
-            children: "const client = new N8nClient({\n  baseUrl: 'http://localhost:5678',\n  apiKey: process.env.N8N_API_KEY,\n});\n\nconst { data, nextCursor } = await client.workflow().list({\n  limit: 10,\n  active: true,\n});\n"
+            children: "const client = new N8nClient({\n  baseUrl: 'http://localhost:5678',\n  apiKey: process.env.N8N_API_KEY,\n});\n\nconst { data, nextCursor } = await client.workflows().list({\n  limit: 10,\n  active: true,\n});\n"
           })
         })
       })]

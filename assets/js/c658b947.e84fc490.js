@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["175"], {
-2096(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["272"], {
+5318(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_audit_mdx_baf_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_discover_mdx_c65_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-audit-mdx-baf.json
-var site_docs_api_audit_mdx_baf_namespaceObject = JSON.parse('{"id":"api/audit","title":"Audit API","description":"AuditHandle generates audit reports for your n8n instance.","source":"@site/docs/api/audit.mdx","sourceDirName":"api","slug":"/api/audit","permalink":"/api/audit","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":11,"frontMatter":{"sidebar_label":"Audit","sidebar_position":11},"sidebar":"api","previous":{"title":"Community Package","permalink":"/api/community-package"},"next":{"title":"Insights","permalink":"/api/insights"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-discover-mdx-c65.json
+var site_docs_api_discover_mdx_c65_namespaceObject = JSON.parse('{"id":"api/discover","title":"Discover API","description":"DiscoverClient discovers available resources and operations in the n8n instance.","source":"@site/docs/api/discover.mdx","sourceDirName":"api","slug":"/api/discover","permalink":"/api/discover","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":14,"frontMatter":{"sidebar_label":"Discover","sidebar_position":14},"sidebar":"api","previous":{"title":"Source Control","permalink":"/api/source-control"},"next":{"title":"n8n Package","permalink":"/api/n8n-package"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/audit.mdx
+;// CONCATENATED MODULE: ./docs/api/discover.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Audit',
-	sidebar_position: 11
+	sidebar_label: 'Discover',
+	sidebar_position: 14
 };
-const contentTitle = 'Audit API';
+const contentTitle = 'Discover API';
 
 const assets = {
 
@@ -48,8 +48,8 @@ const toc = [{
   "id": "common-tasks",
   "level": 2
 }, {
-  "value": "<code>generate(data?)</code>",
-  "id": "generatedata",
+  "value": "<code>get(params?)</code>",
+  "id": "getparams",
   "level": 3
 }];
 function _createMdxContent(props) {
@@ -69,22 +69,22 @@ function _createMdxContent(props) {
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "audit-api",
-        children: "Audit API"
+        id: "discover-api",
+        children: "Discover API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "AuditHandle"
-      }), " generates audit reports for your n8n instance."]
+        children: "DiscoverClient"
+      }), " discovers available resources and operations in the n8n instance."]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Audit reports are grouped by risk category and are useful for operational reviews, credential hygiene checks, and identifying risky node usage."
+      children: "This is especially useful for tooling, schema-aware integrations, or admin interfaces that need to adapt to the caller's scopes."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const audit = client.audit();\n"
+        children: "const discover = client.discover();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -94,32 +94,44 @@ function _createMdxContent(props) {
       children: "Common Tasks"
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "generate a full audit report for the instance"
+        children: "inspect what the current credentials are allowed to access"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "limit the report to selected risk categories"
+        children: "fetch request schemas for dynamic tools or generators"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "review credential, filesystem, node, database, and instance findings"
+        children: "filter to a single resource or operation family"
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "generatedata",
+      id: "getparams",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "generate(data?)"
+        children: "get(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Generate an audit report."
+      children: "Discover available resources, optionally filtered by type."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const report = await client.audit().generate({\n  additionalOptions: {\n    categories: ['credentials', 'nodes', 'filesystem'],\n    daysAbandonedWorkflow: 90,\n  },\n});\n"
+        children: "const resources = await client.discover().get({\n  include: 'schemas',\n  resource: 'workflow',\n  operation: 'list',\n});\n"
       })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["The response is grouped into report sections such as ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "Credentials Risk Report"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "Nodes Risk Report"
-      }), ", and ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "Instance Risk Report"
-      }), " when those findings are present."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "The response includes:"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "data.scopes"
+        }), ": active scopes for the current credentials"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "data.resources"
+        }), ": grouped operations and endpoints"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "data.filters"
+        }), ": filter metadata for discovery queries"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "data.specUrl"
+        }), ": URL for the full OpenAPI document"]
+      }), "\n"]
     })]
   });
 }

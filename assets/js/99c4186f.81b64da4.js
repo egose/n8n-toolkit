@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-n-8-n-package-mdx-99c.json
-var site_docs_api_n_8_n_package_mdx_99c_namespaceObject = JSON.parse('{"id":"api/n8n-package","title":"n8n Package API","description":"N8nPackageHandle manages workflow import and export packages.","source":"@site/docs/api/n8n-package.mdx","sourceDirName":"api","slug":"/api/n8n-package","permalink":"/api/n8n-package","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":15,"frontMatter":{"sidebar_label":"n8n Package","sidebar_position":15},"sidebar":"api","previous":{"title":"Discover","permalink":"/api/discover"}}')
+var site_docs_api_n_8_n_package_mdx_99c_namespaceObject = JSON.parse('{"id":"api/n8n-package","title":"n8n Package API","description":"N8nPackageClient manages workflow import and export packages.","source":"@site/docs/api/n8n-package.mdx","sourceDirName":"api","slug":"/api/n8n-package","permalink":"/api/n8n-package","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":15,"frontMatter":{"sidebar_label":"n8n Package","sidebar_position":15},"sidebar":"api","previous":{"title":"Discover","permalink":"/api/discover"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -89,7 +89,7 @@ function _createMdxContent(props) {
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "N8nPackageHandle"
+        children: "N8nPackageClient"
       }), " manages workflow import and export packages."]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "This handle is beta-aligned with the public API and is useful when you need to move groups of workflows between instances or environments."

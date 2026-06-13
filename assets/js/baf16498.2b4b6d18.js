@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["163"], {
-8755(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["175"], {
+2096(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_variable_mdx_8e5_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_audit_mdx_baf_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-variable-mdx-8e5.json
-var site_docs_api_variable_mdx_8e5_namespaceObject = JSON.parse('{"id":"api/variable","title":"Variable API","description":"VariableHandle manages n8n environment variables.","source":"@site/docs/api/variable.mdx","sourceDirName":"api","slug":"/api/variable","permalink":"/api/variable","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":6,"frontMatter":{"sidebar_label":"Variable","sidebar_position":6},"sidebar":"api","previous":{"title":"User","permalink":"/api/user"},"next":{"title":"Project","permalink":"/api/project"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-audit-mdx-baf.json
+var site_docs_api_audit_mdx_baf_namespaceObject = JSON.parse('{"id":"api/audit","title":"Audit API","description":"AuditClient generates audit reports for your n8n instance.","source":"@site/docs/api/audit.mdx","sourceDirName":"api","slug":"/api/audit","permalink":"/api/audit","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":11,"frontMatter":{"sidebar_label":"Audit","sidebar_position":11},"sidebar":"api","previous":{"title":"Community Package","permalink":"/api/community-package"},"next":{"title":"Insights","permalink":"/api/insights"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/variable.mdx
+;// CONCATENATED MODULE: ./docs/api/audit.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Variable',
-	sidebar_position: 6
+	sidebar_label: 'Audit',
+	sidebar_position: 11
 };
-const contentTitle = 'Variable API';
+const contentTitle = 'Audit API';
 
 const assets = {
 
@@ -44,20 +44,12 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
-  "value": "<code>list(params?)</code>",
-  "id": "listparams",
-  "level": 3
+  "value": "Common Tasks",
+  "id": "common-tasks",
+  "level": 2
 }, {
-  "value": "<code>create(data)</code>",
-  "id": "createdata",
-  "level": 3
-}, {
-  "value": "<code>update(id, data)</code>",
-  "id": "updateid-data",
-  "level": 3
-}, {
-  "value": "<code>delete(id)</code>",
-  "id": "deleteid",
+  "value": "<code>generate(data?)</code>",
+  "id": "generatedata",
   "level": 3
 }];
 function _createMdxContent(props) {
@@ -67,80 +59,67 @@ function _createMdxContent(props) {
     h2: "h2",
     h3: "h3",
     header: "header",
+    li: "li",
     p: "p",
     pre: "pre",
+    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "variable-api",
-        children: "Variable API"
+        id: "audit-api",
+        children: "Audit API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "VariableHandle"
-      }), " manages n8n environment variables."]
+        children: "AuditClient"
+      }), " generates audit reports for your n8n instance."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Audit reports are grouped by risk category and are useful for operational reviews, credential hygiene checks, and identifying risky node usage."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const variable = client.variable();\n"
+        children: "const audit = client.audit();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "common-tasks",
+      children: "Common Tasks"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "generate a full audit report for the instance"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "limit the report to selected risk categories"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "review credential, filesystem, node, database, and instance findings"
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "listparams",
+      id: "generatedata",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "list(params?)"
+        children: "generate(data?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List variables with optional filters."
+      children: "Generate an audit report."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.variable().list({\n  limit: 50,\n  projectId: 'proj-1',\n  state: 'empty',\n});\n"
+        children: "const report = await client.audit().generate({\n  additionalOptions: {\n    categories: ['credentials', 'nodes', 'filesystem'],\n    daysAbandonedWorkflow: 90,\n  },\n});\n"
       })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "createdata",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "create(data)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create a new variable."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "await client.variable().create({\n  key: 'MY_API_KEY',\n  value: 'secret-value',\n  projectId: 'proj-1',\n});\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "updateid-data",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "update(id, data)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a variable."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "await client.variable().update('var-123', {\n  key: 'MY_API_KEY',\n  value: 'new-value',\n});\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "deleteid",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "delete(id)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a variable."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "await client.variable().delete('var-123');\n"
-      })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["The response is grouped into report sections such as ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "Credentials Risk Report"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "Nodes Risk Report"
+      }), ", and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "Instance Risk Report"
+      }), " when those findings are present."]
     })]
   });
 }

@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-n-8-n-client-mdx-924.json
-var site_docs_api_n_8_n_client_mdx_924_namespaceObject = JSON.parse('{"id":"api/n8n-client","title":"N8nClient API","description":"N8nClient is the root entry point. It creates an HTTP client and provides access to all 15 resource handles.","source":"@site/docs/api/n8n-client.mdx","sourceDirName":"api","slug":"/api/n8n-client","permalink":"/api/n8n-client","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":0,"frontMatter":{"sidebar_label":"N8nClient","sidebar_position":0},"sidebar":"api","next":{"title":"Workflow","permalink":"/api/workflow"}}')
+var site_docs_api_n_8_n_client_mdx_924_namespaceObject = JSON.parse('{"id":"api/n8n-client","title":"N8nClient API","description":"N8nClient is the root entry point. It creates an HTTP client and provides access to all 15 resource clients.","source":"@site/docs/api/n8n-client.mdx","sourceDirName":"api","slug":"/api/n8n-client","permalink":"/api/n8n-client","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":0,"frontMatter":{"sidebar_label":"N8nClient","sidebar_position":0},"sidebar":"api","next":{"title":"Workflow","permalink":"/api/workflow"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -48,12 +48,20 @@ const toc = [{
   "id": "minimal-example",
   "level": 2
 }, {
-  "value": "Resource Handles",
-  "id": "resource-handles",
+  "value": "Resource Clients",
+  "id": "resource-clients",
   "level": 2
 }, {
   "value": "Choosing Between Handles And Low-Level Requests",
   "id": "choosing-between-handles-and-low-level-requests",
+  "level": 2
+}, {
+  "value": "Plain Objects Vs Resources",
+  "id": "plain-objects-vs-resources",
+  "level": 2
+}, {
+  "value": "Nested Collections",
+  "id": "nested-collections",
   "level": 2
 }, {
   "value": "Low-Level Requests",
@@ -68,8 +76,8 @@ const toc = [{
   "id": "retry-behavior",
   "level": 2
 }, {
-  "value": "Handle Scope",
-  "id": "handle-scope",
+  "value": "Client Scope",
+  "id": "client-scope",
   "level": 2
 }, {
   "value": "Exports",
@@ -106,9 +114,9 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
         children: "N8nClient"
-      }), " is the root entry point. It creates an HTTP client and provides access to all 15 resource handles."]
+      }), " is the root entry point. It creates an HTTP client and provides access to all 15 resource clients."]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Use this page when you want to understand the shape of the client itself: configuration, handle access, low-level request helpers, and error behavior."
+      children: "Use this page when you want to understand the shape of the client itself: configuration, collection client access, low-level request helpers, and error behavior."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "constructor",
       children: "Constructor"
@@ -196,11 +204,11 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "import N8nClient from '@egose/n8n-client';\n\nconst client = new N8nClient({\n  baseUrl: 'http://localhost:5678',\n  apiKey: process.env.N8N_API_KEY!,\n});\n\nconst { data: workflows } = await client.workflow().list({ limit: 10 });\n"
+        children: "import N8nClient from '@egose/n8n-client';\n\nconst client = new N8nClient({\n  baseUrl: 'http://localhost:5678',\n  apiKey: process.env.N8N_API_KEY!,\n});\n\nconst { data: workflows } = await client.workflows().list({ limit: 10 });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "resource-handles",
-      children: "Resource Handles"
+      id: "resource-clients",
+      children: "Resource Clients"
     }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
       children: [(0,jsx_runtime.jsx)(_components.thead, {
         children: (0,jsx_runtime.jsxs)(_components.tr, {
@@ -216,11 +224,11 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "workflow()"
+              children: "workflows()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "WorkflowHandle"
+              children: "WorkflowClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Workflow management"
@@ -228,11 +236,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "execution()"
+              children: "executions()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "ExecutionHandle"
+              children: "ExecutionClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Execution monitoring"
@@ -240,11 +248,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "credential()"
+              children: "credentials()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "CredentialHandle"
+              children: "CredentialClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Credential management"
@@ -252,11 +260,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "tag()"
+              children: "tags()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "TagHandle"
+              children: "TagClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Tag management"
@@ -264,11 +272,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "user()"
+              children: "users()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "UserHandle"
+              children: "UserClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "User management"
@@ -276,11 +284,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "variable()"
+              children: "variables()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "VariableHandle"
+              children: "VariableClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Variable management"
@@ -288,11 +296,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "project()"
+              children: "projects()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "ProjectHandle"
+              children: "ProjectClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Project management"
@@ -300,11 +308,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "dataTable()"
+              children: "dataTables()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "DataTableHandle"
+              children: "DataTableClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Data table management"
@@ -312,11 +320,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "folder(projectId)"
+              children: "folders(projectId)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "FolderHandle"
+              children: "FolderClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Folder management (project-scoped)"
@@ -324,11 +332,11 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "communityPackage()"
+              children: "communityPackages()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "CommunityPackageHandle"
+              children: "CommunityPackageClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Community package management"
@@ -340,7 +348,7 @@ function _createMdxContent(props) {
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "AuditHandle"
+              children: "AuditClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Audit report generation"
@@ -352,7 +360,7 @@ function _createMdxContent(props) {
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "InsightsHandle"
+              children: "InsightsClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Execution insights"
@@ -364,7 +372,7 @@ function _createMdxContent(props) {
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "SourceControlHandle"
+              children: "SourceControlClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Source control operations"
@@ -376,7 +384,7 @@ function _createMdxContent(props) {
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "DiscoverHandle"
+              children: "DiscoverClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Resource discovery"
@@ -388,7 +396,7 @@ function _createMdxContent(props) {
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "N8nPackageHandle"
+              children: "N8nPackageClient"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "Package import/export"
@@ -399,11 +407,11 @@ function _createMdxContent(props) {
       id: "choosing-between-handles-and-low-level-requests",
       children: "Choosing Between Handles And Low-Level Requests"
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Prefer a handle when the library already exposes the endpoint you need:"
+      children: "Prefer a resource client when the library already exposes the endpoint you need:"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.workflow().archive('wf-123');\nawait client.execution().retry(42, { loadWorkflow: true });\n"
+        children: "await client.workflows().archive('wf-123');\nawait client.executions().retry(42, { loadWorkflow: true });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "Use the low-level helpers when:"
@@ -416,10 +424,151 @@ function _createMdxContent(props) {
         children: "you are intentionally working at the HTTP layer"
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "plain-objects-vs-resources",
+      children: "Plain Objects Vs Resources"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Collection client methods like ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "list()"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "get()"
+      }), " return plain API DTOs."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "When you want an instance with bound methods, use the opt-in resource methods:"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const project = await client.projects().getResource('proj-1');\nawait project.update({ name: 'Ops' });\n\nconst workflow = await client.workflows().getResource('wf-1');\nawait workflow.activate();\n\nconst folders = await project.folders().listResources({ take: '10' });\nawait folders.data[0]?.update({ name: 'Archived Workflows' });\n\nconst renamedFolder = await project.folders().updateResource('folder-id', { name: 'Archived Workflows' });\n\nawait project.variables().create({ key: 'API_URL', value: 'https://example.com' });\n\nconst createdWorkflow = await project.workflows().create({\n  name: 'Sync',\n  nodes: [],\n  connections: {},\n  settings: {},\n});\n\nconst createdFolder = await project.folders().create({ name: 'Operations' });\n\nconst table = await project.dataTables().createResource({\n  name: 'Users',\n  columns: [{ name: 'email', type: 'string' }],\n});\n\nawait table.createColumn({ name: 'active', type: 'boolean' });\n\nconst recentRuns = await project.executions().listResources({ limit: 10, status: 'success' });\nawait recentRuns.data[0]?.getTags();\n\nconst workflowResource = await client.workflows().getResource('wf-1');\nconst workflowRuns = await workflowResource.executions().listResources({ limit: 10 });\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "The current resource layer covers:"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: (0,jsx_runtime.jsx)(_components.code, {
+          children: "CommunityPackageResource"
+        })
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: (0,jsx_runtime.jsx)(_components.code, {
+          children: "ProjectResource"
+        })
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: (0,jsx_runtime.jsx)(_components.code, {
+          children: "WorkflowResource"
+        })
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: (0,jsx_runtime.jsx)(_components.code, {
+          children: "CredentialResource"
+        })
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: (0,jsx_runtime.jsx)(_components.code, {
+          children: "DataTableResource"
+        })
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: (0,jsx_runtime.jsx)(_components.code, {
+          children: "ExecutionResource"
+        })
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: (0,jsx_runtime.jsx)(_components.code, {
+          children: "FolderResource"
+        })
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: (0,jsx_runtime.jsx)(_components.code, {
+          children: "TagResource"
+        })
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: (0,jsx_runtime.jsx)(_components.code, {
+          children: "UserResource"
+        })
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: (0,jsx_runtime.jsx)(_components.code, {
+          children: "VariableResource"
+        })
+      }), "\n"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "nested-collections",
+      children: "Nested Collections"
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Some bound resources expose nested collections for related resources:"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const project = await client.projects().getResource('proj-1');\n\nconst workflow = await project.workflows().get('wf-1');\nconst workflowResource = await project.workflows().getResource('wf-1');\n\nconst updatedFolder = await project.folders().update('folder-id', { name: 'Archive' });\nconst updatedFolderResource = await project.folders().updateResource('folder-id', { name: 'Archive' });\n\nconst run = await workflowResource.executions().get(123);\nconst runResource = await workflowResource.executions().getResource(123);\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Rule of thumb:"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "raw nested methods mirror the underlying client/API return type"
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "getResource()"
+        }), " / ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "createResource()"
+        }), " / ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "updateResource()"
+        }), " return bound resource instances"]
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "nested collections only expose the pairs the API can support honestly"
+      }), "\n"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Some nested collections are true scoped relationships, while others are filtered or verified convenience relationships:"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "project.folders()"
+        }), " is truly project-scoped by endpoint path"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "project.workflows()"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "project.variables()"
+        }), ", and ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "project.executions()"
+        }), " use project filters and explicit membership checks where needed"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "project.dataTables()"
+        }), " currently supports project-scoped creation plus guarded single-resource access"]
+      }), "\n"]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["When a create endpoint returns the created entity, the matching client also exposes ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "createResource()"
+      }), ":"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const workflow = await client.workflows().createResource({\n  name: 'Sync',\n  nodes: [],\n  connections: {},\n  settings: {},\n});\n\nconst folder = await client.folders('proj-1').createResource({\n  name: 'Operations',\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Rule of thumb:"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "create()"
+        }), " mirrors the underlying API/client return type"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "createResource()"
+        }), " returns a bound resource instance when the API returns the created entity"]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "updateResource()"
+        }), " follows the same rule for update endpoints that return the updated entity"]
+      }), "\n"]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "projects().createResource()"
+      }), " is intentionally not available because the n8n public API returns no project ID or entity body from ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "POST /projects"
+      }), "."]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["For community packages, the equivalent opt-in method is ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "installResource()"
+      }), " because the public API uses install/uninstall verbs."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "low-level-requests",
       children: "Low-Level Requests"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["If you need an endpoint or option that is not covered by a handle yet, ", (0,jsx_runtime.jsx)(_components.code, {
+      children: ["If you need an endpoint or option that is not covered by a resource client yet, ", (0,jsx_runtime.jsx)(_components.code, {
         children: "N8nClient"
       }), " exposes thin request helpers without exposing the transport object itself:"]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
@@ -428,7 +577,7 @@ function _createMdxContent(props) {
         children: "// Direct GET request\nconst data = await client.get('/workflows', { limit: 5 });\n\n// Direct POST request\nawait client.post('/workflows', { name: 'New Workflow', nodes: [], connections: {}, settings: {} });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "These helpers still use the same authentication, retry, and response parsing rules as the typed handles."
+      children: "These helpers still use the same authentication, retry, and response parsing rules as the typed clients."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "error-handling",
       children: "Error Handling"
@@ -439,7 +588,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "import { HttpError } from '@egose/n8n-client';\n\ntry {\n  await client.workflow().get('nonexistent');\n} catch (error) {\n  if (error instanceof HttpError) {\n    console.log(error.status);  // 404\n    console.log(error.message); // \"Workflow not found\"\n    console.log(error.data);    // Full error response body\n  }\n}\n"
+        children: "import { HttpError } from '@egose/n8n-client';\n\ntry {\n  await client.workflows().get('nonexistent');\n} catch (error) {\n  if (error instanceof HttpError) {\n    console.log(error.status);  // 404\n    console.log(error.message); // \"Workflow not found\"\n    console.log(error.data);    // Full error response body\n  }\n}\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "retry-behavior",
@@ -477,23 +626,23 @@ function _createMdxContent(props) {
         children: "HttpError"
       }), "."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "handle-scope",
-      children: "Handle Scope"
+      id: "client-scope",
+      children: "Client Scope"
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Most handles are unscoped:"
+      children: "Most resource clients are unscoped:"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "client.workflow()\nclient.execution()\nclient.project()\n"
+        children: "client.workflows()\nclient.executions()\nclient.projects()\n"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "folder()"
+        children: "folders()"
       }), " is the exception because folder endpoints are project-scoped in the n8n API:"]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const folder = client.folder('project-id');\nawait folder.list();\n"
+        children: "const folder = client.folders('project-id');\nawait folder.list();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "exports",

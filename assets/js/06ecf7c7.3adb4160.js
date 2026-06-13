@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-example-workflow-management-mdx-06e.json
-var site_docs_example_workflow_management_mdx_06e_namespaceObject = JSON.parse('{"id":"example/workflow-management","title":"Workflow Management","description":"This example covers creating, listing, activating, archiving, and versioning workflows using the WorkflowHandle.","source":"@site/docs/example/workflow-management.mdx","sourceDirName":"example","slug":"/example/workflow-management","permalink":"/example/workflow-management","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":1,"frontMatter":{"sidebar_label":"Workflow Management","sidebar_position":1},"sidebar":"example","previous":{"title":"Overview","permalink":"/example/overview"},"next":{"title":"Execution Monitoring","permalink":"/example/execution-monitoring"}}')
+var site_docs_example_workflow_management_mdx_06e_namespaceObject = JSON.parse('{"id":"example/workflow-management","title":"Workflow Management","description":"This example covers creating, listing, activating, archiving, and versioning workflows using the WorkflowClient.","source":"@site/docs/example/workflow-management.mdx","sourceDirName":"example","slug":"/example/workflow-management","permalink":"/example/workflow-management","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":1,"frontMatter":{"sidebar_label":"Workflow Management","sidebar_position":1},"sidebar":"example","previous":{"title":"Overview","permalink":"/example/overview"},"next":{"title":"Execution Monitoring","permalink":"/example/execution-monitoring"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -60,7 +60,7 @@ function _createMdxContent(props) {
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["This example covers creating, listing, activating, archiving, and versioning workflows using the ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "WorkflowHandle"
+        children: "WorkflowClient"
       }), "."]
     }), "\n", (0,jsx_runtime.jsx)(_components.hr, {}), "\n", "\n", (0,jsx_runtime.jsx)(CodeBlock/* ["default"] */.A, {
       language: "ts",

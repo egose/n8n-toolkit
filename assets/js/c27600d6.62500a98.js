@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["272"], {
-5318(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["322"], {
+6721(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_discover_mdx_c65_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_community_package_mdx_c27_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-discover-mdx-c65.json
-var site_docs_api_discover_mdx_c65_namespaceObject = JSON.parse('{"id":"api/discover","title":"Discover API","description":"DiscoverHandle discovers available resources and operations in the n8n instance.","source":"@site/docs/api/discover.mdx","sourceDirName":"api","slug":"/api/discover","permalink":"/api/discover","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":14,"frontMatter":{"sidebar_label":"Discover","sidebar_position":14},"sidebar":"api","previous":{"title":"Source Control","permalink":"/api/source-control"},"next":{"title":"n8n Package","permalink":"/api/n8n-package"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-community-package-mdx-c27.json
+var site_docs_api_community_package_mdx_c27_namespaceObject = JSON.parse('{"id":"api/community-package","title":"Community Package API","description":"CommunityPackageClient manages n8n community packages — install, update, and uninstall npm packages.","source":"@site/docs/api/community-package.mdx","sourceDirName":"api","slug":"/api/community-package","permalink":"/api/community-package","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":10,"frontMatter":{"sidebar_label":"Community Package","sidebar_position":10},"sidebar":"api","previous":{"title":"Folder","permalink":"/api/folder"},"next":{"title":"Audit","permalink":"/api/audit"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/discover.mdx
+;// CONCATENATED MODULE: ./docs/api/community-package.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Discover',
-	sidebar_position: 14
+	sidebar_label: 'Community Package',
+	sidebar_position: 10
 };
-const contentTitle = 'Discover API';
+const contentTitle = 'Community Package API';
 
 const assets = {
 
@@ -48,8 +48,20 @@ const toc = [{
   "id": "common-tasks",
   "level": 2
 }, {
-  "value": "<code>get(params?)</code>",
-  "id": "getparams",
+  "value": "<code>list()</code>",
+  "id": "list",
+  "level": 3
+}, {
+  "value": "<code>install(data)</code>",
+  "id": "installdata",
+  "level": 3
+}, {
+  "value": "<code>update(name, data?)</code>",
+  "id": "updatename-data",
+  "level": 3
+}, {
+  "value": "<code>uninstall(name)</code>",
+  "id": "uninstallname",
   "level": 3
 }];
 function _createMdxContent(props) {
@@ -69,22 +81,22 @@ function _createMdxContent(props) {
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "discover-api",
-        children: "Discover API"
+        id: "community-package-api",
+        children: "Community Package API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "DiscoverHandle"
-      }), " discovers available resources and operations in the n8n instance."]
+        children: "CommunityPackageClient"
+      }), " manages n8n community packages — install, update, and uninstall npm packages."]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "This is especially useful for tooling, schema-aware integrations, or admin interfaces that need to adapt to the caller's scopes."
+      children: "Use this handle for package lifecycle operations in n8n instances that allow community nodes."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const discover = client.discover();\n"
+        children: "const communityPackage = client.communityPackages();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -94,44 +106,62 @@ function _createMdxContent(props) {
       children: "Common Tasks"
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "inspect what the current credentials are allowed to access"
+        children: "list installed community packages"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "fetch request schemas for dynamic tools or generators"
+        children: "install a package from npm"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "filter to a single resource or operation family"
+        children: "update a package to a specific version"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "uninstall packages that are no longer used"
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getparams",
+      id: "list",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "get(params?)"
+        children: "list()"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Discover available resources, optionally filtered by type."
+      children: "List all installed community packages."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const resources = await client.discover().get({\n  include: 'schemas',\n  resource: 'workflow',\n  operation: 'list',\n});\n"
+        children: "const packages = await client.communityPackages().list();\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "installdata",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "install(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "The response includes:"
-    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
-      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
-        children: [(0,jsx_runtime.jsx)(_components.code, {
-          children: "data.scopes"
-        }), ": active scopes for the current credentials"]
-      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
-        children: [(0,jsx_runtime.jsx)(_components.code, {
-          children: "data.resources"
-        }), ": grouped operations and endpoints"]
-      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
-        children: [(0,jsx_runtime.jsx)(_components.code, {
-          children: "data.filters"
-        }), ": filter metadata for discovery queries"]
-      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
-        children: [(0,jsx_runtime.jsx)(_components.code, {
-          children: "data.specUrl"
-        }), ": URL for the full OpenAPI document"]
-      }), "\n"]
+      children: "Install a community package."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const pkg = await client.communityPackages().install({\n  name: 'n8n-nodes-test',\n  verify: true,\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "updatename-data",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "update(name, data?)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Update a community package."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const updated = await client.communityPackages().update('n8n-nodes-test', {\n  version: '1.0.0',\n  verify: true,\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "uninstallname",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "uninstall(name)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Uninstall a community package."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "await client.communityPackages().uninstall('n8n-nodes-test');\n"
+      })
     })]
   });
 }

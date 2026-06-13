@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["322"], {
-6721(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["135"], {
+8340(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_community_package_mdx_c27_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_source_control_mdx_e8c_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-community-package-mdx-c27.json
-var site_docs_api_community_package_mdx_c27_namespaceObject = JSON.parse('{"id":"api/community-package","title":"Community Package API","description":"CommunityPackageHandle manages n8n community packages — install, update, and uninstall npm packages.","source":"@site/docs/api/community-package.mdx","sourceDirName":"api","slug":"/api/community-package","permalink":"/api/community-package","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":10,"frontMatter":{"sidebar_label":"Community Package","sidebar_position":10},"sidebar":"api","previous":{"title":"Folder","permalink":"/api/folder"},"next":{"title":"Audit","permalink":"/api/audit"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-source-control-mdx-e8c.json
+var site_docs_api_source_control_mdx_e8c_namespaceObject = JSON.parse('{"id":"api/source-control","title":"Source Control API","description":"SourceControlClient manages git-based source control operations.","source":"@site/docs/api/source-control.mdx","sourceDirName":"api","slug":"/api/source-control","permalink":"/api/source-control","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":13,"frontMatter":{"sidebar_label":"Source Control","sidebar_position":13},"sidebar":"api","previous":{"title":"Insights","permalink":"/api/insights"},"next":{"title":"Discover","permalink":"/api/discover"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/community-package.mdx
+;// CONCATENATED MODULE: ./docs/api/source-control.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Community Package',
-	sidebar_position: 10
+	sidebar_label: 'Source Control',
+	sidebar_position: 13
 };
-const contentTitle = 'Community Package API';
+const contentTitle = 'Source Control API';
 
 const assets = {
 
@@ -48,20 +48,8 @@ const toc = [{
   "id": "common-tasks",
   "level": 2
 }, {
-  "value": "<code>list()</code>",
-  "id": "list",
-  "level": 3
-}, {
-  "value": "<code>install(data)</code>",
-  "id": "installdata",
-  "level": 3
-}, {
-  "value": "<code>update(name, data?)</code>",
-  "id": "updatename-data",
-  "level": 3
-}, {
-  "value": "<code>uninstall(name)</code>",
-  "id": "uninstallname",
+  "value": "<code>pull(data)</code>",
+  "id": "pulldata",
   "level": 3
 }];
 function _createMdxContent(props) {
@@ -81,22 +69,22 @@ function _createMdxContent(props) {
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "community-package-api",
-        children: "Community Package API"
+        id: "source-control-api",
+        children: "Source Control API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "CommunityPackageHandle"
-      }), " manages n8n community packages — install, update, and uninstall npm packages."]
+        children: "SourceControlClient"
+      }), " manages git-based source control operations."]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Use this handle for package lifecycle operations in n8n instances that allow community nodes."
+      children: "This handle currently exposes the public API pull operation. It is useful when you want to bring remote workflow and credential changes into the current n8n instance."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const communityPackage = client.communityPackage();\n"
+        children: "const sourceControl = client.sourceControl();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -106,62 +94,28 @@ function _createMdxContent(props) {
       children: "Common Tasks"
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "list installed community packages"
+        children: "pull changes from the configured remote repository"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "install a package from npm"
+        children: "force a pull when you intentionally want to discard local changes"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "update a package to a specific version"
-      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "uninstall packages that are no longer used"
+        children: "publish imported workflows automatically after pull"
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "list",
+      id: "pulldata",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "list()"
+        children: "pull(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List all installed community packages."
+      children: "Pull changes from the remote source control repository."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const packages = await client.communityPackage().list();\n"
+        children: "const files = await client.sourceControl().pull({\n  force: false,\n  autoPublish: 'published',\n});\n// files is SourceControlledFile[]\n"
       })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "installdata",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "install(data)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Install a community package."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const pkg = await client.communityPackage().install({\n  name: 'n8n-nodes-test',\n  verify: true,\n});\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "updatename-data",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "update(name, data?)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a community package."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const updated = await client.communityPackage().update('n8n-nodes-test', {\n  version: '1.0.0',\n  verify: true,\n});\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "uninstallname",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "uninstall(name)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Uninstall a community package."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "await client.communityPackage().uninstall('n8n-nodes-test');\n"
-      })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["If n8n reports a conflict, inspect the returned files and look for ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "conflict: true"
+      }), " or statuses that indicate modified content."]
     })]
   });
 }

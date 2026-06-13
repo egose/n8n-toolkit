@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["259"], {
-1214(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["806"], {
+2374(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_workflow_mdx_5fb_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_credential_mdx_9ca_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-workflow-mdx-5fb.json
-var site_docs_api_workflow_mdx_5fb_namespaceObject = JSON.parse('{"id":"api/workflow","title":"Workflow API","description":"WorkflowHandle manages n8n workflows — create, list, activate, deactivate, archive, transfer, and manage tags and versions.","source":"@site/docs/api/workflow.mdx","sourceDirName":"api","slug":"/api/workflow","permalink":"/api/workflow","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":1,"frontMatter":{"sidebar_label":"Workflow","sidebar_position":1},"sidebar":"api","previous":{"title":"N8nClient","permalink":"/api/n8n-client"},"next":{"title":"Execution","permalink":"/api/execution"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-credential-mdx-9ca.json
+var site_docs_api_credential_mdx_9ca_namespaceObject = JSON.parse('{"id":"api/credential","title":"Credential API","description":"CredentialClient manages n8n credentials — create, read, update, delete, test, and transfer between projects.","source":"@site/docs/api/credential.mdx","sourceDirName":"api","slug":"/api/credential","permalink":"/api/credential","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":3,"frontMatter":{"sidebar_label":"Credential","sidebar_position":3},"sidebar":"api","previous":{"title":"Execution","permalink":"/api/execution"},"next":{"title":"Tag","permalink":"/api/tag"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/workflow.mdx
+;// CONCATENATED MODULE: ./docs/api/credential.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Workflow',
-	sidebar_position: 1
+	sidebar_label: 'Credential',
+	sidebar_position: 3
 };
-const contentTitle = 'Workflow API';
+const contentTitle = 'Credential API';
 
 const assets = {
 
@@ -52,8 +52,8 @@ const toc = [{
   "id": "listparams",
   "level": 3
 }, {
-  "value": "<code>get(id, params?)</code>",
-  "id": "getid-params",
+  "value": "<code>get(id)</code>",
+  "id": "getid",
   "level": 3
 }, {
   "value": "<code>create(data)</code>",
@@ -68,28 +68,16 @@ const toc = [{
   "id": "deleteid",
   "level": 3
 }, {
-  "value": "<code>activate(id, data?)</code>",
-  "id": "activateid-data",
-  "level": 3
-}, {
-  "value": "<code>deactivate(id)</code>",
-  "id": "deactivateid",
-  "level": 3
-}, {
-  "value": "<code>archive(id)</code> / <code>unarchive(id)</code>",
-  "id": "archiveid--unarchiveid",
+  "value": "<code>test(id)</code>",
+  "id": "testid",
   "level": 3
 }, {
   "value": "<code>transfer(id, destinationProjectId)</code>",
   "id": "transferid-destinationprojectid",
   "level": 3
 }, {
-  "value": "<code>getTags(id)</code> / <code>updateTags(id, tags)</code>",
-  "id": "gettagsid--updatetagsid-tags",
-  "level": 3
-}, {
-  "value": "<code>getVersion(id, versionId)</code>",
-  "id": "getversionid-versionid",
+  "value": "<code>getSchema(credentialTypeName)</code>",
+  "id": "getschemacredentialtypename",
   "level": 3
 }, {
   "value": "Typical Flow",
@@ -113,22 +101,24 @@ function _createMdxContent(props) {
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "workflow-api",
-        children: "Workflow API"
+        id: "credential-api",
+        children: "Credential API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "WorkflowHandle"
-      }), " manages n8n workflows — create, list, activate, deactivate, archive, transfer, and manage tags and versions."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Use this handle when you are working with workflow lifecycle operations. It is the largest handle in the client because the n8n API exposes both CRUD operations and workflow-specific actions here."
+        children: "CredentialClient"
+      }), " manages n8n credentials — create, read, update, delete, test, and transfer between projects."]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Credential payloads are intentionally flexible because the exact ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "data"
+      }), " shape depends on the credential type you are working with."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const workflow = client.workflow();\n"
+        children: "const credential = client.credentials();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -138,13 +128,15 @@ function _createMdxContent(props) {
       children: "Common Tasks"
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "list workflows for a project or environment"
+        children: "list credentials for audit or cleanup work"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "fetch a workflow before editing or transferring it"
+        children: "create credentials in a target project"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "activate, deactivate, archive, and unarchive workflows"
+        children: "update secret material or display names"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "manage workflow tags and inspect historical versions"
+        children: "test a credential before attaching it to workflows"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "move credentials between projects"
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "listparams",
@@ -152,23 +144,23 @@ function _createMdxContent(props) {
         children: "list(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List workflows with optional filters."
+      children: "List credentials."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.workflow().list({\n  limit: 10,\n  active: true,\n  tags: 'production',\n  name: 'deploy',\n  projectId: 'proj-1',\n  excludePinnedData: true,\n});\n"
+        children: "const { data, nextCursor } = await client.credentials().list({\n  limit: 10,\n  cursor: 'abc123',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getid-params",
+      id: "getid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "get(id, params?)"
+        children: "get(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get a workflow by ID."
+      children: "Get a credential by ID."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const workflow = await client.workflow().get('wf-123', {\n  excludePinnedData: false,\n});\n"
+        children: "const credential = await client.credentials().get('cred-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
@@ -176,11 +168,11 @@ function _createMdxContent(props) {
         children: "create(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create a new workflow."
+      children: "Create a new credential."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const workflow = await client.workflow().create({\n  name: 'My Workflow',\n  nodes: [{ name: 'Start', type: 'n8n-nodes-base.start', position: [0, 0], parameters: {} }],\n  connections: {},\n  settings: { executionOrder: 'v1' },\n});\n"
+        children: "const created = await client.credentials().create({\n  name: 'AWS Credentials',\n  type: 'aws',\n  data: { accessKey: 'AKIA123', secretKey: 'secret456' }, // pragma: allowlist secret\n  projectId: 'proj-1',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updateid-data",
@@ -188,11 +180,11 @@ function _createMdxContent(props) {
         children: "update(id, data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a workflow. The public API expects the full workflow body, not a partial patch."
+      children: "Update a credential."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const current = await client.workflow().get('wf-123');\n\nconst updated = await client.workflow().update('wf-123', {\n  name: 'Updated Name',\n  description: current.description,\n  nodes: current.nodes,\n  connections: current.connections,\n  settings: current.settings ?? {},\n  staticData: current.staticData,\n  pinData: current.pinData,\n});\n"
+        children: "const updated = await client.credentials().update('cred-123', {\n  name: 'Updated AWS Credentials',\n  data: { accessKey: 'AKIA789', secretKey: 'newsecret' }, // pragma: allowlist secret\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleteid",
@@ -200,49 +192,23 @@ function _createMdxContent(props) {
         children: "delete(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a workflow."
+      children: "Delete a credential."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const deleted = await client.workflow().delete('wf-123');\n"
+        children: "const deleted = await client.credentials().delete('cred-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "activateid-data",
+      id: "testid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "activate(id, data?)"
+        children: "test(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Activate a workflow. You can optionally send version metadata when activating a specific revision."
+      children: "Test a credential's connection."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const activated = await client.workflow().activate('wf-123', {\n  versionId: 'v-2',\n  name: 'Production version',\n});\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "deactivateid",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "deactivate(id)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Deactivate a workflow."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const deactivated = await client.workflow().deactivate('wf-123');\n"
-      })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.h3, {
-      id: "archiveid--unarchiveid",
-      children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "archive(id)"
-      }), " / ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "unarchive(id)"
-      })]
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Archive or unarchive a workflow."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "await client.workflow().archive('wf-123');\nawait client.workflow().unarchive('wf-123');\n"
+        children: "const result = await client.credentials().test('cred-123');\n// result.status, result.message\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "transferid-destinationprojectid",
@@ -250,37 +216,23 @@ function _createMdxContent(props) {
         children: "transfer(id, destinationProjectId)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Move a workflow to another project."
+      children: "Move a credential to another project."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.workflow().transfer('wf-123', 'proj-456');\n"
-      })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.h3, {
-      id: "gettagsid--updatetagsid-tags",
-      children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "getTags(id)"
-      }), " / ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "updateTags(id, tags)"
-      })]
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get or update tags on a workflow."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const tags = await client.workflow().getTags('wf-123');\nconst updatedTags = await client.workflow().updateTags('wf-123', [\n  { id: 'tag-1' },\n  { id: 'tag-2' },\n]);\n"
+        children: "await client.credentials().transfer('cred-123', 'proj-456');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getversionid-versionid",
+      id: "getschemacredentialtypename",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "getVersion(id, versionId)"
+        children: "getSchema(credentialTypeName)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get a specific workflow version."
+      children: "Get the schema for a credential type."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const version = await client.workflow().getVersion('wf-123', 'v-1');\n"
+        children: "const schema = await client.credentials().getSchema('httpHeaderAuth');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "typical-flow",
@@ -288,7 +240,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const workflow = client.workflow();\n\nconst { data } = await workflow.list({ projectId: 'proj-1', active: false, limit: 10 });\n\nif (data[0]) {\n  await workflow.activate(data[0].id);\n}\n"
+        children: "const credential = client.credentials();\n\nconst created = await credential.create({\n  name: 'Internal API Token',\n  type: 'httpHeaderAuth',\n  data: {\n    name: 'Authorization',\n    value: 'Bearer token',\n  },\n});\n\nawait credential.test(created.id);\n"
       })
     })]
   });

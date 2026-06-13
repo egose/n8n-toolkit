@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["135"], {
-8340(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["303"], {
+912(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_source_control_mdx_e8c_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_insights_mdx_1de_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-source-control-mdx-e8c.json
-var site_docs_api_source_control_mdx_e8c_namespaceObject = JSON.parse('{"id":"api/source-control","title":"Source Control API","description":"SourceControlHandle manages git-based source control operations.","source":"@site/docs/api/source-control.mdx","sourceDirName":"api","slug":"/api/source-control","permalink":"/api/source-control","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":13,"frontMatter":{"sidebar_label":"Source Control","sidebar_position":13},"sidebar":"api","previous":{"title":"Insights","permalink":"/api/insights"},"next":{"title":"Discover","permalink":"/api/discover"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-insights-mdx-1de.json
+var site_docs_api_insights_mdx_1de_namespaceObject = JSON.parse('{"id":"api/insights","title":"Insights API","description":"InsightsClient retrieves execution insights and summaries.","source":"@site/docs/api/insights.mdx","sourceDirName":"api","slug":"/api/insights","permalink":"/api/insights","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":12,"frontMatter":{"sidebar_label":"Insights","sidebar_position":12},"sidebar":"api","previous":{"title":"Audit","permalink":"/api/audit"},"next":{"title":"Source Control","permalink":"/api/source-control"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/source-control.mdx
+;// CONCATENATED MODULE: ./docs/api/insights.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Source Control',
-	sidebar_position: 13
+	sidebar_label: 'Insights',
+	sidebar_position: 12
 };
-const contentTitle = 'Source Control API';
+const contentTitle = 'Insights API';
 
 const assets = {
 
@@ -48,8 +48,8 @@ const toc = [{
   "id": "common-tasks",
   "level": 2
 }, {
-  "value": "<code>pull(data)</code>",
-  "id": "pulldata",
+  "value": "<code>getSummary(params?)</code>",
+  "id": "getsummaryparams",
   "level": 3
 }];
 function _createMdxContent(props) {
@@ -69,22 +69,22 @@ function _createMdxContent(props) {
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "source-control-api",
-        children: "Source Control API"
+        id: "insights-api",
+        children: "Insights API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "SourceControlHandle"
-      }), " manages git-based source control operations."]
+        children: "InsightsClient"
+      }), " retrieves execution insights and summaries."]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "This handle currently exposes the public API pull operation. It is useful when you want to bring remote workflow and credential changes into the current n8n instance."
+      children: "Use this handle for reporting and dashboards rather than per-execution inspection."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const sourceControl = client.sourceControl();\n"
+        children: "const insights = client.insights();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -94,28 +94,26 @@ function _createMdxContent(props) {
       children: "Common Tasks"
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "pull changes from the configured remote repository"
+        children: "fetch a summary for a date range"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "force a pull when you intentionally want to discard local changes"
+        children: "compare project activity over time"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "publish imported workflows automatically after pull"
+        children: "drive dashboards with failure rate and runtime metrics"
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "pulldata",
+      id: "getsummaryparams",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "pull(data)"
+        children: "getSummary(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Pull changes from the remote source control repository."
+      children: "Get an insights summary with optional date range and project filters."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const files = await client.sourceControl().pull({\n  force: false,\n  autoPublish: 'published',\n});\n// files is SourceControlledFile[]\n"
+        children: "const summary = await client.insights().getSummary({\n  startDate: '2024-01-01T00:00:00Z',\n  endDate: '2024-01-31T23:59:59Z',\n  projectId: 'proj-123',\n});\n"
       })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["If n8n reports a conflict, inspect the returned files and look for ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "conflict: true"
-      }), " or statuses that indicate modified content."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "The summary includes execution counts, success rates, and performance metrics."
     })]
   });
 }

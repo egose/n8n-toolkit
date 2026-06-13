@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-data-table-mdx-448.json
-var site_docs_api_data_table_mdx_448_namespaceObject = JSON.parse('{"id":"api/data-table","title":"Data Table API","description":"DataTableHandle manages n8n data tables — tables, columns, and rows with filtering and upsert support.","source":"@site/docs/api/data-table.mdx","sourceDirName":"api","slug":"/api/data-table","permalink":"/api/data-table","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":8,"frontMatter":{"sidebar_label":"Data Table","sidebar_position":8},"sidebar":"api","previous":{"title":"Project","permalink":"/api/project"},"next":{"title":"Folder","permalink":"/api/folder"}}')
+var site_docs_api_data_table_mdx_448_namespaceObject = JSON.parse('{"id":"api/data-table","title":"Data Table API","description":"DataTableClient manages n8n data tables — tables, columns, and rows with filtering and upsert support.","source":"@site/docs/api/data-table.mdx","sourceDirName":"api","slug":"/api/data-table","permalink":"/api/data-table","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":8,"frontMatter":{"sidebar_label":"Data Table","sidebar_position":8},"sidebar":"api","previous":{"title":"Project","permalink":"/api/project"},"next":{"title":"Folder","permalink":"/api/folder"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -138,7 +138,7 @@ function _createMdxContent(props) {
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "DataTableHandle"
+        children: "DataTableClient"
       }), " manages n8n data tables — tables, columns, and rows with filtering and upsert support."]
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["This is one of the most flexible handles in the client. The row methods have typed overloads so the return type changes based on flags like ", (0,jsx_runtime.jsx)(_components.code, {
@@ -152,7 +152,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const dataTable = client.dataTable();\n"
+        children: "const dataTable = client.dataTables();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -182,7 +182,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.dataTable().list({\n  limit: 10,\n  filter: 'name',\n  sortBy: 'createdAt:desc',\n});\n"
+        children: "const { data, nextCursor } = await client.dataTables().list({\n  limit: 10,\n  filter: 'name',\n  sortBy: 'createdAt:desc',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "getid",
@@ -194,7 +194,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const table = await client.dataTable().get('dt-123');\n"
+        children: "const table = await client.dataTables().get('dt-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
@@ -206,7 +206,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const table = await client.dataTable().create({\n  name: 'User Events',\n  columns: [\n    { name: 'event', type: 'string' },\n    { name: 'createdAt', type: 'date' },\n  ],\n});\n"
+        children: "const table = await client.dataTables().create({\n  name: 'User Events',\n  columns: [\n    { name: 'event', type: 'string' },\n    { name: 'createdAt', type: 'date' },\n  ],\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updateid-data",
@@ -218,7 +218,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const updated = await client.dataTable().update('dt-123', {\n  name: 'User Events v2',\n});\n"
+        children: "const updated = await client.dataTables().update('dt-123', {\n  name: 'User Events v2',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleteid",
@@ -230,7 +230,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.dataTable().delete('dt-123');\n"
+        children: "await client.dataTables().delete('dt-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "row-operations",
@@ -245,7 +245,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.dataTable().listRows('dt-123', {\n  filter: 'event=login',\n  sortBy: 'timestamp:desc',\n  search: 'alice',\n});\n"
+        children: "const { data, nextCursor } = await client.dataTables().listRows('dt-123', {\n  filter: 'event=login',\n  sortBy: 'timestamp:desc',\n  search: 'alice',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "insertrowsdatatableid-data",
@@ -257,7 +257,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const rowIds = await client.dataTable().insertRows('dt-123', {\n  data: [\n    { event: 'login', createdAt: '2024-01-01T00:00:00Z' },\n    { event: 'logout', createdAt: '2024-01-01T01:00:00Z' },\n  ],\n  returnType: 'id',\n});\n"
+        children: "const rowIds = await client.dataTables().insertRows('dt-123', {\n  data: [\n    { event: 'login', createdAt: '2024-01-01T00:00:00Z' },\n    { event: 'logout', createdAt: '2024-01-01T01:00:00Z' },\n  ],\n  returnType: 'id',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updaterowsdatatableid-data",
@@ -269,7 +269,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const updatedRows = await client.dataTable().updateRows('dt-123', {\n  filter: {\n    filters: [{ columnName: 'event', condition: 'eq', value: 'login' }],\n  },\n  data: { event: 'sign_in' },\n  returnData: true,\n});\n"
+        children: "const updatedRows = await client.dataTables().updateRows('dt-123', {\n  filter: {\n    filters: [{ columnName: 'event', condition: 'eq', value: 'login' }],\n  },\n  data: { event: 'sign_in' },\n  returnData: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "upsertrowdatatableid-data",
@@ -281,7 +281,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const row = await client.dataTable().upsertRow('dt-123', {\n  filter: {\n    filters: [{ columnName: 'event', condition: 'eq', value: 'login' }],\n  },\n  data: { event: 'login', createdAt: '2024-01-01T00:00:00Z' },\n  returnData: true,\n});\n"
+        children: "const row = await client.dataTables().upsertRow('dt-123', {\n  filter: {\n    filters: [{ columnName: 'event', condition: 'eq', value: 'login' }],\n  },\n  data: { event: 'login', createdAt: '2024-01-01T00:00:00Z' },\n  returnData: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleterowsdatatableid-params",
@@ -293,7 +293,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const result = await client.dataTable().deleteRows('dt-123', {\n  filter: JSON.stringify({\n    type: 'and',\n    filters: [{ columnName: 'event', condition: 'eq', value: 'logout' }],\n  }),\n  returnData: true,\n  dryRun: false,\n});\n"
+        children: "const result = await client.dataTables().deleteRows('dt-123', {\n  filter: JSON.stringify({\n    type: 'and',\n    filters: [{ columnName: 'event', condition: 'eq', value: 'logout' }],\n  }),\n  returnData: true,\n  dryRun: false,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "column-operations",
@@ -308,7 +308,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const columns = await client.dataTable().listColumns('dt-123');\n"
+        children: "const columns = await client.dataTables().listColumns('dt-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createcolumndatatableid-data",
@@ -320,7 +320,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const column = await client.dataTable().createColumn('dt-123', {\n  name: 'user_id',\n  type: 'string',\n});\n"
+        children: "const column = await client.dataTables().createColumn('dt-123', {\n  name: 'user_id',\n  type: 'string',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updatecolumndatatableid-columnid-data",
@@ -332,7 +332,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const updated = await client.dataTable().updateColumn('dt-123', 'col-1', {\n  name: 'user_identifier',\n});\n"
+        children: "const updated = await client.dataTables().updateColumn('dt-123', 'col-1', {\n  name: 'user_identifier',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deletecolumndatatableid-columnid",
@@ -344,7 +344,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.dataTable().deleteColumn('dt-123', 'col-1');\n"
+        children: "await client.dataTables().deleteColumn('dt-123', 'col-1');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "return-type-narrowing",
@@ -354,7 +354,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const count = await client.dataTable().insertRows('dt-123', {\n  data: [{ event: 'login' }],\n});\n// { count: number }\n\nconst ids = await client.dataTable().insertRows('dt-123', {\n  data: [{ event: 'login' }],\n  returnType: 'id',\n});\n// number[]\n"
+        children: "const count = await client.dataTables().insertRows('dt-123', {\n  data: [{ event: 'login' }],\n});\n// { count: number }\n\nconst ids = await client.dataTables().insertRows('dt-123', {\n  data: [{ event: 'login' }],\n  returnType: 'id',\n});\n// number[]\n"
       })
     })]
   });
