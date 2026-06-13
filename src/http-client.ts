@@ -17,7 +17,7 @@ export interface RequestOptions {
   method: string;
   path: string;
   body?: unknown;
-  query?: { [key: string]: unknown };
+  query?: object;
   headers?: Record<string, string>;
 }
 
@@ -122,38 +122,23 @@ export class HttpClient {
     return (await this.parseResponseData(response)) as T;
   }
 
-  async get<T>(path: string, query?: { [key: string]: unknown }, headers?: Record<string, string>): Promise<T> {
+  async get<T>(path: string, query?: object, headers?: Record<string, string>): Promise<T> {
     return this.request<T>({ method: 'GET', path, query, headers });
   }
 
-  async post<T>(
-    path: string,
-    body?: unknown,
-    query?: { [key: string]: unknown },
-    headers?: Record<string, string>,
-  ): Promise<T> {
+  async post<T>(path: string, body?: unknown, query?: object, headers?: Record<string, string>): Promise<T> {
     return this.request<T>({ method: 'POST', path, body, query, headers });
   }
 
-  async put<T>(
-    path: string,
-    body?: unknown,
-    query?: { [key: string]: unknown },
-    headers?: Record<string, string>,
-  ): Promise<T> {
+  async put<T>(path: string, body?: unknown, query?: object, headers?: Record<string, string>): Promise<T> {
     return this.request<T>({ method: 'PUT', path, body, query, headers });
   }
 
-  async patch<T>(
-    path: string,
-    body?: unknown,
-    query?: { [key: string]: unknown },
-    headers?: Record<string, string>,
-  ): Promise<T> {
+  async patch<T>(path: string, body?: unknown, query?: object, headers?: Record<string, string>): Promise<T> {
     return this.request<T>({ method: 'PATCH', path, body, query, headers });
   }
 
-  async delete<T>(path: string, query?: { [key: string]: unknown }, headers?: Record<string, string>): Promise<T> {
+  async delete<T>(path: string, query?: object, headers?: Record<string, string>): Promise<T> {
     return this.request<T>({ method: 'DELETE', path, query, headers });
   }
 }

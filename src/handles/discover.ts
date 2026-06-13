@@ -1,14 +1,8 @@
-import type { HttpClient } from '../http-client.js';
-import type { DiscoverResponse } from '../types.js';
+import type { DiscoverParams, DiscoverResponse } from '../types.js';
+import BaseHandle from './base.js';
 
-export default class DiscoverHandle {
-  protected http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
-  async get(params?: { include?: 'schemas'; resource?: string; operation?: string }): Promise<DiscoverResponse> {
+export default class DiscoverHandle extends BaseHandle {
+  async get(params?: DiscoverParams): Promise<DiscoverResponse> {
     return this.http.get<DiscoverResponse>('/discover', params);
   }
 }

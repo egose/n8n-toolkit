@@ -7,6 +7,8 @@ sidebar_position: 14
 
 `DiscoverHandle` discovers available resources and operations in the n8n instance.
 
+This is especially useful for tooling, schema-aware integrations, or admin interfaces that need to adapt to the caller's scopes.
+
 ## Access
 
 ```ts
@@ -14,6 +16,12 @@ const discover = client.discover();
 ```
 
 ## Methods
+
+## Common Tasks
+
+- inspect what the current credentials are allowed to access
+- fetch request schemas for dynamic tools or generators
+- filter to a single resource or operation family
 
 ### `get(params?)`
 
@@ -26,3 +34,10 @@ const resources = await client.discover().get({
   operation: 'list',
 });
 ```
+
+The response includes:
+
+- `data.scopes`: active scopes for the current credentials
+- `data.resources`: grouped operations and endpoints
+- `data.filters`: filter metadata for discovery queries
+- `data.specUrl`: URL for the full OpenAPI document

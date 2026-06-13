@@ -8,7 +8,10 @@ const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SCHEMAS_BASE = join(REPO_ROOT, '.public-api/v1');
 
 interface SchemaDoc {
+  $ref?: string;
   type?: string;
+  format?: string;
+  enum?: unknown[];
   properties?: Record<string, unknown>;
   required?: string[];
   additionalProperties?: boolean;

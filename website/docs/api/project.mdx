@@ -7,6 +7,8 @@ sidebar_position: 7
 
 `ProjectHandle` manages n8n projects and their members.
 
+This handle is the entry point for organization-level operations: project creation, renaming, deletion, and project membership changes.
+
 ## Access
 
 ```ts
@@ -15,9 +17,16 @@ const project = client.project();
 
 ## Methods
 
+## Common Tasks
+
+- create projects for teams or environments
+- list and audit project membership
+- grant or revoke access for specific users
+- move users between viewer, editor, and admin roles
+
 ### `list(params?)`
 
-List all projects.
+List all projects visible to the authenticated caller.
 
 ```ts
 const { data, nextCursor } = await client.project().list({ limit: 10 });
@@ -81,3 +90,7 @@ Change a member's role in a project.
 ```ts
 await client.project().changeMemberRole('proj-123', 'user-1', 'project:viewer');
 ```
+
+## Important Note
+
+The public API does not expose `project().get(id)`. Use `list()` and then select the project you want, or work from IDs you already have.

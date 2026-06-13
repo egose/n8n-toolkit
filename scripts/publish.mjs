@@ -1,24 +1,45 @@
 import { execSync } from 'child_process';
-import fse from 'fs-extra';
-import _isArray from 'lodash-es/isArray.js';
-import _forEach from 'lodash-es/forEach.js';
-import _isString from 'lodash-es/isString.js';
-import _isPlainObject from 'lodash-es/isPlainObject.js';
-import _pick from 'lodash-es/pick.js';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 const PUBLISH_DIR = 'dist';
+const PACKAGE_JSON_KEYS = [
+  'version',
+  'description',
+  'keywords',
+  'files',
+  'homepage',
+  'bugs',
+  'license',
+  'author',
+  'sideEffects',
+  'repository',
+  'dependencies',
+  'peerDependencies',
+  'publishConfig',
+  'release',
+  'engines',
+  'main',
+  'module',
+  'types',
+  'exports',
+];
+
+const isPlainObject = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const pick = (object, keys) =>
+  Object.fromEntries(Object.entries(object).filter(([key]) => keys.includes(key)));
 
 const parseJson = (dir) => {
-  const content = fse.readFileSync(dir).toString('utf-8');
+  const content = readFileSync(dir, 'utf8');
   return JSON.parse(content);
 };
 
 const writeJson = (dir, object) => {
-  fse.writeFileSync(dir, Buffer.from(JSON.stringify(object, null, 2), 'utf-8'));
+  writeFileSync(dir, `${JSON.stringify(object, null, 2)}\n`, 'utf8');
 };
 
 const rewritePublishPath = (value) => {
-  if (!_isString(value)) return value;
+  if (typeof value !== 'string') return value;
   if (value === 'dist' || value === './dist') return './';
   if (value.startsWith('./dist/')) return `./${value.slice('./dist/'.length)}`;
   if (value.startsWith('dist/')) return `./${value.slice('dist/'.length)}`;
@@ -27,9 +48,9 @@ const rewritePublishPath = (value) => {
 };
 
 const rewritePublishValue = (value) => {
-  if (_isString(value)) return rewritePublishPath(value);
-  if (_isArray(value)) return value.map(rewritePublishValue);
-  if (_isPlainObject(value)) {
+  if (typeof value === 'string') return rewritePublishPath(value);
+  if (Array.isArray(value)) return value.map(rewritePublishValue);
+  if (isPlainObject(value)) {
     return Object.fromEntries(
       Object.entries(value).map(([key, nestedValue]) => [key, rewritePublishValue(nestedValue)]),
     );
@@ -45,31 +66,11 @@ async function main() {
   if (!packageData.name) return;
 
   const names = [packageData.name];
-  if (_isArray(packageData.additionalNames)) names.push(...packageData.additionalNames);
+  if (Array.isArray(packageData.additionalNames)) names.push(...packageData.additionalNames);
 
   execSync('pnpm bundle');
 
-  packageData = _pick(packageData, [
-    'version',
-    'description',
-    'keywords',
-    'files',
-    'homepage',
-    'bugs',
-    'license',
-    'author',
-    'sideEffects',
-    'repository',
-    'dependencies',
-    'peerDependencies',
-    'publishConfig',
-    'release',
-    'engines',
-    'main',
-    'module',
-    'types',
-    'exports',
-  ]);
+  packageData = pick(packageData, PACKAGE_JSON_KEYS);
 
   ['LICENSE', 'README.md', 'CHANGELOG.md'].forEach((file) => {
     const src = file;
@@ -82,7 +83,7 @@ async function main() {
     }
   });
 
-  _forEach(names, (name) => {
+  for (const name of names) {
     const packageJSON = {
       ...packageData,
       name,
@@ -90,7 +91,7 @@ async function main() {
       main: rewritePublishPath(packageData.main) || './index.cjs',
       module: rewritePublishPath(packageData.module) || './index.js',
       types: rewritePublishPath(packageData.types) || './index.d.ts',
-      exports: (_isPlainObject(packageData.exports) ? rewritePublishValue(packageData.exports) : undefined) || {
+      exports: (isPlainObject(packageData.exports) ? rewritePublishValue(packageData.exports) : undefined) || {
         '.': {
           require: './index.cjs',
           import: './index.js',
@@ -103,7 +104,7 @@ async function main() {
 
     writeJson(targetPackageJSON, packageJSON);
     execSync(`cd ${PUBLISH_DIR} && npm publish --access public`);
-  });
+  }
 }
 
 main().catch(console.error);

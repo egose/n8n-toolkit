@@ -1,13 +1,7 @@
-import type { HttpClient } from '../http-client.js';
-import type { CommunityPackage, InstallCommunityPackageRequest } from '../types.js';
+import type { CommunityPackage, InstallCommunityPackageRequest, UpdateCommunityPackageRequest } from '../types.js';
+import BaseHandle from './base.js';
 
-export default class CommunityPackageHandle {
-  protected http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
+export default class CommunityPackageHandle extends BaseHandle {
   async list(): Promise<CommunityPackage[]> {
     return this.http.get<CommunityPackage[]>('/community-packages');
   }
@@ -16,7 +10,7 @@ export default class CommunityPackageHandle {
     return this.http.post<CommunityPackage>('/community-packages', data);
   }
 
-  async update(name: string, data?: { version?: string; verify?: boolean }): Promise<CommunityPackage> {
+  async update(name: string, data?: UpdateCommunityPackageRequest): Promise<CommunityPackage> {
     return this.http.patch<CommunityPackage>(`/community-packages/${name}`, data);
   }
 

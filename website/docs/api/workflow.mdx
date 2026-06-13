@@ -7,6 +7,8 @@ sidebar_position: 1
 
 `WorkflowHandle` manages n8n workflows — create, list, activate, deactivate, archive, transfer, and manage tags and versions.
 
+Use this handle when you are working with workflow lifecycle operations. It is the largest handle in the client because the n8n API exposes both CRUD operations and workflow-specific actions here.
+
 ## Access
 
 ```ts
@@ -14,6 +16,13 @@ const workflow = client.workflow();
 ```
 
 ## Methods
+
+## Common Tasks
+
+- list workflows for a project or environment
+- fetch a workflow before editing or transferring it
+- activate, deactivate, archive, and unarchive workflows
+- manage workflow tags and inspect historical versions
 
 ### `list(params?)`
 
@@ -55,12 +64,19 @@ const workflow = await client.workflow().create({
 
 ### `update(id, data)`
 
-Update a workflow.
+Update a workflow. The public API expects the full workflow body, not a partial patch.
 
 ```ts
+const current = await client.workflow().get('wf-123');
+
 const updated = await client.workflow().update('wf-123', {
   name: 'Updated Name',
-  active: true,
+  description: current.description,
+  nodes: current.nodes,
+  connections: current.connections,
+  settings: current.settings ?? {},
+  staticData: current.staticData,
+  pinData: current.pinData,
 });
 ```
 
@@ -74,7 +90,7 @@ const deleted = await client.workflow().delete('wf-123');
 
 ### `activate(id, data?)`
 
-Activate a workflow. Optionally provide version metadata.
+Activate a workflow. You can optionally send version metadata when activating a specific revision.
 
 ```ts
 const activated = await client.workflow().activate('wf-123', {
@@ -126,4 +142,16 @@ Get a specific workflow version.
 
 ```ts
 const version = await client.workflow().getVersion('wf-123', 'v-1');
+```
+
+## Typical Flow
+
+```ts
+const workflow = client.workflow();
+
+const { data } = await workflow.list({ projectId: 'proj-1', active: false, limit: 10 });
+
+if (data[0]) {
+  await workflow.activate(data[0].id);
+}
 ```

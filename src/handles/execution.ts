@@ -1,35 +1,22 @@
-import type { HttpClient } from '../http-client.js';
 import type {
   Execution,
   ExecutionListResponse,
-  ExecutionStatus,
-  PaginationParams,
+  ExecutionListParams,
+  ExecutionGetParams,
+  ExecutionRetryRequest,
   StopManyExecutionsRequest,
   StopManyExecutionsResponse,
   Tag,
   TagId,
 } from '../types.js';
+import BaseHandle from './base.js';
 
-export default class ExecutionHandle {
-  protected http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
-  async list(
-    params?: PaginationParams & {
-      includeData?: boolean;
-      redactExecutionData?: boolean;
-      status?: ExecutionStatus;
-      workflowId?: string;
-      projectId?: string;
-    },
-  ): Promise<ExecutionListResponse> {
+export default class ExecutionHandle extends BaseHandle {
+  async list(params?: ExecutionListParams): Promise<ExecutionListResponse> {
     return this.http.get<ExecutionListResponse>('/executions', params);
   }
 
-  async get(id: number, params?: { includeData?: boolean; redactExecutionData?: boolean }): Promise<Execution> {
+  async get(id: number, params?: ExecutionGetParams): Promise<Execution> {
     return this.http.get<Execution>(`/executions/${id}`, params);
   }
 
@@ -37,7 +24,7 @@ export default class ExecutionHandle {
     return this.http.delete<Execution>(`/executions/${id}`);
   }
 
-  async retry(id: number, data?: { loadWorkflow?: boolean }): Promise<Execution> {
+  async retry(id: number, data?: ExecutionRetryRequest): Promise<Execution> {
     return this.http.post<Execution>(`/executions/${id}/retry`, data);
   }
 

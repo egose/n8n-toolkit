@@ -2,51 +2,51 @@ import { describe, expect, test } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import YAML from 'yaml';
 
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const OPENAPI_PATH = join(REPO_ROOT, '.public-api/v1/openapi.yml');
 const HANDLES_DIR = join(REPO_ROOT, 'src/handles');
-const PATH_REF_PREFIX = '  /';
-const METHOD_KEYS = new Set(['get', 'post', 'put', 'patch', 'delete']);
+const METHOD_KEYS = ['get', 'post', 'put', 'patch', 'delete'] as const;
+
+interface OpenApiDocument {
+  paths?: Record<string, { $ref?: string }>;
+}
+
+interface OpenApiPathDocument {
+  get?: unknown;
+  post?: unknown;
+  put?: unknown;
+  patch?: unknown;
+  delete?: unknown;
+}
+
+function loadYaml<T>(filePath: string): T {
+  return YAML.parse(readFileSync(filePath, 'utf8')) as T;
+}
 
 function normalizePath(path: string): string {
   return path.replace(/\$\{[^}]+\}/g, '{}').replace(/\{[^}]+\}/g, '{}');
 }
 
 function readSpecOperations(): Set<string> {
-  const openapi = readFileSync(OPENAPI_PATH, 'utf8');
+  const openapi = loadYaml<OpenApiDocument>(OPENAPI_PATH);
   const operations = new Set<string>();
-  const lines = openapi.split('\n');
 
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index];
-    if (!line.startsWith(PATH_REF_PREFIX)) {
+  for (const [path, pathDoc] of Object.entries(openapi.paths ?? {})) {
+    if (!pathDoc.$ref) {
       continue;
     }
 
-    const pathMatch = line.match(/^\s{2}(\/[^:]+):\s*$/);
-    if (!pathMatch) {
-      continue;
-    }
+    const refPath = join(REPO_ROOT, '.public-api/v1', pathDoc.$ref.replace(/^\.\//, ''));
+    const refDoc = loadYaml<OpenApiPathDocument>(refPath);
 
-    const path = pathMatch[1];
-    const refLine = lines[index + 1]?.trim();
-    const refMatch = refLine?.match(/^\$ref:\s*['"]?(.+?)['"]?$/);
-    if (!refMatch) {
-      continue;
-    }
-
-    const ref = refMatch[1];
-    const refPath = join(REPO_ROOT, '.public-api/v1', ref.replace(/^\.\//, ''));
-    const refContent = readFileSync(refPath, 'utf8');
-
-    for (const refLine of refContent.split('\n')) {
-      const match = refLine.match(/^(get|post|put|patch|delete):\s*$/);
-      if (!match) {
+    for (const method of METHOD_KEYS) {
+      if (refDoc[method] === undefined) {
         continue;
       }
 
-      operations.add(`${match[1].toUpperCase()} ${normalizePath(path)}`);
+      operations.add(`${method.toUpperCase()} ${normalizePath(path)}`);
     }
   }
 

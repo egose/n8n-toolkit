@@ -3,25 +3,17 @@ import type {
   Folder,
   FolderCreate,
   FolderDetail,
+  FolderListParams,
   FolderListResponse,
   FolderUpdate,
-  PaginationParams,
 } from '../types.js';
+import BaseHandle from './base.js';
 
-export interface FolderListParams extends PaginationParams {
-  filter?: string;
-  select?: string;
-  sortBy?: 'name:asc' | 'name:desc' | 'createdAt:asc' | 'createdAt:desc' | 'updatedAt:asc' | 'updatedAt:desc';
-  skip?: string;
-  take?: string;
-}
-
-export default class FolderHandle {
-  protected http: HttpClient;
-  protected projectId: string;
+export default class FolderHandle extends BaseHandle {
+  private readonly projectId: string;
 
   constructor(http: HttpClient, projectId: string) {
-    this.http = http;
+    super(http);
     this.projectId = projectId;
   }
 

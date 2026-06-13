@@ -1,19 +1,8 @@
-import type { HttpClient } from '../http-client.js';
-import type { Variable, VariableCreate, VariableListResponse, PaginationParams } from '../types.js';
+import type { Variable, VariableCreate, VariableListResponse, VariableListParams } from '../types.js';
+import BaseHandle from './base.js';
 
-export default class VariableHandle {
-  protected http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
-  async list(
-    params?: PaginationParams & {
-      projectId?: string;
-      state?: 'empty';
-    },
-  ): Promise<VariableListResponse> {
+export default class VariableHandle extends BaseHandle {
+  async list(params?: VariableListParams): Promise<VariableListResponse> {
     return this.http.get<VariableListResponse>('/variables', params);
   }
 

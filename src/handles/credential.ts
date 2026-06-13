@@ -6,16 +6,12 @@ import type {
   CredentialResponse,
   CredentialTestResponse,
   CredentialUpdate,
+  JsonObject,
   PaginationParams,
 } from '../types.js';
+import BaseHandle from './base.js';
 
-export default class CredentialHandle {
-  protected http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
+export default class CredentialHandle extends BaseHandle {
   async list(params?: PaginationParams): Promise<CredentialListResponse> {
     return this.http.get<CredentialListResponse>('/credentials', params);
   }
@@ -44,7 +40,7 @@ export default class CredentialHandle {
     await this.http.put<void>(`/credentials/${id}/transfer`, { destinationProjectId });
   }
 
-  async getSchema(credentialTypeName: string): Promise<Record<string, unknown>> {
-    return this.http.get<Record<string, unknown>>(`/credentials/schema/${credentialTypeName}`);
+  async getSchema(credentialTypeName: string): Promise<JsonObject> {
+    return this.http.get<JsonObject>(`/credentials/schema/${credentialTypeName}`);
   }
 }

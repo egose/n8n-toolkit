@@ -28,38 +28,23 @@ export default class N8nClient {
     return this.#http.request<T>(options);
   }
 
-  get<T>(path: string, query?: { [key: string]: unknown }, headers?: Record<string, string>): Promise<T> {
+  get<T>(path: string, query?: object, headers?: Record<string, string>): Promise<T> {
     return this.#http.get<T>(path, query, headers);
   }
 
-  post<T>(
-    path: string,
-    body?: unknown,
-    query?: { [key: string]: unknown },
-    headers?: Record<string, string>,
-  ): Promise<T> {
+  post<T>(path: string, body?: unknown, query?: object, headers?: Record<string, string>): Promise<T> {
     return this.#http.post<T>(path, body, query, headers);
   }
 
-  put<T>(
-    path: string,
-    body?: unknown,
-    query?: { [key: string]: unknown },
-    headers?: Record<string, string>,
-  ): Promise<T> {
+  put<T>(path: string, body?: unknown, query?: object, headers?: Record<string, string>): Promise<T> {
     return this.#http.put<T>(path, body, query, headers);
   }
 
-  patch<T>(
-    path: string,
-    body?: unknown,
-    query?: { [key: string]: unknown },
-    headers?: Record<string, string>,
-  ): Promise<T> {
+  patch<T>(path: string, body?: unknown, query?: object, headers?: Record<string, string>): Promise<T> {
     return this.#http.patch<T>(path, body, query, headers);
   }
 
-  delete<T>(path: string, query?: { [key: string]: unknown }, headers?: Record<string, string>): Promise<T> {
+  delete<T>(path: string, query?: object, headers?: Record<string, string>): Promise<T> {
     return this.#http.delete<T>(path, query, headers);
   }
 

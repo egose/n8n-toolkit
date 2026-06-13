@@ -1,22 +1,23 @@
-import type { HttpClient } from '../http-client.js';
-import type { ProjectListResponse, ProjectMemberListResponse, PaginationParams } from '../types.js';
+import type {
+  ProjectListResponse,
+  ProjectMemberListResponse,
+  PaginationParams,
+  ProjectMutation,
+  ProjectMemberRelation,
+  ProjectMemberRoleChangeRequest,
+} from '../types.js';
+import BaseHandle from './base.js';
 
-export default class ProjectHandle {
-  protected http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
+export default class ProjectHandle extends BaseHandle {
   async list(params?: PaginationParams): Promise<ProjectListResponse> {
     return this.http.get<ProjectListResponse>('/projects', params);
   }
 
-  async create(data: { name: string }): Promise<void> {
+  async create(data: ProjectMutation): Promise<void> {
     await this.http.post<void>('/projects', data);
   }
 
-  async update(id: string, data: { name: string }): Promise<void> {
+  async update(id: string, data: ProjectMutation): Promise<void> {
     await this.http.put<void>(`/projects/${id}`, data);
   }
 
@@ -28,7 +29,7 @@ export default class ProjectHandle {
     return this.http.get<ProjectMemberListResponse>(`/projects/${projectId}/users`, params);
   }
 
-  async addMembers(projectId: string, relations: Array<{ userId: string; role: string }>): Promise<void> {
+  async addMembers(projectId: string, relations: ProjectMemberRelation[]): Promise<void> {
     await this.http.post<void>(`/projects/${projectId}/users`, { relations });
   }
 
@@ -37,6 +38,7 @@ export default class ProjectHandle {
   }
 
   async changeMemberRole(projectId: string, userId: string, role: string): Promise<void> {
-    await this.http.patch<void>(`/projects/${projectId}/users/${userId}`, { role });
+    const data: ProjectMemberRoleChangeRequest = { role };
+    await this.http.patch<void>(`/projects/${projectId}/users/${userId}`, data);
   }
 }

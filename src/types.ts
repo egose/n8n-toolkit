@@ -1,4 +1,13 @@
+import type { PaginationParams } from './pagination.js';
+
 export type { PaginationParams, PaginatedResponse } from './pagination.js';
+
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | JsonObject | JsonArray;
+export interface JsonObject {
+  [key: string]: JsonValue;
+}
+export interface JsonArray extends Array<JsonValue> {}
 
 export type N8nClientConfig = {
   baseUrl: string;
@@ -31,11 +40,11 @@ export interface Workflow {
   versionId: string;
   triggerCount: number;
   nodes: WorkflowNode[];
-  connections: Record<string, unknown>;
+  connections: WorkflowConnections;
   settings?: WorkflowSettings;
-  staticData?: unknown;
-  pinData?: Record<string, unknown>;
-  meta?: Record<string, unknown>;
+  staticData?: string | JsonObject | null;
+  pinData?: WorkflowPinData | null;
+  meta?: WorkflowMeta | null;
   tags?: Tag[];
   shared?: SharedWorkflow[];
   activeVersion?: ActiveVersion | null;
@@ -45,7 +54,7 @@ export interface ActiveVersion {
   versionId: string;
   workflowId: string;
   nodes: WorkflowNode[];
-  connections: Record<string, unknown>;
+  connections: WorkflowConnections;
   authors: string;
   name?: string;
   description?: string;
@@ -57,10 +66,10 @@ export interface WorkflowCreate {
   name: string;
   description?: string;
   nodes: WorkflowNode[];
-  connections: Record<string, unknown>;
+  connections: WorkflowConnections;
   settings: WorkflowSettings;
-  staticData?: unknown;
-  pinData?: Record<string, unknown>;
+  staticData?: string | JsonObject | null;
+  pinData?: WorkflowPinData | null;
   projectId?: string;
 }
 
@@ -68,10 +77,10 @@ export interface WorkflowUpdate {
   name: string;
   description?: string;
   nodes: WorkflowNode[];
-  connections: Record<string, unknown>;
+  connections: WorkflowConnections;
   settings: WorkflowSettings;
-  staticData?: unknown;
-  pinData?: Record<string, unknown>;
+  staticData?: string | JsonObject | null;
+  pinData?: WorkflowPinData | null;
 }
 
 export interface WorkflowSettings {
@@ -88,7 +97,7 @@ export interface WorkflowSettings {
   timeSavedPerExecution?: number;
   redactionPolicy?: 'none' | 'non-manual' | 'manual-only' | 'all';
   availableInMCP?: boolean;
-  customTelemetryTags?: Array<{ key: string; value: string }>;
+  customTelemetryTags?: WorkflowTelemetryTag[];
 }
 
 export interface WorkflowNode {
@@ -97,8 +106,8 @@ export interface WorkflowNode {
   type: string;
   typeVersion?: number;
   position: number[];
-  parameters?: Record<string, unknown>;
-  credentials?: Record<string, unknown>;
+  parameters?: JsonObject;
+  credentials?: JsonObject;
   disabled?: boolean;
   notesInFlow?: boolean;
   notes?: string;
@@ -108,26 +117,69 @@ export interface WorkflowNode {
   retryOnFail?: boolean;
   maxTries?: number;
   waitBetweenTries?: number;
+  continueOnFail?: boolean;
   onError?: string;
-  customTelemetryTags?: { tag?: Array<{ key: string; value: string }> };
+  customTelemetryTags?: WorkflowNodeTelemetryTags;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface WorkflowConnection {
+  node: string;
+  type: string;
+  index: number;
+}
+
+export type WorkflowConnectionBranch = WorkflowConnection[];
+
+export interface WorkflowConnectionTypeMap {
+  [connectionType: string]: WorkflowConnectionBranch[];
+}
+
+export interface WorkflowConnections {
+  [sourceNode: string]: WorkflowConnectionTypeMap;
+}
+
+export interface WorkflowTelemetryTag {
+  key: string;
+  value: string;
+}
+
+export interface WorkflowNodeTelemetryTags {
+  tag?: WorkflowTelemetryTag[];
+}
+
+export interface WorkflowPinData {
+  [nodeName: string]: JsonValue;
+}
+
+export interface WorkflowMeta {
+  onboardingId?: string;
+  templateId?: string;
+  instanceId?: string;
+  templateCredsSetupCompleted?: boolean;
 }
 
 export interface SharedWorkflow {
   role: string;
   workflowId: string;
   projectId: string;
-  project?: { id: string; name: string; type: string };
+  project?: SharedWorkflowProject;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SharedWorkflowProject {
+  id: string;
+  name: string;
+  type: string;
 }
 
 export interface WorkflowVersion {
   versionId: string;
   workflowId: string;
   nodes: WorkflowNode[];
-  connections: Record<string, unknown>;
+  connections: WorkflowConnections;
   authors: string;
   name?: string;
   description?: string;
@@ -138,6 +190,24 @@ export interface WorkflowVersion {
 export interface WorkflowListResponse {
   data: Workflow[];
   nextCursor?: string;
+}
+
+export interface WorkflowListParams extends PaginationParams {
+  active?: boolean;
+  tags?: string;
+  name?: string;
+  projectId?: string;
+  excludePinnedData?: boolean;
+}
+
+export interface WorkflowGetParams {
+  excludePinnedData?: boolean;
+}
+
+export interface WorkflowActivateRequest {
+  versionId?: string;
+  name?: string;
+  description?: string;
 }
 
 // ─── Execution ───────────────────────────────────────────────────────────────
@@ -157,7 +227,7 @@ export type ExecutionMode =
 
 export interface Execution {
   id: number;
-  data?: Record<string, unknown>;
+  data?: JsonObject;
   finished: boolean;
   mode: ExecutionMode;
   retryOf?: number;
@@ -166,7 +236,7 @@ export interface Execution {
   stoppedAt?: string;
   workflowId: number;
   waitTill?: string;
-  customData?: Record<string, unknown>;
+  customData?: JsonObject;
   status: ExecutionStatus;
 }
 
@@ -186,13 +256,30 @@ export interface StopManyExecutionsResponse {
   stopped: number;
 }
 
+export interface ExecutionListParams extends PaginationParams {
+  includeData?: boolean;
+  redactExecutionData?: boolean;
+  status?: ExecutionStatus;
+  workflowId?: string;
+  projectId?: string;
+}
+
+export interface ExecutionGetParams {
+  includeData?: boolean;
+  redactExecutionData?: boolean;
+}
+
+export interface ExecutionRetryRequest {
+  loadWorkflow?: boolean;
+}
+
 // ─── Credential ──────────────────────────────────────────────────────────────
 
 export interface Credential {
   id: string;
   name: string;
   type: string;
-  data?: Record<string, unknown>;
+  data?: JsonObject;
   isResolvable?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -201,14 +288,14 @@ export interface Credential {
 export interface CredentialCreate {
   name: string;
   type: string;
-  data: Record<string, unknown>;
+  data: JsonObject;
   projectId?: string;
 }
 
 export interface CredentialUpdate {
   name?: string;
   type?: string;
-  data?: Record<string, unknown>;
+  data?: JsonObject;
   isGlobal?: boolean;
   isResolvable?: boolean;
   isPartialData?: boolean;
@@ -267,6 +354,10 @@ export interface TagListResponse {
   nextCursor?: string;
 }
 
+export interface TagMutation {
+  name: string;
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 export interface User {
@@ -296,6 +387,20 @@ export interface UserListResponse {
   nextCursor?: string;
 }
 
+export interface UserListParams extends PaginationParams {
+  offset?: number;
+  includeRole?: boolean;
+  projectId?: string;
+}
+
+export interface UserGetParams {
+  includeRole?: boolean;
+}
+
+export interface UserRoleChangeRequest {
+  newRoleName: string;
+}
+
 // ─── Variable ────────────────────────────────────────────────────────────────
 
 export interface Variable {
@@ -315,6 +420,11 @@ export interface VariableCreate {
 export interface VariableListResponse {
   data: Variable[];
   nextCursor?: string;
+}
+
+export interface VariableListParams extends PaginationParams {
+  projectId?: string;
+  state?: 'empty';
 }
 
 // ─── Project ─────────────────────────────────────────────────────────────────
@@ -345,6 +455,19 @@ export interface ProjectMemberListResponse {
   nextCursor?: string;
 }
 
+export interface ProjectMutation {
+  name: string;
+}
+
+export interface ProjectMemberRelation {
+  userId: string;
+  role: string;
+}
+
+export interface ProjectMemberRoleChangeRequest {
+  role: string;
+}
+
 // ─── DataTable ───────────────────────────────────────────────────────────────
 
 export interface DataTable {
@@ -368,7 +491,7 @@ export interface DataTableRow {
   id: number;
   createdAt?: string;
   updatedAt?: string;
-  [key: string]: unknown;
+  [key: string]: JsonValue | undefined;
 }
 
 export interface CreateDataTableRequest {
@@ -392,8 +515,19 @@ export interface UpdateColumnRequest {
   index?: number;
 }
 
+export interface DataTableListParams extends PaginationParams {
+  filter?: string;
+  sortBy?: string;
+}
+
+export interface DataTableRowListParams extends PaginationParams {
+  filter?: string;
+  sortBy?: string;
+  search?: string;
+}
+
 export interface InsertRowsRequest {
-  data: Record<string, unknown>[];
+  data: JsonObject[];
   returnType?: 'count' | 'id' | 'all';
 }
 
@@ -414,13 +548,13 @@ export interface DataTableFilter {
   filters: Array<{
     columnName: string;
     condition: 'eq' | 'neq' | 'like' | 'ilike' | 'gt' | 'gte' | 'lt' | 'lte';
-    value: unknown;
+    value: JsonValue;
   }>;
 }
 
 export interface UpdateRowsRequest {
   filter: DataTableFilter;
-  data: Record<string, unknown>;
+  data: JsonObject;
   returnData?: boolean;
   dryRun?: boolean;
 }
@@ -435,7 +569,7 @@ export interface UpdateRowsDataRequest extends UpdateRowsRequest {
 
 export interface UpsertRowRequest {
   filter: DataTableFilter;
-  data: Record<string, unknown>;
+  data: JsonObject;
   returnData?: boolean;
   dryRun?: boolean;
 }
@@ -503,6 +637,14 @@ export interface FolderDetail extends Folder {
   totalWorkflows?: number;
 }
 
+export interface FolderListParams extends PaginationParams {
+  filter?: string;
+  select?: string;
+  sortBy?: 'name:asc' | 'name:desc' | 'createdAt:asc' | 'createdAt:desc' | 'updatedAt:asc' | 'updatedAt:desc';
+  skip?: string;
+  take?: string;
+}
+
 // ─── Community Package ───────────────────────────────────────────────────────
 
 export interface CommunityPackage {
@@ -510,15 +652,26 @@ export interface CommunityPackage {
   installedVersion: string;
   authorName: string;
   authorEmail: string;
-  installedNodes: Array<{ name: string; type: string; latestVersion: number }>;
+  installedNodes: CommunityPackageNode[];
   createdAt: string;
   updatedAt: string;
   updateAvailable?: string;
   failedLoading?: boolean;
 }
 
+export interface CommunityPackageNode {
+  name: string;
+  type: string;
+  latestVersion: number;
+}
+
 export interface InstallCommunityPackageRequest {
   name: string;
+  version?: string;
+  verify?: boolean;
+}
+
+export interface UpdateCommunityPackageRequest {
   version?: string;
   verify?: boolean;
 }
@@ -538,13 +691,38 @@ export interface AuditRiskSection {
   title: string;
   description: string;
   recommendation: string;
-  location?: Array<Record<string, unknown>>;
+  location?: AuditRiskLocation[];
 }
 
 export interface AuditRiskReport {
-  risk: string;
+  risk: AuditRisk;
   sections: AuditRiskSection[];
 }
+
+export type AuditRisk = 'credentials' | 'database' | 'filesystem' | 'nodes' | 'execution';
+
+export interface AuditCredentialLocation {
+  kind: 'credential';
+  id: string;
+  name: string;
+}
+
+export interface AuditNodeLocation {
+  kind: 'node';
+  workflowId: string;
+  workflowName: string;
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+}
+
+export interface AuditCommunityLocation {
+  kind: 'community';
+  nodeType: string;
+  packageUrl: string;
+}
+
+export type AuditRiskLocation = AuditCredentialLocation | AuditNodeLocation | AuditCommunityLocation;
 
 export interface Audit {
   'Credentials Risk Report'?: AuditRiskReport;
@@ -570,6 +748,12 @@ export interface InsightsSummary {
   averageRunTime: InsightsMetric;
 }
 
+export interface InsightsSummaryParams {
+  startDate?: string;
+  endDate?: string;
+  projectId?: string;
+}
+
 // ─── Source Control ──────────────────────────────────────────────────────────
 
 export interface PullRequest {
@@ -589,10 +773,16 @@ export interface SourceControlledFile {
   pushed?: boolean;
   isLocalPublished?: boolean;
   isRemoteArchived?: boolean;
-  parentFolderId?: string;
+  parentFolderId?: string | null;
   folderPath?: string[];
-  owner?: { type: 'personal' | 'team'; projectId: string; projectName: string };
+  owner?: SourceControlledOwner;
   publishingError?: string;
+}
+
+export interface SourceControlledOwner {
+  type: 'personal' | 'team';
+  projectId: string;
+  projectName: string;
 }
 
 // ─── Discover ────────────────────────────────────────────────────────────────
@@ -601,7 +791,7 @@ export interface DiscoverEndpoint {
   method: string;
   path: string;
   operationId: string;
-  requestSchema?: unknown;
+  requestSchema?: JsonObject;
 }
 
 export interface DiscoverResource {
@@ -621,6 +811,12 @@ export interface DiscoverResponse {
     filters: Record<string, DiscoverFilter>;
     specUrl: string;
   };
+}
+
+export interface DiscoverParams {
+  include?: 'schemas';
+  resource?: string;
+  operation?: string;
 }
 
 // ─── N8n Package (Beta) ─────────────────────────────────────────────────────
@@ -648,6 +844,14 @@ export interface ImportPackageResponse {
   package: { sourceN8nVersion: string; sourceId: string; exportedAt: string };
   workflows: ImportPackageWorkflow[];
   bindings: ImportPackageBindings;
+}
+
+export interface ImportPackageOptions {
+  projectId?: string;
+  folderId?: string;
+  credentialMatchingMode?: 'id-only';
+  credentialMissingMode?: 'must-preexist';
+  workflowConflictPolicy: 'new-version' | 'fail' | 'skip';
 }
 
 export interface ImportPackageConflictError {

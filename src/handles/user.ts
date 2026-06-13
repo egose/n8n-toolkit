@@ -1,24 +1,20 @@
-import type { HttpClient } from '../http-client.js';
-import type { User, UserCreate, UserCreateResponse, UserListResponse, PaginationParams } from '../types.js';
+import type {
+  User,
+  UserCreate,
+  UserCreateResponse,
+  UserListResponse,
+  UserListParams,
+  UserGetParams,
+  UserRoleChangeRequest,
+} from '../types.js';
+import BaseHandle from './base.js';
 
-export default class UserHandle {
-  protected http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
-  async list(
-    params?: PaginationParams & {
-      offset?: number;
-      includeRole?: boolean;
-      projectId?: string;
-    },
-  ): Promise<UserListResponse> {
+export default class UserHandle extends BaseHandle {
+  async list(params?: UserListParams): Promise<UserListResponse> {
     return this.http.get<UserListResponse>('/users', params);
   }
 
-  async get(id: string, params?: { includeRole?: boolean }): Promise<User> {
+  async get(id: string, params?: UserGetParams): Promise<User> {
     return this.http.get<User>(`/users/${id}`, params);
   }
 
@@ -31,6 +27,7 @@ export default class UserHandle {
   }
 
   async changeRole(id: string, newRoleName: string): Promise<void> {
-    await this.http.patch<void>(`/users/${id}/role`, { newRoleName });
+    const data: UserRoleChangeRequest = { newRoleName };
+    await this.http.patch<void>(`/users/${id}/role`, data);
   }
 }

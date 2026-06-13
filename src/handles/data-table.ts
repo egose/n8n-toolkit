@@ -1,9 +1,10 @@
-import type { HttpClient } from '../http-client.js';
 import type {
   DataTable,
   DataTableColumn,
+  DataTableListParams,
   DataTableListResponse,
   DataTableRow,
+  DataTableRowListParams,
   DataTableRowListResponse,
   CreateColumnRequest,
   CreateDataTableRequest,
@@ -22,17 +23,11 @@ import type {
   UpsertRowBooleanRequest,
   UpsertRowDataRequest,
   UpsertRowRequest,
-  PaginationParams,
 } from '../types.js';
+import BaseHandle from './base.js';
 
-export default class DataTableHandle {
-  protected http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
-  async list(params?: PaginationParams & { filter?: string; sortBy?: string }): Promise<DataTableListResponse> {
+export default class DataTableHandle extends BaseHandle {
+  async list(params?: DataTableListParams): Promise<DataTableListResponse> {
     return this.http.get<DataTableListResponse>('/data-tables', params);
   }
 
@@ -52,10 +47,7 @@ export default class DataTableHandle {
     await this.http.delete<void>(`/data-tables/${id}`);
   }
 
-  async listRows(
-    dataTableId: string,
-    params?: PaginationParams & { filter?: string; sortBy?: string; search?: string },
-  ): Promise<DataTableRowListResponse> {
+  async listRows(dataTableId: string, params?: DataTableRowListParams): Promise<DataTableRowListResponse> {
     return this.http.get<DataTableRowListResponse>(`/data-tables/${dataTableId}/rows`, params);
   }
 

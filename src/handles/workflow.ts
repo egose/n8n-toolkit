@@ -1,35 +1,23 @@
-import type { HttpClient } from '../http-client.js';
 import type {
   Workflow,
   WorkflowCreate,
   WorkflowUpdate,
   WorkflowListResponse,
   WorkflowVersion,
-  PaginationParams,
+  WorkflowListParams,
+  WorkflowGetParams,
+  WorkflowActivateRequest,
   Tag,
   TagId,
 } from '../types.js';
+import BaseHandle from './base.js';
 
-export default class WorkflowHandle {
-  protected http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
-  async list(
-    params?: PaginationParams & {
-      active?: boolean;
-      tags?: string;
-      name?: string;
-      projectId?: string;
-      excludePinnedData?: boolean;
-    },
-  ): Promise<WorkflowListResponse> {
+export default class WorkflowHandle extends BaseHandle {
+  async list(params?: WorkflowListParams): Promise<WorkflowListResponse> {
     return this.http.get<WorkflowListResponse>('/workflows', params);
   }
 
-  async get(id: string, params?: { excludePinnedData?: boolean }): Promise<Workflow> {
+  async get(id: string, params?: WorkflowGetParams): Promise<Workflow> {
     return this.http.get<Workflow>(`/workflows/${id}`, params);
   }
 
@@ -45,7 +33,7 @@ export default class WorkflowHandle {
     return this.http.delete<Workflow>(`/workflows/${id}`);
   }
 
-  async activate(id: string, data?: { versionId?: string; name?: string; description?: string }): Promise<Workflow> {
+  async activate(id: string, data?: WorkflowActivateRequest): Promise<Workflow> {
     return this.http.post<Workflow>(`/workflows/${id}/activate`, data);
   }
 

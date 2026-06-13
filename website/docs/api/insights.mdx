@@ -7,6 +7,8 @@ sidebar_position: 12
 
 `InsightsHandle` retrieves execution insights and summaries.
 
+Use this handle for reporting and dashboards rather than per-execution inspection.
+
 ## Access
 
 ```ts
@@ -15,14 +17,20 @@ const insights = client.insights();
 
 ## Methods
 
+## Common Tasks
+
+- fetch a summary for a date range
+- compare project activity over time
+- drive dashboards with failure rate and runtime metrics
+
 ### `getSummary(params?)`
 
 Get an insights summary with optional date range and project filters.
 
 ```ts
 const summary = await client.insights().getSummary({
-  startDate: '2024-01-01',
-  endDate: '2024-01-31',
+  startDate: '2024-01-01T00:00:00Z',
+  endDate: '2024-01-31T23:59:59Z',
   projectId: 'proj-123',
 });
 ```

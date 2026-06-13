@@ -1,27 +1,13 @@
 import type { HttpClient } from '../http-client.js';
-import type { ExportWorkflowsRequest, ImportPackageResponse } from '../types.js';
+import type { ExportWorkflowsRequest, ImportPackageOptions, ImportPackageResponse } from '../types.js';
+import BaseHandle from './base.js';
 
-export default class N8nPackageHandle {
-  protected http: HttpClient;
-
-  constructor(http: HttpClient) {
-    this.http = http;
-  }
-
+export default class N8nPackageHandle extends BaseHandle {
   async exportWorkflows(data: ExportWorkflowsRequest): Promise<ArrayBuffer> {
     return this.http.post<ArrayBuffer>('/n8n-packages/export', data, undefined, { Accept: 'application/gzip' });
   }
 
-  async importPackage(
-    pkg: File | Blob,
-    options: {
-      projectId?: string;
-      folderId?: string;
-      credentialMatchingMode?: 'id-only';
-      credentialMissingMode?: 'must-preexist';
-      workflowConflictPolicy: 'new-version' | 'fail' | 'skip';
-    },
-  ): Promise<ImportPackageResponse> {
+  async importPackage(pkg: File | Blob, options: ImportPackageOptions): Promise<ImportPackageResponse> {
     const formData = new FormData();
     formData.append('package', pkg);
 

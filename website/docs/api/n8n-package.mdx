@@ -7,6 +7,8 @@ sidebar_position: 15
 
 `N8nPackageHandle` manages workflow import and export packages.
 
+This handle is beta-aligned with the public API and is useful when you need to move groups of workflows between instances or environments.
+
 ## Access
 
 ```ts
@@ -14,6 +16,12 @@ const n8nPackage = client.n8nPackage();
 ```
 
 ## Methods
+
+## Common Tasks
+
+- export one or more workflows as a gzipped package
+- import a package into a target project or folder
+- decide how workflow conflicts should be handled during import
 
 ### `exportWorkflows(data)`
 
@@ -26,7 +34,7 @@ const buffer = await client.n8nPackage().exportWorkflows({
 // buffer is ArrayBuffer (gzipped package)
 ```
 
-### `importPackage(pkg, options?)`
+### `importPackage(pkg, options)`
 
 Import a workflow package (zip file).
 
@@ -42,6 +50,8 @@ const result = await client.n8nPackage().importPackage(
   },
 );
 ```
+
+`workflowConflictPolicy` is required. Use it to make import behavior explicit instead of relying on defaults.
 
 #### Import Options
 
