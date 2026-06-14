@@ -59,6 +59,8 @@ const table = await client.dataTables().create({
 });
 ```
 
+Column types supported at creation time: `string`, `number`, `boolean`, `date`, `json`. The `json` type is available when creating columns but may not appear in read responses from the API.
+
 ### `update(id, data)`
 
 Update a data table.
@@ -202,4 +204,77 @@ const ids = await client.dataTables().insertRows('dt-123', {
   returnType: 'id',
 });
 // number[]
+```
+
+## DataTableResource
+
+Use `getResource()`, `listResources()`, or `createResource()` to get a bound `DataTableResource` instance.
+
+```ts
+const resource = await client.dataTables().getResource('dt-123');
+const created = await client.dataTables().createResource({
+  name: 'User Events',
+  columns: [
+    { name: 'event', type: 'string' },
+    { name: 'createdAt', type: 'date' },
+  ],
+});
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` | Data table ID |
+| `name` | `string` | Data table name |
+
+### Table methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `refresh()` | `this` | Re-fetch the table from the API |
+| `update(data)` | `this` | Update the table — replaces snapshot with the API response |
+| `delete()` | `void` | Delete the table |
+
+### Row methods
+
+Row methods on the resource mirror the corresponding client methods but with the table ID pre-filled.
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `listRows(params?)` | `DataTableRowListResponse` | List rows in the table |
+| `insertRows(data)` | overloads | Insert rows — return type depends on `returnType` |
+| `updateRows(data)` | overloads | Update rows matching a filter |
+| `upsertRow(data)` | overloads | Insert or update a single row |
+| `deleteRows(params)` | overloads | Delete rows matching a filter |
+
+### Column methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `listColumns()` | `DataTableColumn[]` | List columns in the table |
+| `createColumn(data)` | `DataTableColumn` | Add a column — patches snapshot to include it |
+| `updateColumn(columnId, data)` | `DataTableColumn` | Update a column — replaces matching entry in snapshot |
+| `deleteColumn(columnId)` | `void` | Delete a column — removes it from the snapshot |
+
+### Snapshot management
+
+`refresh()` and `update()` call `replaceSnapshot()`. Column methods (`createColumn`, `updateColumn`, `deleteColumn`) call `mergeSnapshot()` to patch the `columns` array locally without re-fetching the full table.
+
+### Example
+
+```ts
+const table = await client.dataTables().createResource({
+  name: 'Events',
+  columns: [{ name: 'event', type: 'string' }],
+});
+
+await table.createColumn({ name: 'timestamp', type: 'date' });
+
+const rows = await table.insertRows({
+  data: [{ event: 'login' }],
+  returnType: 'all',
+});
+
+await table.deleteColumn(table.data.columns[0].id);
 ```

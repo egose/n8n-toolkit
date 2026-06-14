@@ -27,6 +27,14 @@ const { data, nextCursor } = await client.variables().list({
 });
 ```
 
+### `get(id, params?)`
+
+Get a variable by ID. The n8n API has no direct `GET /variables/{id}` endpoint, so this method paginates through all results to find the matching variable. On instances with many variables this is an O(n) scan across pages.
+
+```ts
+const variable = await client.variables().get('var-123', { projectId: 'proj-1' });
+```
+
 ### `create(data)`
 
 Create a new variable.
@@ -57,3 +65,31 @@ Delete a variable.
 ```ts
 await client.variables().delete('var-123');
 ```
+
+## VariableResource
+
+Use `getResource()` or `listResources()` to get a bound `VariableResource` instance.
+
+```ts
+const resource = await client.variables().getResource('var-123', { projectId: 'proj-1' });
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` | Variable ID |
+| `key` | `string` | Variable key |
+| `value` | `string` | Variable value |
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `refresh()` | `this` | Re-fetch the variable from the API via paginated list |
+| `update(data)` | `this` | Update the variable — merges local snapshot |
+| `delete()` | `void` | Delete the variable |
+
+### Snapshot management
+
+`refresh()` calls `replaceSnapshot()` with the fresh variable data. `update()` calls `mergeSnapshot()` locally since the n8n API returns no body on update.

@@ -193,11 +193,31 @@ For community packages, the equivalent opt-in method is `installResource()` beca
 If you need an endpoint or option that is not covered by a resource client yet, `N8nClient` exposes thin request helpers without exposing the transport object itself:
 
 ```ts
-// Direct GET request
+// GET
 const data = await client.get('/workflows', { limit: 5 });
 
-// Direct POST request
+// POST
 await client.post('/workflows', { name: 'New Workflow', nodes: [], connections: {}, settings: {} });
+
+// PUT
+await client.put('/variables/var-1', { key: 'MY_VAR', value: 'new-value' });
+
+// PATCH
+await client.patch('/projects/proj-1', { name: 'Updated Name' });
+
+// DELETE
+await client.delete('/workflows/wf-1');
+```
+
+All five helpers (`get`, `post`, `put`, `patch`, `delete`) accept an optional `headers` parameter as the last argument. For full control, use `request()` with a `RequestOptions` object:
+
+```ts
+const result = await client.request<Workflow>({
+  method: 'GET',
+  path: '/workflows',
+  query: { limit: 5 },
+  headers: { 'X-Custom': 'value' },
+});
 ```
 
 These helpers still use the same authentication, retry, and response parsing rules as the typed clients.
@@ -253,5 +273,23 @@ await folder.list();
 
 ```ts
 import N8nClient, { HttpClient, HttpError } from '@egose/n8n-client';
-import type { RequestOptions, Workflow, Execution, ... } from '@egose/n8n-client';
+
+// Resource classes
+import { WorkflowResource, ExecutionResource, CredentialResource } from '@egose/n8n-client';
+import { ProjectResource, FolderResource, DataTableResource } from '@egose/n8n-client';
+import { TagResource, UserResource, VariableResource, CommunityPackageResource } from '@egose/n8n-client';
+
+// Collection interfaces (for typing nested collections)
+import type {
+  ProjectWorkflowResourceCollection,
+  ProjectFolderResourceCollection,
+  ProjectVariableResourceCollection,
+  ProjectDataTableResourceCollection,
+  ProjectExecutionResourceCollection,
+  WorkflowExecutionResourceCollection,
+} from '@egose/n8n-client';
+
+// All API types
+import type { RequestOptions, PaginationParams, PaginatedResponse } from '@egose/n8n-client';
+import type { Workflow, WorkflowCreate, WorkflowUpdate, Execution, Credential, ... } from '@egose/n8n-client';
 ```

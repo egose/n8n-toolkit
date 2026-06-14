@@ -144,6 +144,61 @@ Get a specific workflow version.
 const version = await client.workflows().getVersion('wf-123', 'v-1');
 ```
 
+## WorkflowResource
+
+Use `getResource()` or `createResource()` to get a bound `WorkflowResource` instance that wraps the workflow data and exposes convenience methods.
+
+```ts
+const resource = await client.workflows().getResource('wf-123');
+const created = await client.workflows().createResource({
+  name: 'New Workflow',
+  nodes: [],
+  connections: {},
+  settings: {},
+});
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` | Workflow ID |
+| `name` | `string` | Workflow name |
+| `active` | `boolean` | Whether the workflow is active |
+| `isArchived` | `boolean` | Whether the workflow is archived |
+| `versionId` | `string` | Current version ID |
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `update(data)` | `this` | Full update — replaces snapshot with the API response |
+| `delete()` | `Workflow` | Delete the workflow |
+| `activate(data?)` | `this` | Activate the workflow |
+| `deactivate()` | `this` | Deactivate the workflow |
+| `archive()` | `this` | Archive the workflow |
+| `unarchive()` | `this` | Unarchive the workflow |
+| `transfer(destinationProjectId)` | `void` | Move to another project |
+| `getTags()` | `Tag[]` | List tags on the workflow |
+| `updateTags(tags)` | `Tag[]` | Replace tags on the workflow |
+| `getVersion(versionId)` | `WorkflowVersion` | Fetch a specific version |
+| `executions()` | `WorkflowExecutionResourceCollection` | Scope queries to this workflow |
+
+### Snapshot management
+
+Mutating methods (`update`, `activate`, `deactivate`, `archive`, `unarchive`) call `replaceSnapshot()` under the hood, so `resource.data` stays current after each call. `updateTags()` calls `mergeSnapshot()` to patch the tags field without re-fetching the full workflow.
+
+### Nested executions
+
+`resource.executions()` returns a collection scoped to the workflow:
+
+```ts
+const runs = await workflow.executions().list({ status: 'error', limit: 10 });
+const runResource = await workflow.executions().getResource(123);
+```
+
+Both `get` and `getResource` verify the execution belongs to this workflow via paginated list before fetching.
+
 ## Typical Flow
 
 ```ts
@@ -154,4 +209,22 @@ const { data } = await workflow.list({ projectId: 'proj-1', active: false, limit
 if (data[0]) {
   await workflow.activate(data[0].id);
 }
+```
+
+### Typical Flow with Resource
+
+```ts
+const resource = await client.workflows().getResource('wf-123');
+
+await resource.update({
+  name: 'Updated Name',
+  description: resource.data.description,
+  nodes: resource.data.nodes,
+  connections: resource.data.connections,
+  settings: resource.data.settings ?? {},
+});
+
+await resource.activate();
+
+const runs = await resource.executions().list({ status: 'error', limit: 5 });
 ```

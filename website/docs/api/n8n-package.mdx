@@ -36,7 +36,7 @@ const buffer = await client.n8nPackage().exportWorkflows({
 
 ### `importPackage(pkg, options)`
 
-Import a workflow package (zip file).
+Import a workflow package (zip file). The `pkg` parameter accepts a `File` or `Blob` object.
 
 ```ts
 const result = await client.n8nPackage().importPackage(

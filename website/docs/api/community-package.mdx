@@ -61,3 +61,34 @@ Uninstall a community package.
 ```ts
 await client.communityPackages().uninstall('n8n-nodes-test');
 ```
+
+## CommunityPackageResource
+
+Use `getResource()` or `installResource()` to get a bound `CommunityPackageResource` instance.
+
+```ts
+const resource = await client.communityPackages().getResource('n8n-nodes-test');
+const installed = await client.communityPackages().installResource({
+  name: 'n8n-nodes-test',
+  verify: true,
+});
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `packageName` | `string` | npm package name |
+| `installedVersion` | `string` | Currently installed version |
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `refresh()` | `this` | Re-fetch the package from the API — resolves by name from list |
+| `update(data?)` | `this` | Update the package — replaces snapshot with the API response |
+| `uninstall()` | `void` | Uninstall the package |
+
+### Note
+
+`getResource()` resolves by package name from the list endpoint — there is no direct `GET /community-packages/{name}` in the n8n API. The name-based lookup ensures the package exists before returning a resource.

@@ -84,3 +84,31 @@ const folder = client.folders('proj-123');
 const created = await folder.create({ name: 'Ops Workflows' });
 await folder.update(created.id, { name: 'Operations Workflows' });
 ```
+
+## FolderResource
+
+Use `getResource()`, `listResources()`, or `createResource()` to get a bound `FolderResource` instance.
+
+```ts
+const resource = await client.folders('proj-123').getResource('folder-456');
+const created = await client.folders('proj-123').createResource({ name: 'Archives' });
+```
+
+:::note
+`listResources()` does not support cursor-based pagination. It always returns `nextCursor: undefined`. Use `list()` directly if you need to page through folders.
+:::
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` | Folder ID |
+| `name` | `string` | Folder name |
+| `parentFolderId` | `string \| undefined` | Parent folder ID (if nested) |
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `update(data)` | `this` | Update the folder — replaces snapshot with the API response |
+| `delete(transferToFolderId?)` | `void` | Delete the folder, optionally moving contents to another folder |

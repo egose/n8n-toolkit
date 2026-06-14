@@ -63,3 +63,30 @@ Change a user's global role.
 ```ts
 await client.users().changeRole('user-123', 'global:admin');
 ```
+
+## UserResource
+
+Use `getResource()` or `listResources()` to get a bound `UserResource` instance.
+
+```ts
+const resource = await client.users().getResource('user-123', { includeRole: true });
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` | User ID |
+| `email` | `string` | User email |
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `refresh()` | `this` | Re-fetch the user from the API (preserves original `includeRole` param) |
+| `delete()` | `void` | Delete the user |
+| `changeRole(newRoleName)` | `this` | Change the user's global role — merges role into snapshot locally |
+
+### Snapshot management
+
+`refresh()` calls `replaceSnapshot()`. `changeRole()` merges the new role into the local snapshot without re-fetching the full user.

@@ -63,7 +63,7 @@ Transient errors are retried automatically:
 
 ```ts
 // Automatically retries on 408, 429, 500, 502, 503, 504
-// with exponential backoff and jitter
+// with exponential backoff
 const workflow = await client.workflows().get('wf-123');
 ```
 

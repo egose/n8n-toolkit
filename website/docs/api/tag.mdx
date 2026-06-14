@@ -54,3 +54,25 @@ Delete a tag.
 ```ts
 const deleted = await client.tags().delete('tag-123');
 ```
+
+## TagResource
+
+Use `getResource()`, `listResources()`, or `createResource()` to get a bound `TagResource` instance.
+
+```ts
+const resource = await client.tags().getResource('tag-123');
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` | Tag ID |
+| `name` | `string` | Tag name |
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `update(data)` | `this` | Update the tag — replaces snapshot with the API response |
+| `delete()` | `Tag` | Delete the tag |

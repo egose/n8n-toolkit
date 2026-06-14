@@ -273,7 +273,12 @@ const { data, nextCursor } = await workflowApi.list({
 const workflow = await workflowApi.get('wf-1');
 const workflowResource = await workflowApi.getResource('wf-1');
 const created = await workflowApi.create({ name: 'New', nodes: [], connections: {}, settings: {} });
-const updated = await workflowApi.update('wf-1', { name: 'Updated' });
+const updated = await workflowApi.update('wf-1', {
+  name: 'Updated',
+  nodes: workflow.nodes,
+  connections: workflow.connections,
+  settings: workflow.settings ?? {},
+});
 const updatedResource = await workflowApi.updateResource('wf-1', {
   name: 'Updated Again',
   nodes: [],
