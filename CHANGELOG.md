@@ -1,3 +1,9 @@
+## [0.4.0](https://github.com/egose/n8n-client/compare/v0.3.0...v0.4.0) (2026-06-14)
+
+### Features
+
+* **website:** add logo lockup assets ([a6d54c8](https://github.com/egose/n8n-client/commit/a6d54c898d06e64f3038752938b9adcaff3bc354))
+
 ## [0.3.0](https://github.com/egose/n8n-client/compare/v0.2.1...v0.3.0) (2026-06-14)
 
 ### Features
