@@ -361,6 +361,18 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "patch(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Convenience update — merges partial fields with the current writable credential snapshot"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
               children: "delete()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
@@ -414,7 +426,9 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
         children: "update()"
-      }), " calls ", (0,jsx_runtime.jsx)(_components.code, {
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "patch()"
+      }), " call ", (0,jsx_runtime.jsx)(_components.code, {
         children: "replaceSnapshot()"
       }), " with the API response."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {

@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["16"], {
-1683(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["163"], {
+8755(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_folder_mdx_474_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_variable_mdx_8e5_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-folder-mdx-474.json
-var site_docs_api_folder_mdx_474_namespaceObject = JSON.parse('{"id":"api/folder","title":"Folder API","description":"FolderClient manages project-scoped folders. Folders are always scoped to a project.","source":"@site/docs/api/folder.mdx","sourceDirName":"api","slug":"/api/folder","permalink":"/api/folder","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":9,"frontMatter":{"sidebar_label":"Folder","sidebar_position":9},"sidebar":"api","previous":{"title":"Data Table","permalink":"/api/data-table"},"next":{"title":"Community Package","permalink":"/api/community-package"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-variable-mdx-8e5.json
+var site_docs_api_variable_mdx_8e5_namespaceObject = JSON.parse('{"id":"api/variable","title":"Variable API","description":"VariableClient manages n8n environment variables.","source":"@site/docs/api/variable.mdx","sourceDirName":"api","slug":"/api/variable","permalink":"/api/variable","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":6,"frontMatter":{"sidebar_label":"Variable","sidebar_position":6},"sidebar":"api","previous":{"title":"User","permalink":"/api/user"},"next":{"title":"Project","permalink":"/api/project"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/folder.mdx
+;// CONCATENATED MODULE: ./docs/api/variable.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Folder',
-	sidebar_position: 9
+	sidebar_label: 'Variable',
+	sidebar_position: 6
 };
-const contentTitle = 'Folder API';
+const contentTitle = 'Variable API';
 
 const assets = {
 
@@ -44,36 +44,28 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
-  "value": "Common Tasks",
-  "id": "common-tasks",
-  "level": 2
-}, {
   "value": "<code>list(params?)</code>",
   "id": "listparams",
   "level": 3
 }, {
-  "value": "<code>get(folderId)</code>",
-  "id": "getfolderid",
+  "value": "<code>get(id, params?)</code>",
+  "id": "getid-params",
   "level": 3
 }, {
   "value": "<code>create(data)</code>",
   "id": "createdata",
   "level": 3
 }, {
-  "value": "<code>update(folderId, data)</code>",
-  "id": "updatefolderid-data",
+  "value": "<code>update(id, data)</code>",
+  "id": "updateid-data",
   "level": 3
 }, {
-  "value": "<code>delete(folderId, transferToFolderId?)</code>",
-  "id": "deletefolderid-transfertofolderid",
+  "value": "<code>delete(id)</code>",
+  "id": "deleteid",
   "level": 3
 }, {
-  "value": "Typical Flow",
-  "id": "typical-flow",
-  "level": 2
-}, {
-  "value": "FolderResource",
-  "id": "folderresource",
+  "value": "VariableResource",
+  "id": "variableresource",
   "level": 2
 }, {
   "value": "Properties",
@@ -83,16 +75,18 @@ const toc = [{
   "value": "Methods",
   "id": "methods-1",
   "level": 3
+}, {
+  "value": "Snapshot management",
+  "id": "snapshot-management",
+  "level": 3
 }];
 function _createMdxContent(props) {
   const _components = {
-    admonition: "admonition",
     code: "code",
     h1: "h1",
     h2: "h2",
     h3: "h3",
     header: "header",
-    li: "li",
     p: "p",
     pre: "pre",
     table: "table",
@@ -101,76 +95,55 @@ function _createMdxContent(props) {
     th: "th",
     thead: "thead",
     tr: "tr",
-    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "folder-api",
-        children: "Folder API"
+        id: "variable-api",
+        children: "Variable API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "FolderClient"
-      }), " manages project-scoped folders. Folders are always scoped to a project."]
+        children: "VariableClient"
+      }), " manages n8n environment variables."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const folder = client.folders('project-id');\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.admonition, {
-      type: "note",
-      children: (0,jsx_runtime.jsxs)(_components.p, {
-        children: ["Unlike other resource clients, ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "FolderClient"
-        }), " requires a ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "projectId"
-        }), " at construction time because folder endpoints are project-scoped."]
+        children: "const variable = client.variables();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
-    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "common-tasks",
-      children: "Common Tasks"
-    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
-      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "list folders inside one project"
-      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "create folder structures for workflow organization"
-      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "rename or move folders"
-      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "delete a folder while transferring its contents elsewhere"
-      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "listparams",
       children: (0,jsx_runtime.jsx)(_components.code, {
         children: "list(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List folders in the project."
+      children: "List variables with optional filters."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data } = await client.folders('proj-123').list({\n  limit: 10,\n  filter: 'name',\n  sortBy: 'name:asc',\n});\n"
+        children: "const { data, nextCursor } = await client.variables().list({\n  limit: 50,\n  projectId: 'proj-1',\n  state: 'empty',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getfolderid",
+      id: "getid-params",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "get(folderId)"
+        children: "get(id, params?)"
       })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get a folder by ID."
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Get a variable by ID. The n8n API has no direct ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "GET /variables/{id}"
+      }), " endpoint, so this method paginates through all results to find the matching variable. On instances with many variables this is an O(n) scan across pages."]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const folder = await client.folders('proj-123').get('folder-456');\n"
+        children: "const variable = await client.variables().get('var-123', { projectId: 'proj-1' });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
@@ -178,72 +151,51 @@ function _createMdxContent(props) {
         children: "create(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create a new folder."
+      children: "Create a new variable."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const folder = await client.folders('proj-123').create({\n  name: 'Production Workflows',\n});\n"
+        children: "await client.variables().create({\n  key: 'MY_API_KEY',\n  value: 'secret-value',\n  projectId: 'proj-1',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "updatefolderid-data",
+      id: "updateid-data",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "update(folderId, data)"
+        children: "update(id, data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a folder."
+      children: "Update a variable."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const updated = await client.folders('proj-123').update('folder-456', {\n  name: 'Prod Workflows',\n});\n"
+        children: "await client.variables().update('var-123', {\n  key: 'MY_API_KEY',\n  value: 'new-value',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "deletefolderid-transfertofolderid",
+      id: "deleteid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "delete(folderId, transferToFolderId?)"
+        children: "delete(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a folder, optionally transferring its contents to another folder."
+      children: "Delete a variable."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.folders('proj-123').delete('folder-456');\n// or transfer contents first\nawait client.folders('proj-123').delete('folder-456', 'other-folder-789');\n"
+        children: "await client.variables().delete('var-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "typical-flow",
-      children: "Typical Flow"
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const folder = client.folders('proj-123');\n\nconst created = await folder.create({ name: 'Ops Workflows' });\nawait folder.update(created.id, { name: 'Operations Workflows' });\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "folderresource",
-      children: "FolderResource"
+      id: "variableresource",
+      children: "VariableResource"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
         children: "getResource()"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
         children: "listResources()"
-      }), ", or ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "createResource()"
       }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "FolderResource"
+        children: "VariableResource"
       }), " instance."]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const resource = await client.folders('proj-123').getResource('folder-456');\nconst created = await client.folders('proj-123').createResource({ name: 'Archives' });\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.admonition, {
-      type: "note",
-      children: (0,jsx_runtime.jsxs)(_components.p, {
-        children: [(0,jsx_runtime.jsx)(_components.code, {
-          children: "listResources()"
-        }), " does not support cursor-based pagination. It always returns ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "nextCursor: undefined"
-        }), ". Use ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "list()"
-        }), " directly if you need to page through folders."]
+        children: "const resource = await client.variables().getResource('var-123', { projectId: 'proj-1' });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "properties",
@@ -270,31 +222,31 @@ function _createMdxContent(props) {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Folder ID"
+            children: "Variable ID"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "name"
+              children: "key"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Folder name"
+            children: "Variable key"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "parentFolderId"
+              children: "value"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "string | undefined"
+              children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Parent folder ID (if nested)"
+            children: "Variable value"
           })]
         })]
       })]
@@ -316,6 +268,18 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "refresh()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Re-fetch the variable from the API via paginated list"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
               children: "update(data)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
@@ -323,22 +287,49 @@ function _createMdxContent(props) {
               children: "this"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Update the folder — replaces snapshot with the API response"
+            children: "Update the variable — merges local snapshot"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "delete(transferToFolderId?)"
+              children: "patch(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Convenience update — merges partial fields into the current variable snapshot before updating"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "delete()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "void"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Delete the folder, optionally moving contents to another folder"
+            children: "Delete the variable"
           })]
         })]
       })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "snapshot-management",
+      children: "Snapshot management"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "refresh()"
+      }), " calls ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "replaceSnapshot()"
+      }), " with the fresh variable data. ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "update()"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "patch()"
+      }), " call ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "mergeSnapshot()"
+      }), " locally since the n8n API returns no body on update."]
     })]
   });
 }

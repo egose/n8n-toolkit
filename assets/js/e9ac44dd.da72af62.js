@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["163"], {
-8755(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["758"], {
+7626(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_variable_mdx_8e5_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_tag_mdx_e9a_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-variable-mdx-8e5.json
-var site_docs_api_variable_mdx_8e5_namespaceObject = JSON.parse('{"id":"api/variable","title":"Variable API","description":"VariableClient manages n8n environment variables.","source":"@site/docs/api/variable.mdx","sourceDirName":"api","slug":"/api/variable","permalink":"/api/variable","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":6,"frontMatter":{"sidebar_label":"Variable","sidebar_position":6},"sidebar":"api","previous":{"title":"User","permalink":"/api/user"},"next":{"title":"Project","permalink":"/api/project"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-tag-mdx-e9a.json
+var site_docs_api_tag_mdx_e9a_namespaceObject = JSON.parse('{"id":"api/tag","title":"Tag API","description":"TagClient manages tags for workflows and executions.","source":"@site/docs/api/tag.mdx","sourceDirName":"api","slug":"/api/tag","permalink":"/api/tag","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":4,"frontMatter":{"sidebar_label":"Tag","sidebar_position":4},"sidebar":"api","previous":{"title":"Credential","permalink":"/api/credential"},"next":{"title":"User","permalink":"/api/user"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/variable.mdx
+;// CONCATENATED MODULE: ./docs/api/tag.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Variable',
-	sidebar_position: 6
+	sidebar_label: 'Tag',
+	sidebar_position: 4
 };
-const contentTitle = 'Variable API';
+const contentTitle = 'Tag API';
 
 const assets = {
 
@@ -48,8 +48,8 @@ const toc = [{
   "id": "listparams",
   "level": 3
 }, {
-  "value": "<code>get(id, params?)</code>",
-  "id": "getid-params",
+  "value": "<code>get(id)</code>",
+  "id": "getid",
   "level": 3
 }, {
   "value": "<code>create(data)</code>",
@@ -64,8 +64,8 @@ const toc = [{
   "id": "deleteid",
   "level": 3
 }, {
-  "value": "VariableResource",
-  "id": "variableresource",
+  "value": "TagResource",
+  "id": "tagresource",
   "level": 2
 }, {
   "value": "Properties",
@@ -74,10 +74,6 @@ const toc = [{
 }, {
   "value": "Methods",
   "id": "methods-1",
-  "level": 3
-}, {
-  "value": "Snapshot management",
-  "id": "snapshot-management",
   "level": 3
 }];
 function _createMdxContent(props) {
@@ -101,20 +97,20 @@ function _createMdxContent(props) {
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "variable-api",
-        children: "Variable API"
+        id: "tag-api",
+        children: "Tag API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "VariableClient"
-      }), " manages n8n environment variables."]
+        children: "TagClient"
+      }), " manages tags for workflows and executions."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const variable = client.variables();\n"
+        children: "const tag = client.tags();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -125,25 +121,23 @@ function _createMdxContent(props) {
         children: "list(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List variables with optional filters."
+      children: "List all tags."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.variables().list({\n  limit: 50,\n  projectId: 'proj-1',\n  state: 'empty',\n});\n"
+        children: "const { data, nextCursor } = await client.tags().list({ limit: 20 });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getid-params",
+      id: "getid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "get(id, params?)"
+        children: "get(id)"
       })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Get a variable by ID. The n8n API has no direct ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "GET /variables/{id}"
-      }), " endpoint, so this method paginates through all results to find the matching variable. On instances with many variables this is an O(n) scan across pages."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Get a tag by ID."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const variable = await client.variables().get('var-123', { projectId: 'proj-1' });\n"
+        children: "const tag = await client.tags().get('tag-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
@@ -151,11 +145,11 @@ function _createMdxContent(props) {
         children: "create(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create a new variable."
+      children: "Create a new tag."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.variables().create({\n  key: 'MY_API_KEY',\n  value: 'secret-value',\n  projectId: 'proj-1',\n});\n"
+        children: "const tag = await client.tags().create({ name: 'production' });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updateid-data",
@@ -163,11 +157,11 @@ function _createMdxContent(props) {
         children: "update(id, data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a variable."
+      children: "Update a tag."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.variables().update('var-123', {\n  key: 'MY_API_KEY',\n  value: 'new-value',\n});\n"
+        children: "const updated = await client.tags().update('tag-123', { name: 'prod' });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleteid",
@@ -175,27 +169,29 @@ function _createMdxContent(props) {
         children: "delete(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a variable."
+      children: "Delete a tag."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.variables().delete('var-123');\n"
+        children: "const deleted = await client.tags().delete('tag-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "variableresource",
-      children: "VariableResource"
+      id: "tagresource",
+      children: "TagResource"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
         children: "getResource()"
-      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
         children: "listResources()"
+      }), ", or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "createResource()"
       }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "VariableResource"
+        children: "TagResource"
       }), " instance."]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const resource = await client.variables().getResource('var-123', { projectId: 'proj-1' });\n"
+        children: "const resource = await client.tags().getResource('tag-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "properties",
@@ -222,31 +218,19 @@ function _createMdxContent(props) {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Variable ID"
+            children: "Tag ID"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "key"
+              children: "name"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Variable key"
-          })]
-        }), (0,jsx_runtime.jsxs)(_components.tr, {
-          children: [(0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "value"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "string"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Variable value"
+            children: "Tag name"
           })]
         })]
       })]
@@ -268,18 +252,6 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "refresh()"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "this"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Re-fetch the variable from the API via paginated list"
-          })]
-        }), (0,jsx_runtime.jsxs)(_components.tr, {
-          children: [(0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
               children: "update(data)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
@@ -287,7 +259,19 @@ function _createMdxContent(props) {
               children: "this"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Update the variable — merges local snapshot"
+            children: "Update the tag — replaces snapshot with the API response"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "patch(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Convenience update — merges partial fields into the current tag snapshot before updating"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -296,26 +280,13 @@ function _createMdxContent(props) {
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "void"
+              children: "Tag"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Delete the variable"
+            children: "Delete the tag"
           })]
         })]
       })]
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "snapshot-management",
-      children: "Snapshot management"
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "refresh()"
-      }), " calls ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "replaceSnapshot()"
-      }), " with the fresh variable data. ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "update()"
-      }), " calls ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "mergeSnapshot()"
-      }), " locally since the n8n API returns no body on update."]
     })]
   });
 }

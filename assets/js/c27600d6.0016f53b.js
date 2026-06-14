@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["758"], {
-7626(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["322"], {
+6721(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_tag_mdx_e9a_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_community_package_mdx_c27_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-tag-mdx-e9a.json
-var site_docs_api_tag_mdx_e9a_namespaceObject = JSON.parse('{"id":"api/tag","title":"Tag API","description":"TagClient manages tags for workflows and executions.","source":"@site/docs/api/tag.mdx","sourceDirName":"api","slug":"/api/tag","permalink":"/api/tag","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":4,"frontMatter":{"sidebar_label":"Tag","sidebar_position":4},"sidebar":"api","previous":{"title":"Credential","permalink":"/api/credential"},"next":{"title":"User","permalink":"/api/user"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-community-package-mdx-c27.json
+var site_docs_api_community_package_mdx_c27_namespaceObject = JSON.parse('{"id":"api/community-package","title":"Community Package API","description":"CommunityPackageClient manages n8n community packages — install, update, and uninstall npm packages.","source":"@site/docs/api/community-package.mdx","sourceDirName":"api","slug":"/api/community-package","permalink":"/api/community-package","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":10,"frontMatter":{"sidebar_label":"Community Package","sidebar_position":10},"sidebar":"api","previous":{"title":"Folder","permalink":"/api/folder"},"next":{"title":"Audit","permalink":"/api/audit"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/tag.mdx
+;// CONCATENATED MODULE: ./docs/api/community-package.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Tag',
-	sidebar_position: 4
+	sidebar_label: 'Community Package',
+	sidebar_position: 10
 };
-const contentTitle = 'Tag API';
+const contentTitle = 'Community Package API';
 
 const assets = {
 
@@ -44,28 +44,28 @@ const toc = [{
   "id": "methods",
   "level": 2
 }, {
-  "value": "<code>list(params?)</code>",
-  "id": "listparams",
+  "value": "Common Tasks",
+  "id": "common-tasks",
+  "level": 2
+}, {
+  "value": "<code>list()</code>",
+  "id": "list",
   "level": 3
 }, {
-  "value": "<code>get(id)</code>",
-  "id": "getid",
+  "value": "<code>install(data)</code>",
+  "id": "installdata",
   "level": 3
 }, {
-  "value": "<code>create(data)</code>",
-  "id": "createdata",
+  "value": "<code>update(name, data?)</code>",
+  "id": "updatename-data",
   "level": 3
 }, {
-  "value": "<code>update(id, data)</code>",
-  "id": "updateid-data",
+  "value": "<code>uninstall(name)</code>",
+  "id": "uninstallname",
   "level": 3
 }, {
-  "value": "<code>delete(id)</code>",
-  "id": "deleteid",
-  "level": 3
-}, {
-  "value": "TagResource",
-  "id": "tagresource",
+  "value": "CommunityPackageResource",
+  "id": "communitypackageresource",
   "level": 2
 }, {
   "value": "Properties",
@@ -75,6 +75,10 @@ const toc = [{
   "value": "Methods",
   "id": "methods-1",
   "level": 3
+}, {
+  "value": "Note",
+  "id": "note",
+  "level": 3
 }];
 function _createMdxContent(props) {
   const _components = {
@@ -83,6 +87,7 @@ function _createMdxContent(props) {
     h2: "h2",
     h3: "h3",
     header: "header",
+    li: "li",
     p: "p",
     pre: "pre",
     table: "table",
@@ -91,107 +96,109 @@ function _createMdxContent(props) {
     th: "th",
     thead: "thead",
     tr: "tr",
+    ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "tag-api",
-        children: "Tag API"
+        id: "community-package-api",
+        children: "Community Package API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "TagClient"
-      }), " manages tags for workflows and executions."]
+        children: "CommunityPackageClient"
+      }), " manages n8n community packages — install, update, and uninstall npm packages."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Use this handle for package lifecycle operations in n8n instances that allow community nodes."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const tag = client.tags();\n"
+        children: "const communityPackage = client.communityPackages();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
       children: "Methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "common-tasks",
+      children: "Common Tasks"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "list installed community packages"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "install a package from npm"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "update a package to a specific version"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "uninstall packages that are no longer used"
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "listparams",
+      id: "list",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "list(params?)"
+        children: "list()"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List all tags."
+      children: "List all installed community packages."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.tags().list({ limit: 20 });\n"
+        children: "const packages = await client.communityPackages().list();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getid",
+      id: "installdata",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "get(id)"
+        children: "install(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get a tag by ID."
+      children: "Install a community package."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const tag = await client.tags().get('tag-123');\n"
+        children: "const pkg = await client.communityPackages().install({\n  name: 'n8n-nodes-test',\n  verify: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "createdata",
+      id: "updatename-data",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "create(data)"
+        children: "update(name, data?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create a new tag."
+      children: "Update a community package."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const tag = await client.tags().create({ name: 'production' });\n"
+        children: "const updated = await client.communityPackages().update('n8n-nodes-test', {\n  version: '1.0.0',\n  verify: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "updateid-data",
+      id: "uninstallname",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "update(id, data)"
+        children: "uninstall(name)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a tag."
+      children: "Uninstall a community package."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const updated = await client.tags().update('tag-123', { name: 'prod' });\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "deleteid",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "delete(id)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a tag."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const deleted = await client.tags().delete('tag-123');\n"
+        children: "await client.communityPackages().uninstall('n8n-nodes-test');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "tagresource",
-      children: "TagResource"
+      id: "communitypackageresource",
+      children: "CommunityPackageResource"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
         children: "getResource()"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "listResources()"
-      }), ", or ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "createResource()"
+      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "installResource()"
       }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "TagResource"
+        children: "CommunityPackageResource"
       }), " instance."]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const resource = await client.tags().getResource('tag-123');\n"
+        children: "const resource = await client.communityPackages().getResource('n8n-nodes-test');\nconst installed = await client.communityPackages().installResource({\n  name: 'n8n-nodes-test',\n  verify: true,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "properties",
@@ -211,26 +218,26 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "id"
+              children: "packageName"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Tag ID"
+            children: "npm package name"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "name"
+              children: "installedVersion"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Tag name"
+            children: "Currently installed version"
           })]
         })]
       })]
@@ -252,29 +259,62 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "update(data)"
+              children: "refresh()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "this"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Update the tag — replaces snapshot with the API response"
+            children: "Re-fetch the package from the API — resolves by name from list"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "delete()"
+              children: "update(data?)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "Tag"
+              children: "this"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Delete the tag"
+            children: "Update the package — replaces snapshot with the API response"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "patch(data?)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Convenience update — uses the installed version as the base payload, then merges partial fields over it"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "uninstall()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "void"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Uninstall the package"
           })]
         })]
       })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "note",
+      children: "Note"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "getResource()"
+      }), " resolves by package name from the list endpoint — there is no direct ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "GET /community-packages/{name}"
+      }), " in the n8n API. The name-based lookup ensures the package exists before returning a resource."]
     })]
   });
 }

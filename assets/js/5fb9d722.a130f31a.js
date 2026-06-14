@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["889"], {
-9416(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["259"], {
+1214(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_project_mdx_925_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_workflow_mdx_5fb_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-project-mdx-925.json
-var site_docs_api_project_mdx_925_namespaceObject = JSON.parse('{"id":"api/project","title":"Project API","description":"ProjectClient manages n8n projects and their members.","source":"@site/docs/api/project.mdx","sourceDirName":"api","slug":"/api/project","permalink":"/api/project","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":7,"frontMatter":{"sidebar_label":"Project","sidebar_position":7},"sidebar":"api","previous":{"title":"Variable","permalink":"/api/variable"},"next":{"title":"Data Table","permalink":"/api/data-table"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-workflow-mdx-5fb.json
+var site_docs_api_workflow_mdx_5fb_namespaceObject = JSON.parse('{"id":"api/workflow","title":"Workflow API","description":"WorkflowClient manages n8n workflows — create, list, activate, deactivate, archive, transfer, and manage tags and versions.","source":"@site/docs/api/workflow.mdx","sourceDirName":"api","slug":"/api/workflow","permalink":"/api/workflow","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":1,"frontMatter":{"sidebar_label":"Workflow","sidebar_position":1},"sidebar":"api","previous":{"title":"N8nClient","permalink":"/api/n8n-client"},"next":{"title":"Execution","permalink":"/api/execution"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/project.mdx
+;// CONCATENATED MODULE: ./docs/api/workflow.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Project',
-	sidebar_position: 7
+	sidebar_label: 'Workflow',
+	sidebar_position: 1
 };
-const contentTitle = 'Project API';
+const contentTitle = 'Workflow API';
 
 const assets = {
 
@@ -52,6 +52,10 @@ const toc = [{
   "id": "listparams",
   "level": 3
 }, {
+  "value": "<code>get(id, params?)</code>",
+  "id": "getid-params",
+  "level": 3
+}, {
   "value": "<code>create(data)</code>",
   "id": "createdata",
   "level": 3
@@ -64,28 +68,32 @@ const toc = [{
   "id": "deleteid",
   "level": 3
 }, {
-  "value": "<code>listMembers(projectId, params?)</code>",
-  "id": "listmembersprojectid-params",
+  "value": "<code>activate(id, data?)</code>",
+  "id": "activateid-data",
   "level": 3
 }, {
-  "value": "<code>addMembers(projectId, relations)</code>",
-  "id": "addmembersprojectid-relations",
+  "value": "<code>deactivate(id)</code>",
+  "id": "deactivateid",
   "level": 3
 }, {
-  "value": "<code>removeMember(projectId, userId)</code>",
-  "id": "removememberprojectid-userid",
+  "value": "<code>archive(id)</code> / <code>unarchive(id)</code>",
+  "id": "archiveid--unarchiveid",
   "level": 3
 }, {
-  "value": "<code>changeMemberRole(projectId, userId, role)</code>",
-  "id": "changememberroleprojectid-userid-role",
+  "value": "<code>transfer(id, destinationProjectId)</code>",
+  "id": "transferid-destinationprojectid",
   "level": 3
 }, {
-  "value": "Important Note",
-  "id": "important-note",
-  "level": 2
+  "value": "<code>getTags(id)</code> / <code>updateTags(id, tags)</code>",
+  "id": "gettagsid--updatetagsid-tags",
+  "level": 3
 }, {
-  "value": "ProjectResource",
-  "id": "projectresource",
+  "value": "<code>getVersion(id, versionId)</code>",
+  "id": "getversionid-versionid",
+  "level": 3
+}, {
+  "value": "WorkflowResource",
+  "id": "workflowresource",
   "level": 2
 }, {
   "value": "Properties",
@@ -96,33 +104,21 @@ const toc = [{
   "id": "methods-1",
   "level": 3
 }, {
-  "value": "Nested collections",
-  "id": "nested-collections",
+  "value": "Snapshot management",
+  "id": "snapshot-management",
   "level": 3
 }, {
-  "value": "<code>workflows()</code>",
-  "id": "workflows",
-  "level": 4
-}, {
-  "value": "<code>folders()</code>",
-  "id": "folders",
-  "level": 4
-}, {
-  "value": "<code>variables()</code>",
-  "id": "variables",
-  "level": 4
-}, {
-  "value": "<code>dataTables()</code>",
-  "id": "datatables",
-  "level": 4
-}, {
-  "value": "<code>executions()</code>",
-  "id": "executions",
-  "level": 4
+  "value": "Nested executions",
+  "id": "nested-executions",
+  "level": 3
 }, {
   "value": "Typical Flow",
   "id": "typical-flow",
   "level": 2
+}, {
+  "value": "Typical Flow with Resource",
+  "id": "typical-flow-with-resource",
+  "level": 3
 }];
 function _createMdxContent(props) {
   const _components = {
@@ -130,7 +126,6 @@ function _createMdxContent(props) {
     h1: "h1",
     h2: "h2",
     h3: "h3",
-    h4: "h4",
     header: "header",
     li: "li",
     p: "p",
@@ -148,22 +143,22 @@ function _createMdxContent(props) {
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "project-api",
-        children: "Project API"
+        id: "workflow-api",
+        children: "Workflow API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "ProjectClient"
-      }), " manages n8n projects and their members."]
+        children: "WorkflowClient"
+      }), " manages n8n workflows — create, list, activate, deactivate, archive, transfer, and manage tags and versions."]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "This handle is the entry point for organization-level operations: project creation, renaming, deletion, and project membership changes."
+      children: "Use this handle when you are working with workflow lifecycle operations. It is the largest handle in the client because the n8n API exposes both CRUD operations and workflow-specific actions here."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const project = client.projects();\n"
+        children: "const workflow = client.workflows();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -173,13 +168,13 @@ function _createMdxContent(props) {
       children: "Common Tasks"
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "create projects for teams or environments"
+        children: "list workflows for a project or environment"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "list and audit project membership"
+        children: "fetch a workflow before editing or transferring it"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "grant or revoke access for specific users"
+        children: "activate, deactivate, archive, and unarchive workflows"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "move users between viewer, editor, and admin roles"
+        children: "manage workflow tags and inspect historical versions"
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "listparams",
@@ -187,11 +182,23 @@ function _createMdxContent(props) {
         children: "list(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List all projects visible to the authenticated caller."
+      children: "List workflows with optional filters."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.projects().list({ limit: 10 });\n"
+        children: "const { data, nextCursor } = await client.workflows().list({\n  limit: 10,\n  active: true,\n  tags: 'production',\n  name: 'deploy',\n  projectId: 'proj-1',\n  excludePinnedData: true,\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "getid-params",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "get(id, params?)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Get a workflow by ID."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const workflow = await client.workflows().get('wf-123', {\n  excludePinnedData: false,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
@@ -199,11 +206,11 @@ function _createMdxContent(props) {
         children: "create(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create a new project."
+      children: "Create a new workflow."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.projects().create({ name: 'Production' });\n"
+        children: "const workflow = await client.workflows().create({\n  name: 'My Workflow',\n  nodes: [{ name: 'Start', type: 'n8n-nodes-base.start', position: [0, 0], parameters: {} }],\n  connections: {},\n  settings: { executionOrder: 'v1' },\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updateid-data",
@@ -211,11 +218,11 @@ function _createMdxContent(props) {
         children: "update(id, data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a project."
+      children: "Update a workflow. The public API expects the full workflow body, not a partial patch."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.projects().update('proj-123', { name: 'Production v2' });\n"
+        children: "const current = await client.workflows().get('wf-123');\n\nconst updated = await client.workflows().update('wf-123', {\n  name: 'Updated Name',\n  description: current.description,\n  nodes: current.nodes,\n  connections: current.connections,\n  settings: current.settings ?? {},\n  staticData: current.staticData,\n  pinData: current.pinData,\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleteid",
@@ -223,84 +230,103 @@ function _createMdxContent(props) {
         children: "delete(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a project."
+      children: "Delete a workflow."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.projects().delete('proj-123');\n"
+        children: "const deleted = await client.workflows().delete('wf-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "listmembersprojectid-params",
+      id: "activateid-data",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "listMembers(projectId, params?)"
+        children: "activate(id, data?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List members of a project."
+      children: "Activate a workflow. You can optionally send version metadata when activating a specific revision."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data } = await client.projects().listMembers('proj-123', { limit: 50 });\n"
+        children: "const activated = await client.workflows().activate('wf-123', {\n  versionId: 'v-2',\n  name: 'Production version',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "addmembersprojectid-relations",
+      id: "deactivateid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "addMembers(projectId, relations)"
+        children: "deactivate(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Add members to a project."
+      children: "Deactivate a workflow."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.projects().addMembers('proj-123', [\n  { userId: 'user-1', role: 'project:admin' },\n  { userId: 'user-2', role: 'project:editor' },\n]);\n"
+        children: "const deactivated = await client.workflows().deactivate('wf-123');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.h3, {
+      id: "archiveid--unarchiveid",
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "archive(id)"
+      }), " / ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "unarchive(id)"
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Archive or unarchive a workflow."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "await client.workflows().archive('wf-123');\nawait client.workflows().unarchive('wf-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "removememberprojectid-userid",
+      id: "transferid-destinationprojectid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "removeMember(projectId, userId)"
+        children: "transfer(id, destinationProjectId)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Remove a member from a project."
+      children: "Move a workflow to another project."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.projects().removeMember('proj-123', 'user-1');\n"
+        children: "await client.workflows().transfer('wf-123', 'proj-456');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.h3, {
+      id: "gettagsid--updatetagsid-tags",
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "getTags(id)"
+      }), " / ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "updateTags(id, tags)"
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Get or update tags on a workflow."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const tags = await client.workflows().getTags('wf-123');\nconst updatedTags = await client.workflows().updateTags('wf-123', [\n  { id: 'tag-1' },\n  { id: 'tag-2' },\n]);\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "changememberroleprojectid-userid-role",
+      id: "getversionid-versionid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "changeMemberRole(projectId, userId, role)"
+        children: "getVersion(id, versionId)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Change a member's role in a project."
+      children: "Get a specific workflow version."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.projects().changeMemberRole('proj-123', 'user-1', 'project:viewer');\n"
+        children: "const version = await client.workflows().getVersion('wf-123', 'v-1');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "important-note",
-      children: "Important Note"
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["The public API does not expose ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "project().get(id)"
-      }), ". Use ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "list()"
-      }), " and then select the project you want, or work from IDs you already have."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "projectresource",
-      children: "ProjectResource"
+      id: "workflowresource",
+      children: "WorkflowResource"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
         children: "getResource()"
       }), " or ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "listResources()"
+        children: "createResource()"
       }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "ProjectResource"
-      }), " instance."]
+        children: "WorkflowResource"
+      }), " instance that wraps the workflow data and exposes convenience methods."]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const resource = await client.projects().getResource('proj-123');\n"
+        children: "const resource = await client.workflows().getResource('wf-123');\nconst created = await client.workflows().createResource({\n  name: 'New Workflow',\n  nodes: [],\n  connections: {},\n  settings: {},\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "properties",
@@ -327,7 +353,7 @@ function _createMdxContent(props) {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Project ID"
+            children: "Workflow ID"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -339,19 +365,43 @@ function _createMdxContent(props) {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Project name"
+            children: "Workflow name"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "type"
+              children: "active"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "string | undefined"
+              children: "boolean"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Project type"
+            children: "Whether the workflow is active"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "isArchived"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "boolean"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Whether the workflow is archived"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "versionId"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Current version ID"
           })]
         })]
       })]
@@ -380,7 +430,19 @@ function _createMdxContent(props) {
               children: "this"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Update the project — merges into snapshot locally"
+            children: "Full update — replaces snapshot with the API response"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "patch(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Convenience update — merges partial fields into the current workflow snapshot, then sends a full update body"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -389,227 +451,179 @@ function _createMdxContent(props) {
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "void"
+              children: "Workflow"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Delete the project"
+            children: "Delete the workflow"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "listMembers(params?)"
+              children: "activate(data?)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "ProjectMemberListResponse"
+              children: "this"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "List project members"
+            children: "Activate the workflow"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "addMembers(relations)"
+              children: "deactivate()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Deactivate the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "archive()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Archive the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "unarchive()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Unarchive the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "transfer(destinationProjectId)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "void"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Add members to the project"
+            children: "Move to another project"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "removeMember(userId)"
+              children: "getTags()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "void"
+              children: "Tag[]"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Remove a member"
+            children: "List tags on the workflow"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "changeMemberRole(userId, role)"
+              children: "updateTags(tags)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "void"
+              children: "Tag[]"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Change a member's role"
+            children: "Replace tags on the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "getVersion(versionId)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "WorkflowVersion"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Fetch a specific version"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "executions()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "WorkflowExecutionResourceCollection"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Scope queries to this workflow"
           })]
         })]
       })]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "nested-collections",
-      children: "Nested collections"
+      id: "snapshot-management",
+      children: "Snapshot management"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Mutating methods (", (0,jsx_runtime.jsx)(_components.code, {
+        children: "update"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "patch"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "activate"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "deactivate"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "archive"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "unarchive"
+      }), ") call ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "replaceSnapshot()"
+      }), " under the hood, so ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "resource.data"
+      }), " stays current after each call. ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "updateTags()"
+      }), " calls ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "mergeSnapshot()"
+      }), " to patch the tags field without re-fetching the full workflow."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "nested-executions",
+      children: "Nested executions"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "ProjectResource"
-      }), " exposes five nested collections. Each returns a collection object whose methods have ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "projectId"
-      }), " pre-filled so you never pass it manually."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.h4, {
-      id: "workflows",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "workflows()"
-      })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Full workflow CRUD scoped to this project. Supports ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "list"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "listResources"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "get"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "getResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "create"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "createResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "update"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "updateResource"
-      }), ". Scope is verified via paginated list for ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "get"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "getResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "update"
-      }), ", and ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "updateResource"
-      }), "."]
+        children: "resource.executions()"
+      }), " returns a collection scoped to the workflow:"]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const project = await client.projects().getResource('proj-1');\n\nconst workflows = await project.workflows().listResources({ active: true });\nconst workflow = await project.workflows().getResource('wf-1');\nconst created = await project.workflows().createResource({\n  name: 'New',\n  nodes: [],\n  connections: {},\n  settings: {},\n});\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h4, {
-      id: "folders",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "folders()"
+        children: "const runs = await workflow.executions().list({ status: 'error', limit: 10 });\nconst runResource = await workflow.executions().getResource(123);\n"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Folder CRUD scoped to this project. Supports ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "list"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "listResources"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "get"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "getResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "create"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "createResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "update"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "updateResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "delete"
-      }), "."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const folder = await project.folders().createResource({ name: 'Archive' });\nconst updated = await project.folders().updateResource('folder-id', { name: 'Archived' });\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h4, {
-      id: "variables",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "variables()"
-      })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Variable CRUD scoped to this project. Supports ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "list"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "listResources"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "get"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "getResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "create"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "update"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "updateResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "delete"
-      }), "."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "await project.variables().create({ key: 'API_URL', value: 'https://example.com' });\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h4, {
-      id: "datatables",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "dataTables()"
-      })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Data table CRUD scoped to this project. Supports ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "get"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "getResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "create"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "createResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "update"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "updateResource"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "delete"
-      }), ". There is no ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "list"
-      }), "/", (0,jsx_runtime.jsx)(_components.code, {
-        children: "listResources"
-      }), " because the n8n API does not support a ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "projectId"
-      }), " filter on the list endpoint."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const table = await project.dataTables().createResource({\n  name: 'Users',\n  columns: [{ name: 'email', type: 'string' }],\n});\nawait table.createColumn({ name: 'active', type: 'boolean' });\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h4, {
-      id: "executions",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "executions()"
-      })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Execution listing scoped to this project. Supports ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "list"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "listResources"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "get"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "getResource"
-      }), ". Scope is verified via paginated list for ", (0,jsx_runtime.jsx)(_components.code, {
+      children: ["Both ", (0,jsx_runtime.jsx)(_components.code, {
         children: "get"
       }), " and ", (0,jsx_runtime.jsx)(_components.code, {
         children: "getResource"
-      }), "."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const runs = await project.executions().listResources({ status: 'success', limit: 10 });\nawait runs.data[0]?.getTags();\n"
-      })
+      }), " verify the execution belongs to this workflow via paginated list before fetching."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "typical-flow",
       children: "Typical Flow"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const project = client.projects();\n\nconst { data } = await project.list({ limit: 10 });\nawait project.addMembers('proj-123', [\n  { userId: 'user-1', role: 'project:editor' },\n]);\n"
+        children: "const workflow = client.workflows();\n\nconst { data } = await workflow.list({ projectId: 'proj-1', active: false, limit: 10 });\n\nif (data[0]) {\n  await workflow.activate(data[0].id);\n}\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "typical-flow-with-resource",
+      children: "Typical Flow with Resource"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const resource = await client.workflows().getResource('wf-123');\n\nawait resource.update({\n  name: 'Updated Name',\n  description: resource.data.description,\n  nodes: resource.data.nodes,\n  connections: resource.data.connections,\n  settings: resource.data.settings ?? {},\n});\n\nawait resource.activate();\n\nconst runs = await resource.executions().list({ status: 'error', limit: 5 });\n"
       })
     })]
   });

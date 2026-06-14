@@ -491,7 +491,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const project = await client.projects().getResource('proj-1');\n\nconst workflow = await project.workflows().get('wf-1');\nconst workflowResource = await project.workflows().getResource('wf-1');\n\nconst updatedFolder = await project.folders().update('folder-id', { name: 'Archive' });\nconst updatedFolderResource = await project.folders().updateResource('folder-id', { name: 'Archive' });\n\nconst run = await workflowResource.executions().get(123);\nconst runResource = await workflowResource.executions().getResource(123);\n"
+        children: "const project = await client.projects().getResource('proj-1');\n\nconst workflow = await project.workflows().get('wf-1');\nconst workflowResource = await project.workflows().getResource('wf-1');\nconst patchedWorkflow = await project.workflows().patch('wf-1', { name: 'Archive Sync' });\n\nconst updatedFolder = await project.folders().update('folder-id', { name: 'Archive' });\nconst updatedFolderResource = await project.folders().updateResource('folder-id', { name: 'Archive' });\nconst movedFolder = await project.folders().patchResource('folder-id', { parentFolderId: 'new-parent' });\n\nconst run = await workflowResource.executions().get(123);\nconst runResource = await workflowResource.executions().getResource(123);\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "Rule of thumb:"
@@ -505,6 +505,8 @@ function _createMdxContent(props) {
           children: "createResource()"
         }), " / ", (0,jsx_runtime.jsx)(_components.code, {
           children: "updateResource()"
+        }), " / ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "patchResource()"
         }), " return bound resource instances"]
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
         children: "nested collections only expose the pairs the API can support honestly"

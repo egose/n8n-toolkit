@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["259"], {
-1214(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["313"], {
+751(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_workflow_mdx_5fb_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_data_table_mdx_448_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-workflow-mdx-5fb.json
-var site_docs_api_workflow_mdx_5fb_namespaceObject = JSON.parse('{"id":"api/workflow","title":"Workflow API","description":"WorkflowClient manages n8n workflows — create, list, activate, deactivate, archive, transfer, and manage tags and versions.","source":"@site/docs/api/workflow.mdx","sourceDirName":"api","slug":"/api/workflow","permalink":"/api/workflow","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":1,"frontMatter":{"sidebar_label":"Workflow","sidebar_position":1},"sidebar":"api","previous":{"title":"N8nClient","permalink":"/api/n8n-client"},"next":{"title":"Execution","permalink":"/api/execution"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-data-table-mdx-448.json
+var site_docs_api_data_table_mdx_448_namespaceObject = JSON.parse('{"id":"api/data-table","title":"Data Table API","description":"DataTableClient manages n8n data tables — tables, columns, and rows with filtering and upsert support.","source":"@site/docs/api/data-table.mdx","sourceDirName":"api","slug":"/api/data-table","permalink":"/api/data-table","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":8,"frontMatter":{"sidebar_label":"Data Table","sidebar_position":8},"sidebar":"api","previous":{"title":"Project","permalink":"/api/project"},"next":{"title":"Folder","permalink":"/api/folder"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/workflow.mdx
+;// CONCATENATED MODULE: ./docs/api/data-table.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Workflow',
-	sidebar_position: 1
+	sidebar_label: 'Data Table',
+	sidebar_position: 8
 };
-const contentTitle = 'Workflow API';
+const contentTitle = 'Data Table API';
 
 const assets = {
 
@@ -52,8 +52,8 @@ const toc = [{
   "id": "listparams",
   "level": 3
 }, {
-  "value": "<code>get(id, params?)</code>",
-  "id": "getid-params",
+  "value": "<code>get(id)</code>",
+  "id": "getid",
   "level": 3
 }, {
   "value": "<code>create(data)</code>",
@@ -68,56 +68,80 @@ const toc = [{
   "id": "deleteid",
   "level": 3
 }, {
-  "value": "<code>activate(id, data?)</code>",
-  "id": "activateid-data",
+  "value": "Row Operations",
+  "id": "row-operations",
+  "level": 2
+}, {
+  "value": "<code>listRows(dataTableId, params?)</code>",
+  "id": "listrowsdatatableid-params",
   "level": 3
 }, {
-  "value": "<code>deactivate(id)</code>",
-  "id": "deactivateid",
+  "value": "<code>insertRows(dataTableId, data)</code>",
+  "id": "insertrowsdatatableid-data",
   "level": 3
 }, {
-  "value": "<code>archive(id)</code> / <code>unarchive(id)</code>",
-  "id": "archiveid--unarchiveid",
+  "value": "<code>updateRows(dataTableId, data)</code>",
+  "id": "updaterowsdatatableid-data",
   "level": 3
 }, {
-  "value": "<code>transfer(id, destinationProjectId)</code>",
-  "id": "transferid-destinationprojectid",
+  "value": "<code>upsertRow(dataTableId, data)</code>",
+  "id": "upsertrowdatatableid-data",
   "level": 3
 }, {
-  "value": "<code>getTags(id)</code> / <code>updateTags(id, tags)</code>",
-  "id": "gettagsid--updatetagsid-tags",
+  "value": "<code>deleteRows(dataTableId, params)</code>",
+  "id": "deleterowsdatatableid-params",
   "level": 3
 }, {
-  "value": "<code>getVersion(id, versionId)</code>",
-  "id": "getversionid-versionid",
+  "value": "Column Operations",
+  "id": "column-operations",
+  "level": 2
+}, {
+  "value": "<code>listColumns(dataTableId)</code>",
+  "id": "listcolumnsdatatableid",
   "level": 3
 }, {
-  "value": "WorkflowResource",
-  "id": "workflowresource",
+  "value": "<code>createColumn(dataTableId, data)</code>",
+  "id": "createcolumndatatableid-data",
+  "level": 3
+}, {
+  "value": "<code>updateColumn(dataTableId, columnId, data)</code>",
+  "id": "updatecolumndatatableid-columnid-data",
+  "level": 3
+}, {
+  "value": "<code>deleteColumn(dataTableId, columnId)</code>",
+  "id": "deletecolumndatatableid-columnid",
+  "level": 3
+}, {
+  "value": "Return Type Narrowing",
+  "id": "return-type-narrowing",
+  "level": 2
+}, {
+  "value": "DataTableResource",
+  "id": "datatableresource",
   "level": 2
 }, {
   "value": "Properties",
   "id": "properties",
   "level": 3
 }, {
-  "value": "Methods",
-  "id": "methods-1",
+  "value": "Table methods",
+  "id": "table-methods",
+  "level": 3
+}, {
+  "value": "Row methods",
+  "id": "row-methods",
+  "level": 3
+}, {
+  "value": "Column methods",
+  "id": "column-methods",
   "level": 3
 }, {
   "value": "Snapshot management",
   "id": "snapshot-management",
   "level": 3
 }, {
-  "value": "Nested executions",
-  "id": "nested-executions",
-  "level": 3
-}, {
-  "value": "Typical Flow",
-  "id": "typical-flow",
-  "level": 2
-}, {
-  "value": "Typical Flow with Resource",
-  "id": "typical-flow-with-resource",
+  "value": "Example",
+  "id": "example",
   "level": 3
 }];
 function _createMdxContent(props) {
@@ -143,22 +167,26 @@ function _createMdxContent(props) {
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "workflow-api",
-        children: "Workflow API"
+        id: "data-table-api",
+        children: "Data Table API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "WorkflowClient"
-      }), " manages n8n workflows — create, list, activate, deactivate, archive, transfer, and manage tags and versions."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Use this handle when you are working with workflow lifecycle operations. It is the largest handle in the client because the n8n API exposes both CRUD operations and workflow-specific actions here."
+        children: "DataTableClient"
+      }), " manages n8n data tables — tables, columns, and rows with filtering and upsert support."]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["This is one of the most flexible handles in the client. The row methods have typed overloads so the return type changes based on flags like ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "returnType"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "returnData"
+      }), "."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const workflow = client.workflows();\n"
+        children: "const dataTable = client.dataTables();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -168,13 +196,15 @@ function _createMdxContent(props) {
       children: "Common Tasks"
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "list workflows for a project or environment"
+        children: "create tables for lightweight operational data"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "fetch a workflow before editing or transferring it"
+        children: "insert rows in batches"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "activate, deactivate, archive, and unarchive workflows"
+        children: "update rows with filters"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "manage workflow tags and inspect historical versions"
+        children: "upsert one logical record based on a filter"
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "manage table columns separately from row data"
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "listparams",
@@ -182,23 +212,23 @@ function _createMdxContent(props) {
         children: "list(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List workflows with optional filters."
+      children: "List data tables."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.workflows().list({\n  limit: 10,\n  active: true,\n  tags: 'production',\n  name: 'deploy',\n  projectId: 'proj-1',\n  excludePinnedData: true,\n});\n"
+        children: "const { data, nextCursor } = await client.dataTables().list({\n  limit: 10,\n  filter: 'name',\n  sortBy: 'createdAt:desc',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getid-params",
+      id: "getid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "get(id, params?)"
+        children: "get(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get a workflow by ID."
+      children: "Get a data table by ID."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const workflow = await client.workflows().get('wf-123', {\n  excludePinnedData: false,\n});\n"
+        children: "const table = await client.dataTables().get('dt-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
@@ -206,23 +236,37 @@ function _createMdxContent(props) {
         children: "create(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create a new workflow."
+      children: "Create a new data table."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const workflow = await client.workflows().create({\n  name: 'My Workflow',\n  nodes: [{ name: 'Start', type: 'n8n-nodes-base.start', position: [0, 0], parameters: {} }],\n  connections: {},\n  settings: { executionOrder: 'v1' },\n});\n"
+        children: "const table = await client.dataTables().create({\n  name: 'User Events',\n  columns: [\n    { name: 'event', type: 'string' },\n    { name: 'createdAt', type: 'date' },\n  ],\n});\n"
       })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Column types supported at creation time: ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "string"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "number"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "boolean"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "date"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "json"
+      }), ". The ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "json"
+      }), " type is available when creating columns but may not appear in read responses from the API."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updateid-data",
       children: (0,jsx_runtime.jsx)(_components.code, {
         children: "update(id, data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a workflow. The public API expects the full workflow body, not a partial patch."
+      children: "Update a data table."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const current = await client.workflows().get('wf-123');\n\nconst updated = await client.workflows().update('wf-123', {\n  name: 'Updated Name',\n  description: current.description,\n  nodes: current.nodes,\n  connections: current.connections,\n  settings: current.settings ?? {},\n  staticData: current.staticData,\n  pinData: current.pinData,\n});\n"
+        children: "const updated = await client.dataTables().update('dt-123', {\n  name: 'User Events v2',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleteid",
@@ -230,103 +274,153 @@ function _createMdxContent(props) {
         children: "delete(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a workflow."
+      children: "Delete a data table."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const deleted = await client.workflows().delete('wf-123');\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "activateid-data",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "activate(id, data?)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Activate a workflow. You can optionally send version metadata when activating a specific revision."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const activated = await client.workflows().activate('wf-123', {\n  versionId: 'v-2',\n  name: 'Production version',\n});\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "deactivateid",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "deactivate(id)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Deactivate a workflow."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const deactivated = await client.workflows().deactivate('wf-123');\n"
-      })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.h3, {
-      id: "archiveid--unarchiveid",
-      children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "archive(id)"
-      }), " / ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "unarchive(id)"
-      })]
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Archive or unarchive a workflow."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "await client.workflows().archive('wf-123');\nawait client.workflows().unarchive('wf-123');\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "transferid-destinationprojectid",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "transfer(id, destinationProjectId)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Move a workflow to another project."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "await client.workflows().transfer('wf-123', 'proj-456');\n"
-      })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.h3, {
-      id: "gettagsid--updatetagsid-tags",
-      children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "getTags(id)"
-      }), " / ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "updateTags(id, tags)"
-      })]
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get or update tags on a workflow."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const tags = await client.workflows().getTags('wf-123');\nconst updatedTags = await client.workflows().updateTags('wf-123', [\n  { id: 'tag-1' },\n  { id: 'tag-2' },\n]);\n"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getversionid-versionid",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "getVersion(id, versionId)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get a specific workflow version."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const version = await client.workflows().getVersion('wf-123', 'v-1');\n"
+        children: "await client.dataTables().delete('dt-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "workflowresource",
-      children: "WorkflowResource"
+      id: "row-operations",
+      children: "Row Operations"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "listrowsdatatableid-params",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "listRows(dataTableId, params?)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "List rows in a data table."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const { data, nextCursor } = await client.dataTables().listRows('dt-123', {\n  filter: 'event=login',\n  sortBy: 'timestamp:desc',\n  search: 'alice',\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "insertrowsdatatableid-data",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "insertRows(dataTableId, data)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Insert rows into a data table."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const rowIds = await client.dataTables().insertRows('dt-123', {\n  data: [\n    { event: 'login', createdAt: '2024-01-01T00:00:00Z' },\n    { event: 'logout', createdAt: '2024-01-01T01:00:00Z' },\n  ],\n  returnType: 'id',\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "updaterowsdatatableid-data",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "updateRows(dataTableId, data)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Update rows matching a filter."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const updatedRows = await client.dataTables().updateRows('dt-123', {\n  filter: {\n    filters: [{ columnName: 'event', condition: 'eq', value: 'login' }],\n  },\n  data: { event: 'sign_in' },\n  returnData: true,\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "upsertrowdatatableid-data",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "upsertRow(dataTableId, data)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Insert or update a single row."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const row = await client.dataTables().upsertRow('dt-123', {\n  filter: {\n    filters: [{ columnName: 'event', condition: 'eq', value: 'login' }],\n  },\n  data: { event: 'login', createdAt: '2024-01-01T00:00:00Z' },\n  returnData: true,\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "deleterowsdatatableid-params",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "deleteRows(dataTableId, params)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Delete rows matching a filter."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const result = await client.dataTables().deleteRows('dt-123', {\n  filter: JSON.stringify({\n    type: 'and',\n    filters: [{ columnName: 'event', condition: 'eq', value: 'logout' }],\n  }),\n  returnData: true,\n  dryRun: false,\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "column-operations",
+      children: "Column Operations"
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "listcolumnsdatatableid",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "listColumns(dataTableId)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "List columns in a data table."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const columns = await client.dataTables().listColumns('dt-123');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "createcolumndatatableid-data",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "createColumn(dataTableId, data)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Add a column to a data table."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const column = await client.dataTables().createColumn('dt-123', {\n  name: 'user_id',\n  type: 'string',\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "updatecolumndatatableid-columnid-data",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "updateColumn(dataTableId, columnId, data)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Update a column."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const updated = await client.dataTables().updateColumn('dt-123', 'col-1', {\n  name: 'user_identifier',\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "deletecolumndatatableid-columnid",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "deleteColumn(dataTableId, columnId)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Delete a column."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "await client.dataTables().deleteColumn('dt-123', 'col-1');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "return-type-narrowing",
+      children: "Return Type Narrowing"
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Some row operations change their return type based on the request flags:"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const count = await client.dataTables().insertRows('dt-123', {\n  data: [{ event: 'login' }],\n});\n// { count: number }\n\nconst ids = await client.dataTables().insertRows('dt-123', {\n  data: [{ event: 'login' }],\n  returnType: 'id',\n});\n// number[]\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "datatableresource",
+      children: "DataTableResource"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
         children: "getResource()"
-      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "listResources()"
+      }), ", or ", (0,jsx_runtime.jsx)(_components.code, {
         children: "createResource()"
       }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "WorkflowResource"
-      }), " instance that wraps the workflow data and exposes convenience methods."]
+        children: "DataTableResource"
+      }), " instance."]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const resource = await client.workflows().getResource('wf-123');\nconst created = await client.workflows().createResource({\n  name: 'New Workflow',\n  nodes: [],\n  connections: {},\n  settings: {},\n});\n"
+        children: "const resource = await client.dataTables().getResource('dt-123');\nconst created = await client.dataTables().createResource({\n  name: 'User Events',\n  columns: [\n    { name: 'event', type: 'string' },\n    { name: 'createdAt', type: 'date' },\n  ],\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "properties",
@@ -353,7 +447,7 @@ function _createMdxContent(props) {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Workflow ID"
+            children: "Data table ID"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -365,49 +459,13 @@ function _createMdxContent(props) {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Workflow name"
-          })]
-        }), (0,jsx_runtime.jsxs)(_components.tr, {
-          children: [(0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "active"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "boolean"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Whether the workflow is active"
-          })]
-        }), (0,jsx_runtime.jsxs)(_components.tr, {
-          children: [(0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "isArchived"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "boolean"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Whether the workflow is archived"
-          })]
-        }), (0,jsx_runtime.jsxs)(_components.tr, {
-          children: [(0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "versionId"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "string"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Current version ID"
+            children: "Data table name"
           })]
         })]
       })]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "methods-1",
-      children: "Methods"
+      id: "table-methods",
+      children: "Table methods"
     }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
       children: [(0,jsx_runtime.jsx)(_components.thead, {
         children: (0,jsx_runtime.jsxs)(_components.tr, {
@@ -423,6 +481,18 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "refresh()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Re-fetch the table from the API"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
               children: "update(data)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
@@ -430,7 +500,19 @@ function _createMdxContent(props) {
               children: "this"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Full update — replaces snapshot with the API response"
+            children: "Update the table — replaces snapshot with the API response"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "patch(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Convenience update — merges partial fields into the current table snapshot before updating"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -439,118 +521,148 @@ function _createMdxContent(props) {
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "Workflow"
+              children: "void"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Delete the workflow"
+            children: "Delete the table"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "row-methods",
+      children: "Row methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Row methods on the resource mirror the corresponding client methods but with the table ID pre-filled."
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Method"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Returns"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "listRows(params?)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "DataTableRowListResponse"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "List rows in the table"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "activate(data?)"
+              children: "insertRows(data)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "this"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Activate the workflow"
+            children: "overloads"
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Insert rows — return type depends on ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "returnType"
+            })]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "deactivate()"
+              children: "updateRows(data)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "this"
-            })
+            children: "overloads"
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Deactivate the workflow"
+            children: "Update rows matching a filter"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "archive()"
+              children: "upsertRow(data)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "this"
-            })
+            children: "overloads"
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Archive the workflow"
+            children: "Insert or update a single row"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "unarchive()"
+              children: "deleteRows(params)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "overloads"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Delete rows matching a filter"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "column-methods",
+      children: "Column methods"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Method"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Returns"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "listColumns()"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "this"
+              children: "DataTableColumn[]"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Unarchive the workflow"
+            children: "List columns in the table"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "transfer(destinationProjectId)"
+              children: "createColumn(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "DataTableColumn"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Add a column — patches snapshot to include it"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "updateColumn(columnId, data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "DataTableColumn"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Update a column — replaces matching entry in snapshot"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "deleteColumn(columnId)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "void"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Move to another project"
-          })]
-        }), (0,jsx_runtime.jsxs)(_components.tr, {
-          children: [(0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "getTags()"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "Tag[]"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "List tags on the workflow"
-          })]
-        }), (0,jsx_runtime.jsxs)(_components.tr, {
-          children: [(0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "updateTags(tags)"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "Tag[]"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Replace tags on the workflow"
-          })]
-        }), (0,jsx_runtime.jsxs)(_components.tr, {
-          children: [(0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "getVersion(versionId)"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "WorkflowVersion"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Fetch a specific version"
-          })]
-        }), (0,jsx_runtime.jsxs)(_components.tr, {
-          children: [(0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "executions()"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "WorkflowExecutionResourceCollection"
-            })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Scope queries to this workflow"
+            children: "Delete a column — removes it from the snapshot"
           })]
         })]
       })]
@@ -558,58 +670,32 @@ function _createMdxContent(props) {
       id: "snapshot-management",
       children: "Snapshot management"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Mutating methods (", (0,jsx_runtime.jsx)(_components.code, {
-        children: "update"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "activate"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "deactivate"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "archive"
-      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "unarchive"
-      }), ") call ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "replaceSnapshot()"
-      }), " under the hood, so ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "resource.data"
-      }), " stays current after each call. ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "updateTags()"
-      }), " calls ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "mergeSnapshot()"
-      }), " to patch the tags field without re-fetching the full workflow."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "nested-executions",
-      children: "Nested executions"
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "resource.executions()"
-      }), " returns a collection scoped to the workflow:"]
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const runs = await workflow.executions().list({ status: 'error', limit: 10 });\nconst runResource = await workflow.executions().getResource(123);\n"
-      })
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Both ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "get"
-      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "getResource"
-      }), " verify the execution belongs to this workflow via paginated list before fetching."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "typical-flow",
-      children: "Typical Flow"
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "const workflow = client.workflows();\n\nconst { data } = await workflow.list({ projectId: 'proj-1', active: false, limit: 10 });\n\nif (data[0]) {\n  await workflow.activate(data[0].id);\n}\n"
-      })
+        children: "refresh()"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "update()"
+      }), ", and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "patch()"
+      }), " call ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "replaceSnapshot()"
+      }), ". Column methods (", (0,jsx_runtime.jsx)(_components.code, {
+        children: "createColumn"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "updateColumn"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "deleteColumn"
+      }), ") call ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "mergeSnapshot()"
+      }), " to patch the ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "columns"
+      }), " array locally without re-fetching the full table."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "typical-flow-with-resource",
-      children: "Typical Flow with Resource"
+      id: "example",
+      children: "Example"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const resource = await client.workflows().getResource('wf-123');\n\nawait resource.update({\n  name: 'Updated Name',\n  description: resource.data.description,\n  nodes: resource.data.nodes,\n  connections: resource.data.connections,\n  settings: resource.data.settings ?? {},\n});\n\nawait resource.activate();\n\nconst runs = await resource.executions().list({ status: 'error', limit: 5 });\n"
+        children: "const table = await client.dataTables().createResource({\n  name: 'Events',\n  columns: [{ name: 'event', type: 'string' }],\n});\n\nawait table.createColumn({ name: 'timestamp', type: 'date' });\n\nconst rows = await table.insertRows({\n  data: [{ event: 'login' }],\n  returnType: 'all',\n});\n\nawait table.deleteColumn(table.data.columns[0].id);\n"
       })
     })]
   });

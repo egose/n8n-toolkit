@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["322"], {
-6721(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["16"], {
+1683(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_community_package_mdx_c27_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_folder_mdx_474_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-community-package-mdx-c27.json
-var site_docs_api_community_package_mdx_c27_namespaceObject = JSON.parse('{"id":"api/community-package","title":"Community Package API","description":"CommunityPackageClient manages n8n community packages — install, update, and uninstall npm packages.","source":"@site/docs/api/community-package.mdx","sourceDirName":"api","slug":"/api/community-package","permalink":"/api/community-package","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":10,"frontMatter":{"sidebar_label":"Community Package","sidebar_position":10},"sidebar":"api","previous":{"title":"Folder","permalink":"/api/folder"},"next":{"title":"Audit","permalink":"/api/audit"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-folder-mdx-474.json
+var site_docs_api_folder_mdx_474_namespaceObject = JSON.parse('{"id":"api/folder","title":"Folder API","description":"FolderClient manages project-scoped folders. Folders are always scoped to a project.","source":"@site/docs/api/folder.mdx","sourceDirName":"api","slug":"/api/folder","permalink":"/api/folder","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":9,"frontMatter":{"sidebar_label":"Folder","sidebar_position":9},"sidebar":"api","previous":{"title":"Data Table","permalink":"/api/data-table"},"next":{"title":"Community Package","permalink":"/api/community-package"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/community-package.mdx
+;// CONCATENATED MODULE: ./docs/api/folder.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'Community Package',
-	sidebar_position: 10
+	sidebar_label: 'Folder',
+	sidebar_position: 9
 };
-const contentTitle = 'Community Package API';
+const contentTitle = 'Folder API';
 
 const assets = {
 
@@ -48,24 +48,32 @@ const toc = [{
   "id": "common-tasks",
   "level": 2
 }, {
-  "value": "<code>list()</code>",
-  "id": "list",
+  "value": "<code>list(params?)</code>",
+  "id": "listparams",
   "level": 3
 }, {
-  "value": "<code>install(data)</code>",
-  "id": "installdata",
+  "value": "<code>get(folderId)</code>",
+  "id": "getfolderid",
   "level": 3
 }, {
-  "value": "<code>update(name, data?)</code>",
-  "id": "updatename-data",
+  "value": "<code>create(data)</code>",
+  "id": "createdata",
   "level": 3
 }, {
-  "value": "<code>uninstall(name)</code>",
-  "id": "uninstallname",
+  "value": "<code>update(folderId, data)</code>",
+  "id": "updatefolderid-data",
   "level": 3
 }, {
-  "value": "CommunityPackageResource",
-  "id": "communitypackageresource",
+  "value": "<code>delete(folderId, transferToFolderId?)</code>",
+  "id": "deletefolderid-transfertofolderid",
+  "level": 3
+}, {
+  "value": "Typical Flow",
+  "id": "typical-flow",
+  "level": 2
+}, {
+  "value": "FolderResource",
+  "id": "folderresource",
   "level": 2
 }, {
   "value": "Properties",
@@ -75,13 +83,10 @@ const toc = [{
   "value": "Methods",
   "id": "methods-1",
   "level": 3
-}, {
-  "value": "Note",
-  "id": "note",
-  "level": 3
 }];
 function _createMdxContent(props) {
   const _components = {
+    admonition: "admonition",
     code: "code",
     h1: "h1",
     h2: "h2",
@@ -103,22 +108,29 @@ function _createMdxContent(props) {
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "community-package-api",
-        children: "Community Package API"
+        id: "folder-api",
+        children: "Folder API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "CommunityPackageClient"
-      }), " manages n8n community packages — install, update, and uninstall npm packages."]
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Use this handle for package lifecycle operations in n8n instances that allow community nodes."
+        children: "FolderClient"
+      }), " manages project-scoped folders. Folders are always scoped to a project."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const communityPackage = client.communityPackages();\n"
+        children: "const folder = client.folders('project-id');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.admonition, {
+      type: "note",
+      children: (0,jsx_runtime.jsxs)(_components.p, {
+        children: ["Unlike other resource clients, ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "FolderClient"
+        }), " requires a ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "projectId"
+        }), " at construction time because folder endpoints are project-scoped."]
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -128,77 +140,110 @@ function _createMdxContent(props) {
       children: "Common Tasks"
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "list installed community packages"
+        children: "list folders inside one project"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "install a package from npm"
+        children: "create folder structures for workflow organization"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "update a package to a specific version"
+        children: "rename or move folders"
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
-        children: "uninstall packages that are no longer used"
+        children: "delete a folder while transferring its contents elsewhere"
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "list",
+      id: "listparams",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "list()"
+        children: "list(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List all installed community packages."
+      children: "List folders in the project."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const packages = await client.communityPackages().list();\n"
+        children: "const { data } = await client.folders('proj-123').list({\n  limit: 10,\n  filter: 'name',\n  sortBy: 'name:asc',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "installdata",
+      id: "getfolderid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "install(data)"
+        children: "get(folderId)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Install a community package."
+      children: "Get a folder by ID."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const pkg = await client.communityPackages().install({\n  name: 'n8n-nodes-test',\n  verify: true,\n});\n"
+        children: "const folder = await client.folders('proj-123').get('folder-456');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "updatename-data",
+      id: "createdata",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "update(name, data?)"
+        children: "create(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Update a community package."
+      children: "Create a new folder."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const updated = await client.communityPackages().update('n8n-nodes-test', {\n  version: '1.0.0',\n  verify: true,\n});\n"
+        children: "const folder = await client.folders('proj-123').create({\n  name: 'Production Workflows',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "uninstallname",
+      id: "updatefolderid-data",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "uninstall(name)"
+        children: "update(folderId, data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Uninstall a community package."
+      children: "Update a folder."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.communityPackages().uninstall('n8n-nodes-test');\n"
+        children: "const updated = await client.folders('proj-123').update('folder-456', {\n  name: 'Prod Workflows',\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "deletefolderid-transfertofolderid",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "delete(folderId, transferToFolderId?)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Delete a folder, optionally transferring its contents to another folder."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "await client.folders('proj-123').delete('folder-456');\n// or transfer contents first\nawait client.folders('proj-123').delete('folder-456', 'other-folder-789');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
-      id: "communitypackageresource",
-      children: "CommunityPackageResource"
+      id: "typical-flow",
+      children: "Typical Flow"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const folder = client.folders('proj-123');\n\nconst created = await folder.create({ name: 'Ops Workflows' });\nawait folder.update(created.id, { name: 'Operations Workflows' });\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "folderresource",
+      children: "FolderResource"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
         children: "getResource()"
-      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "installResource()"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "listResources()"
+      }), ", or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "createResource()"
       }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "CommunityPackageResource"
+        children: "FolderResource"
       }), " instance."]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const resource = await client.communityPackages().getResource('n8n-nodes-test');\nconst installed = await client.communityPackages().installResource({\n  name: 'n8n-nodes-test',\n  verify: true,\n});\n"
+        children: "const resource = await client.folders('proj-123').getResource('folder-456');\nconst created = await client.folders('proj-123').createResource({ name: 'Archives' });\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.admonition, {
+      type: "note",
+      children: (0,jsx_runtime.jsxs)(_components.p, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "listResources()"
+        }), " does not support cursor-based pagination. It always returns ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "nextCursor: undefined"
+        }), ". Use ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "list()"
+        }), " directly if you need to page through folders."]
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "properties",
@@ -218,26 +263,38 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "packageName"
+              children: "id"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "npm package name"
+            children: "Folder ID"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "installedVersion"
+              children: "name"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "string"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Currently installed version"
+            children: "Folder name"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "parentFolderId"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string | undefined"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Parent folder ID (if nested)"
           })]
         })]
       })]
@@ -259,50 +316,41 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "refresh()"
+              children: "update(data)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "this"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Re-fetch the package from the API — resolves by name from list"
+            children: "Update the folder — replaces snapshot with the API response"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "update(data?)"
+              children: "patch(data)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "this"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Update the package — replaces snapshot with the API response"
+            children: "Convenience update — merges partial fields into the current folder snapshot before updating"
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "uninstall()"
+              children: "delete(transferToFolderId?)"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "void"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Uninstall the package"
+            children: "Delete the folder, optionally moving contents to another folder"
           })]
         })]
       })]
-    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "note",
-      children: "Note"
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "getResource()"
-      }), " resolves by package name from the list endpoint — there is no direct ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "GET /community-packages/{name}"
-      }), " in the n8n API. The name-based lookup ensures the package exists before returning a resource."]
     })]
   });
 }
