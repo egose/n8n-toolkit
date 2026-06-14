@@ -186,7 +186,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "// Automatically retries on 408, 429, 500, 502, 503, 504\n// with exponential backoff and jitter\nconst workflow = await client.workflows().get('wf-123');\n"
+        children: "// Automatically retries on 408, 429, 500, 502, 503, 504\n// with exponential backoff\nconst workflow = await client.workflows().get('wf-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "No need for wrapper libraries or manual retry loops."

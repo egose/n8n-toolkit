@@ -574,7 +574,30 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "// Direct GET request\nconst data = await client.get('/workflows', { limit: 5 });\n\n// Direct POST request\nawait client.post('/workflows', { name: 'New Workflow', nodes: [], connections: {}, settings: {} });\n"
+        children: "// GET\nconst data = await client.get('/workflows', { limit: 5 });\n\n// POST\nawait client.post('/workflows', { name: 'New Workflow', nodes: [], connections: {}, settings: {} });\n\n// PUT\nawait client.put('/variables/var-1', { key: 'MY_VAR', value: 'new-value' });\n\n// PATCH\nawait client.patch('/projects/proj-1', { name: 'Updated Name' });\n\n// DELETE\nawait client.delete('/workflows/wf-1');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["All five helpers (", (0,jsx_runtime.jsx)(_components.code, {
+        children: "get"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "post"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "put"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "patch"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "delete"
+      }), ") accept an optional ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "headers"
+      }), " parameter as the last argument. For full control, use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "request()"
+      }), " with a ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "RequestOptions"
+      }), " object:"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const result = await client.request<Workflow>({\n  method: 'GET',\n  path: '/workflows',\n  query: { limit: 5 },\n  headers: { 'X-Custom': 'value' },\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "These helpers still use the same authentication, retry, and response parsing rules as the typed clients."
@@ -650,7 +673,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "import N8nClient, { HttpClient, HttpError } from '@egose/n8n-client';\nimport type { RequestOptions, Workflow, Execution, ... } from '@egose/n8n-client';\n"
+        children: "import N8nClient, { HttpClient, HttpError } from '@egose/n8n-client';\n\n// Resource classes\nimport { WorkflowResource, ExecutionResource, CredentialResource } from '@egose/n8n-client';\nimport { ProjectResource, FolderResource, DataTableResource } from '@egose/n8n-client';\nimport { TagResource, UserResource, VariableResource, CommunityPackageResource } from '@egose/n8n-client';\n\n// Collection interfaces (for typing nested collections)\nimport type {\n  ProjectWorkflowResourceCollection,\n  ProjectFolderResourceCollection,\n  ProjectVariableResourceCollection,\n  ProjectDataTableResourceCollection,\n  ProjectExecutionResourceCollection,\n  WorkflowExecutionResourceCollection,\n} from '@egose/n8n-client';\n\n// All API types\nimport type { RequestOptions, PaginationParams, PaginatedResponse } from '@egose/n8n-client';\nimport type { Workflow, WorkflowCreate, WorkflowUpdate, Execution, Credential, ... } from '@egose/n8n-client';\n"
       })
     })]
   });

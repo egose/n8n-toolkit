@@ -48,6 +48,10 @@ const toc = [{
   "id": "listparams",
   "level": 3
 }, {
+  "value": "<code>get(id, params?)</code>",
+  "id": "getid-params",
+  "level": 3
+}, {
   "value": "<code>create(data)</code>",
   "id": "createdata",
   "level": 3
@@ -59,6 +63,22 @@ const toc = [{
   "value": "<code>delete(id)</code>",
   "id": "deleteid",
   "level": 3
+}, {
+  "value": "VariableResource",
+  "id": "variableresource",
+  "level": 2
+}, {
+  "value": "Properties",
+  "id": "properties",
+  "level": 3
+}, {
+  "value": "Methods",
+  "id": "methods-1",
+  "level": 3
+}, {
+  "value": "Snapshot management",
+  "id": "snapshot-management",
+  "level": 3
 }];
 function _createMdxContent(props) {
   const _components = {
@@ -69,6 +89,12 @@ function _createMdxContent(props) {
     header: "header",
     p: "p",
     pre: "pre",
+    table: "table",
+    tbody: "tbody",
+    td: "td",
+    th: "th",
+    thead: "thead",
+    tr: "tr",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
@@ -106,6 +132,20 @@ function _createMdxContent(props) {
         children: "const { data, nextCursor } = await client.variables().list({\n  limit: 50,\n  projectId: 'proj-1',\n  state: 'empty',\n});\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "getid-params",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "get(id, params?)"
+      })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Get a variable by ID. The n8n API has no direct ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "GET /variables/{id}"
+      }), " endpoint, so this method paginates through all results to find the matching variable. On instances with many variables this is an O(n) scan across pages."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const variable = await client.variables().get('var-123', { projectId: 'proj-1' });\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
       children: (0,jsx_runtime.jsx)(_components.code, {
         children: "create(data)"
@@ -141,6 +181,141 @@ function _createMdxContent(props) {
         className: "language-ts",
         children: "await client.variables().delete('var-123');\n"
       })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "variableresource",
+      children: "VariableResource"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "getResource()"
+      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "listResources()"
+      }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "VariableResource"
+      }), " instance."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const resource = await client.variables().getResource('var-123', { projectId: 'proj-1' });\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "properties",
+      children: "Properties"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Property"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Type"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "id"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Variable ID"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "key"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Variable key"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "value"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Variable value"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "methods-1",
+      children: "Methods"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Method"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Returns"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "refresh()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Re-fetch the variable from the API via paginated list"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "update(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Update the variable — merges local snapshot"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "delete()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "void"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Delete the variable"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "snapshot-management",
+      children: "Snapshot management"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "refresh()"
+      }), " calls ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "replaceSnapshot()"
+      }), " with the fresh variable data. ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "update()"
+      }), " calls ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "mergeSnapshot()"
+      }), " locally since the n8n API returns no body on update."]
     })]
   });
 }

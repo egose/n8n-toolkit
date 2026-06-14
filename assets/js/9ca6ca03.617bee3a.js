@@ -80,9 +80,29 @@ const toc = [{
   "id": "getschemacredentialtypename",
   "level": 3
 }, {
+  "value": "CredentialResource",
+  "id": "credentialresource",
+  "level": 2
+}, {
+  "value": "Properties",
+  "id": "properties",
+  "level": 3
+}, {
+  "value": "Methods",
+  "id": "methods-1",
+  "level": 3
+}, {
+  "value": "Snapshot management",
+  "id": "snapshot-management",
+  "level": 3
+}, {
   "value": "Typical Flow",
   "id": "typical-flow",
   "level": 2
+}, {
+  "value": "Typical Flow with Resource",
+  "id": "typical-flow-with-resource",
+  "level": 3
 }];
 function _createMdxContent(props) {
   const _components = {
@@ -94,6 +114,12 @@ function _createMdxContent(props) {
     li: "li",
     p: "p",
     pre: "pre",
+    table: "table",
+    tbody: "tbody",
+    td: "td",
+    th: "th",
+    thead: "thead",
+    tr: "tr",
     ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
@@ -235,12 +261,177 @@ function _createMdxContent(props) {
         children: "const schema = await client.credentials().getSchema('httpHeaderAuth');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "credentialresource",
+      children: "CredentialResource"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "getResource()"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "listResources()"
+      }), ", or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "createResource()"
+      }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "CredentialResource"
+      }), " instance."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const resource = await client.credentials().getResource('cred-123');\nconst created = await client.credentials().createResource({\n  name: 'AWS Credentials',\n  type: 'aws',\n  data: { accessKey: 'AKIA123', secretKey: 'secret456' }, // pragma: allowlist secret\n  projectId: 'proj-1',\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "properties",
+      children: "Properties"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Property"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Type"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "id"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Credential ID"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "name"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Credential name"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "type"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Credential type identifier"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "methods-1",
+      children: "Methods"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Method"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Returns"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "update(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Update the credential — replaces snapshot with the API response"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "delete()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "Credential"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Delete the credential"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "test()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "CredentialTestResponse"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Test the credential connection"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "transfer(destinationProjectId)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "void"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Move to another project"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "getSchema()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "JsonObject"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Get the schema for this credential type"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "snapshot-management",
+      children: "Snapshot management"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "update()"
+      }), " calls ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "replaceSnapshot()"
+      }), " with the API response."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "typical-flow",
       children: "Typical Flow"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
         children: "const credential = client.credentials();\n\nconst created = await credential.create({\n  name: 'Internal API Token',\n  type: 'httpHeaderAuth',\n  data: {\n    name: 'Authorization',\n    value: 'Bearer token',\n  },\n});\n\nawait credential.test(created.id);\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "typical-flow-with-resource",
+      children: "Typical Flow with Resource"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const resource = await client.credentials().createResource({\n  name: 'Internal API Token',\n  type: 'httpHeaderAuth',\n  data: { name: 'Authorization', value: 'Bearer token' },\n});\n\nconst testResult = await resource.test();\n\nif (testResult.status === 'success') {\n  await resource.transfer('proj-456');\n}\n"
       })
     })]
   });

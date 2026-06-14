@@ -1,12 +1,12 @@
 "use strict";
-(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["68"], {
-669(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+(self["webpackChunkwebsite"] = self["webpackChunkwebsite"] || []).push([["758"], {
+7626(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  metadata: () => (/* reexport */ site_docs_api_user_mdx_ff6_namespaceObject),
+  metadata: () => (/* reexport */ site_docs_api_tag_mdx_e9a_namespaceObject),
   "default": () => (/* binding */ MDXContent),
   frontMatter: () => (/* binding */ frontMatter),
   contentTitle: () => (/* binding */ contentTitle),
@@ -14,20 +14,20 @@ __webpack_require__.d(__webpack_exports__, {
   assets: () => (/* binding */ assets)
 });
 
-;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-user-mdx-ff6.json
-var site_docs_api_user_mdx_ff6_namespaceObject = JSON.parse('{"id":"api/user","title":"User API","description":"UserClient manages n8n users — list, get, create, delete, and change roles.","source":"@site/docs/api/user.mdx","sourceDirName":"api","slug":"/api/user","permalink":"/api/user","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":5,"frontMatter":{"sidebar_label":"User","sidebar_position":5},"sidebar":"api","previous":{"title":"Tag","permalink":"/api/tag"},"next":{"title":"Variable","permalink":"/api/variable"}}')
+;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-api-tag-mdx-e9a.json
+var site_docs_api_tag_mdx_e9a_namespaceObject = JSON.parse('{"id":"api/tag","title":"Tag API","description":"TagClient manages tags for workflows and executions.","source":"@site/docs/api/tag.mdx","sourceDirName":"api","slug":"/api/tag","permalink":"/api/tag","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":4,"frontMatter":{"sidebar_label":"Tag","sidebar_position":4},"sidebar":"api","previous":{"title":"Credential","permalink":"/api/credential"},"next":{"title":"User","permalink":"/api/user"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
 var lib = __webpack_require__(1137);
-;// CONCATENATED MODULE: ./docs/api/user.mdx
+;// CONCATENATED MODULE: ./docs/api/tag.mdx
 
 
 const frontMatter = {
-	sidebar_label: 'User',
-	sidebar_position: 5
+	sidebar_label: 'Tag',
+	sidebar_position: 4
 };
-const contentTitle = 'User API';
+const contentTitle = 'Tag API';
 
 const assets = {
 
@@ -48,20 +48,32 @@ const toc = [{
   "id": "listparams",
   "level": 3
 }, {
-  "value": "<code>get(id, params?)</code>",
-  "id": "getid-params",
+  "value": "<code>get(id)</code>",
+  "id": "getid",
   "level": 3
 }, {
   "value": "<code>create(data)</code>",
   "id": "createdata",
   "level": 3
 }, {
+  "value": "<code>update(id, data)</code>",
+  "id": "updateid-data",
+  "level": 3
+}, {
   "value": "<code>delete(id)</code>",
   "id": "deleteid",
   "level": 3
 }, {
-  "value": "<code>changeRole(id, newRoleName)</code>",
-  "id": "changeroleid-newrolename",
+  "value": "TagResource",
+  "id": "tagresource",
+  "level": 2
+}, {
+  "value": "Properties",
+  "id": "properties",
+  "level": 3
+}, {
+  "value": "Methods",
+  "id": "methods-1",
   "level": 3
 }];
 function _createMdxContent(props) {
@@ -73,26 +85,32 @@ function _createMdxContent(props) {
     header: "header",
     p: "p",
     pre: "pre",
+    table: "table",
+    tbody: "tbody",
+    td: "td",
+    th: "th",
+    thead: "thead",
+    tr: "tr",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
   };
   return (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, {
     children: [(0,jsx_runtime.jsx)(_components.header, {
       children: (0,jsx_runtime.jsx)(_components.h1, {
-        id: "user-api",
-        children: "User API"
+        id: "tag-api",
+        children: "Tag API"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
-        children: "UserClient"
-      }), " manages n8n users — list, get, create, delete, and change roles."]
+        children: "TagClient"
+      }), " manages tags for workflows and executions."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "access",
       children: "Access"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const user = client.users();\n"
+        children: "const tag = client.tags();\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "methods",
@@ -103,23 +121,23 @@ function _createMdxContent(props) {
         children: "list(params?)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "List users with optional filters."
+      children: "List all tags."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const { data, nextCursor } = await client.users().list({\n  limit: 10,\n  offset: 0,\n  includeRole: true,\n  projectId: 'proj-1',\n});\n"
+        children: "const { data, nextCursor } = await client.tags().list({ limit: 20 });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "getid-params",
+      id: "getid",
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "get(id, params?)"
+        children: "get(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Get a user by ID."
+      children: "Get a tag by ID."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const user = await client.users().get('user-123', { includeRole: true });\n"
+        children: "const tag = await client.tags().get('tag-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "createdata",
@@ -127,11 +145,23 @@ function _createMdxContent(props) {
         children: "create(data)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Create one or more users."
+      children: "Create a new tag."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "const result = await client.users().create([\n  { email: 'alice@example.com', role: 'global:member' },\n  { email: 'bob@example.com', role: 'global:admin' },\n]);\n// result.user contains the created user info\n"
+        children: "const tag = await client.tags().create({ name: 'production' });\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "updateid-data",
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        children: "update(id, data)"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Update a tag."
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const updated = await client.tags().update('tag-123', { name: 'prod' });\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "deleteid",
@@ -139,24 +169,112 @@ function _createMdxContent(props) {
         children: "delete(id)"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Delete a user."
+      children: "Delete a tag."
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
-        children: "await client.users().delete('user-123');\n"
+        children: "const deleted = await client.tags().delete('tag-123');\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "tagresource",
+      children: "TagResource"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "getResource()"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "listResources()"
+      }), ", or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "createResource()"
+      }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "TagResource"
+      }), " instance."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const resource = await client.tags().getResource('tag-123');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
-      id: "changeroleid-newrolename",
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "changeRole(id, newRoleName)"
-      })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Change a user's global role."
-    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
-      children: (0,jsx_runtime.jsx)(_components.code, {
-        className: "language-ts",
-        children: "await client.users().changeRole('user-123', 'global:admin');\n"
-      })
+      id: "properties",
+      children: "Properties"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Property"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Type"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "id"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Tag ID"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "name"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Tag name"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "methods-1",
+      children: "Methods"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Method"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Returns"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "update(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Update the tag — replaces snapshot with the API response"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "delete()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "Tag"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Delete the tag"
+          })]
+        })]
+      })]
     })]
   });
 }

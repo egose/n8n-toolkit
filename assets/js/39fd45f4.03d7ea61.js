@@ -76,9 +76,29 @@ const toc = [{
   "id": "gettagsid--updatetagsid-tags",
   "level": 3
 }, {
+  "value": "ExecutionResource",
+  "id": "executionresource",
+  "level": 2
+}, {
+  "value": "Properties",
+  "id": "properties",
+  "level": 3
+}, {
+  "value": "Methods",
+  "id": "methods-1",
+  "level": 3
+}, {
+  "value": "Snapshot management",
+  "id": "snapshot-management",
+  "level": 3
+}, {
   "value": "Typical Flow",
   "id": "typical-flow",
   "level": 2
+}, {
+  "value": "Typical Flow with Resource",
+  "id": "typical-flow-with-resource",
+  "level": 3
 }];
 function _createMdxContent(props) {
   const _components = {
@@ -90,6 +110,12 @@ function _createMdxContent(props) {
     li: "li",
     p: "p",
     pre: "pre",
+    table: "table",
+    tbody: "tbody",
+    td: "td",
+    th: "th",
+    thead: "thead",
+    tr: "tr",
     ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
@@ -219,12 +245,201 @@ function _createMdxContent(props) {
         children: "const tags = await client.executions().getTags(123);\nconst updatedTags = await client.executions().updateTags(123, [\n  { id: 'tag-1' },\n]);\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "executionresource",
+      children: "ExecutionResource"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "getResource()"
+      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "listResources()"
+      }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "ExecutionResource"
+      }), " instance."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const resource = await client.executions().getResource(123, {\n  includeData: true,\n  redactExecutionData: false,\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "listResources()"
+      }), " preserves the ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "includeData"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "redactExecutionData"
+      }), " params you pass in, so each returned ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "ExecutionResource"
+      }), " will re-fetch with the same shape when you call ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "refresh()"
+      }), "."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "properties",
+      children: "Properties"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Property"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Type"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "id"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "number"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Execution ID"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "status"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Execution status (e.g. ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "success"
+            }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "error"
+            }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "running"
+            }), ")"]
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "methods-1",
+      children: "Methods"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Method"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Returns"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "refresh()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Re-fetch execution from the API (preserves original ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "includeData"
+            }), "/", (0,jsx_runtime.jsx)(_components.code, {
+              children: "redactExecutionData"
+            }), ")"]
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "delete()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "Execution"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Delete the execution"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "retry(data?)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Retry the execution"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "stop()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Stop a running execution"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "getTags()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "Tag[]"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "List tags on the execution"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "updateTags(tags)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "Tag[]"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Replace tags on the execution"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "snapshot-management",
+      children: "Snapshot management"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "refresh()"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "retry()"
+      }), ", and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "stop()"
+      }), " call ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "replaceSnapshot()"
+      }), " under the hood."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "typical-flow",
       children: "Typical Flow"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
         children: "const execution = client.executions();\n\nconst { data: failed } = await execution.list({ status: 'error', limit: 20 });\n\nfor (const run of failed) {\n  await execution.retry(run.id, { loadWorkflow: true });\n}\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "typical-flow-with-resource",
+      children: "Typical Flow with Resource"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const runs = await client.executions().listResources({ status: 'error', limit: 20 });\n\nfor (const run of runs.data) {\n  await run.retry({ loadWorkflow: true });\n  await run.refresh();\n  console.log(run.data.status);\n}\n"
       })
     })]
   });

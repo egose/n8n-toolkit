@@ -115,6 +115,34 @@ const toc = [{
   "value": "Return Type Narrowing",
   "id": "return-type-narrowing",
   "level": 2
+}, {
+  "value": "DataTableResource",
+  "id": "datatableresource",
+  "level": 2
+}, {
+  "value": "Properties",
+  "id": "properties",
+  "level": 3
+}, {
+  "value": "Table methods",
+  "id": "table-methods",
+  "level": 3
+}, {
+  "value": "Row methods",
+  "id": "row-methods",
+  "level": 3
+}, {
+  "value": "Column methods",
+  "id": "column-methods",
+  "level": 3
+}, {
+  "value": "Snapshot management",
+  "id": "snapshot-management",
+  "level": 3
+}, {
+  "value": "Example",
+  "id": "example",
+  "level": 3
 }];
 function _createMdxContent(props) {
   const _components = {
@@ -126,6 +154,12 @@ function _createMdxContent(props) {
     li: "li",
     p: "p",
     pre: "pre",
+    table: "table",
+    tbody: "tbody",
+    td: "td",
+    th: "th",
+    thead: "thead",
+    tr: "tr",
     ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
@@ -208,6 +242,20 @@ function _createMdxContent(props) {
         className: "language-ts",
         children: "const table = await client.dataTables().create({\n  name: 'User Events',\n  columns: [\n    { name: 'event', type: 'string' },\n    { name: 'createdAt', type: 'date' },\n  ],\n});\n"
       })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Column types supported at creation time: ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "string"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "number"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "boolean"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "date"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "json"
+      }), ". The ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "json"
+      }), " type is available when creating columns but may not appear in read responses from the API."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "updateid-data",
       children: (0,jsx_runtime.jsx)(_components.code, {
@@ -355,6 +403,285 @@ function _createMdxContent(props) {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
         children: "const count = await client.dataTables().insertRows('dt-123', {\n  data: [{ event: 'login' }],\n});\n// { count: number }\n\nconst ids = await client.dataTables().insertRows('dt-123', {\n  data: [{ event: 'login' }],\n  returnType: 'id',\n});\n// number[]\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "datatableresource",
+      children: "DataTableResource"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "getResource()"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "listResources()"
+      }), ", or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "createResource()"
+      }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "DataTableResource"
+      }), " instance."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const resource = await client.dataTables().getResource('dt-123');\nconst created = await client.dataTables().createResource({\n  name: 'User Events',\n  columns: [\n    { name: 'event', type: 'string' },\n    { name: 'createdAt', type: 'date' },\n  ],\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "properties",
+      children: "Properties"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Property"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Type"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "id"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Data table ID"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "name"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Data table name"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "table-methods",
+      children: "Table methods"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Method"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Returns"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "refresh()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Re-fetch the table from the API"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "update(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Update the table — replaces snapshot with the API response"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "delete()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "void"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Delete the table"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "row-methods",
+      children: "Row methods"
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Row methods on the resource mirror the corresponding client methods but with the table ID pre-filled."
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Method"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Returns"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "listRows(params?)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "DataTableRowListResponse"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "List rows in the table"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "insertRows(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "overloads"
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Insert rows — return type depends on ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "returnType"
+            })]
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "updateRows(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "overloads"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Update rows matching a filter"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "upsertRow(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "overloads"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Insert or update a single row"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "deleteRows(params)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "overloads"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Delete rows matching a filter"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "column-methods",
+      children: "Column methods"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Method"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Returns"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "listColumns()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "DataTableColumn[]"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "List columns in the table"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "createColumn(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "DataTableColumn"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Add a column — patches snapshot to include it"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "updateColumn(columnId, data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "DataTableColumn"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Update a column — replaces matching entry in snapshot"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "deleteColumn(columnId)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "void"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Delete a column — removes it from the snapshot"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "snapshot-management",
+      children: "Snapshot management"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "refresh()"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "update()"
+      }), " call ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "replaceSnapshot()"
+      }), ". Column methods (", (0,jsx_runtime.jsx)(_components.code, {
+        children: "createColumn"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "updateColumn"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "deleteColumn"
+      }), ") call ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "mergeSnapshot()"
+      }), " to patch the ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "columns"
+      }), " array locally without re-fetching the full table."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "example",
+      children: "Example"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const table = await client.dataTables().createResource({\n  name: 'Events',\n  columns: [{ name: 'event', type: 'string' }],\n});\n\nawait table.createColumn({ name: 'timestamp', type: 'date' });\n\nconst rows = await table.insertRows({\n  data: [{ event: 'login' }],\n  returnType: 'all',\n});\n\nawait table.deleteColumn(table.data.columns[0].id);\n"
       })
     })]
   });

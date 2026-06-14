@@ -132,8 +132,14 @@ function _createMdxContent(props) {
       children: (0,jsx_runtime.jsx)(_components.code, {
         children: "importPackage(pkg, options)"
       })
-    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Import a workflow package (zip file)."
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Import a workflow package (zip file). The ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "pkg"
+      }), " parameter accepts a ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "File"
+      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "Blob"
+      }), " object."]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",

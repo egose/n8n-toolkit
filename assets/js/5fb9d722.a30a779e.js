@@ -92,9 +92,33 @@ const toc = [{
   "id": "getversionid-versionid",
   "level": 3
 }, {
+  "value": "WorkflowResource",
+  "id": "workflowresource",
+  "level": 2
+}, {
+  "value": "Properties",
+  "id": "properties",
+  "level": 3
+}, {
+  "value": "Methods",
+  "id": "methods-1",
+  "level": 3
+}, {
+  "value": "Snapshot management",
+  "id": "snapshot-management",
+  "level": 3
+}, {
+  "value": "Nested executions",
+  "id": "nested-executions",
+  "level": 3
+}, {
   "value": "Typical Flow",
   "id": "typical-flow",
   "level": 2
+}, {
+  "value": "Typical Flow with Resource",
+  "id": "typical-flow-with-resource",
+  "level": 3
 }];
 function _createMdxContent(props) {
   const _components = {
@@ -106,6 +130,12 @@ function _createMdxContent(props) {
     li: "li",
     p: "p",
     pre: "pre",
+    table: "table",
+    tbody: "tbody",
+    td: "td",
+    th: "th",
+    thead: "thead",
+    tr: "tr",
     ul: "ul",
     ...(0,lib/* .useMDXComponents */.R)(),
     ...props.components
@@ -283,12 +313,303 @@ function _createMdxContent(props) {
         children: "const version = await client.workflows().getVersion('wf-123', 'v-1');\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "workflowresource",
+      children: "WorkflowResource"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "getResource()"
+      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "createResource()"
+      }), " to get a bound ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "WorkflowResource"
+      }), " instance that wraps the workflow data and exposes convenience methods."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const resource = await client.workflows().getResource('wf-123');\nconst created = await client.workflows().createResource({\n  name: 'New Workflow',\n  nodes: [],\n  connections: {},\n  settings: {},\n});\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "properties",
+      children: "Properties"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Property"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Type"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "id"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Workflow ID"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "name"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Workflow name"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "active"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "boolean"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Whether the workflow is active"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "isArchived"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "boolean"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Whether the workflow is archived"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "versionId"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "string"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Current version ID"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "methods-1",
+      children: "Methods"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
+      children: [(0,jsx_runtime.jsx)(_components.thead, {
+        children: (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.th, {
+            children: "Method"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Returns"
+          }), (0,jsx_runtime.jsx)(_components.th, {
+            children: "Description"
+          })]
+        })
+      }), (0,jsx_runtime.jsxs)(_components.tbody, {
+        children: [(0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "update(data)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Full update — replaces snapshot with the API response"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "delete()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "Workflow"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Delete the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "activate(data?)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Activate the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "deactivate()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Deactivate the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "archive()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Archive the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "unarchive()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "this"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Unarchive the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "transfer(destinationProjectId)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "void"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Move to another project"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "getTags()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "Tag[]"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "List tags on the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "updateTags(tags)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "Tag[]"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Replace tags on the workflow"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "getVersion(versionId)"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "WorkflowVersion"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Fetch a specific version"
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "executions()"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "WorkflowExecutionResourceCollection"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Scope queries to this workflow"
+          })]
+        })]
+      })]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "snapshot-management",
+      children: "Snapshot management"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Mutating methods (", (0,jsx_runtime.jsx)(_components.code, {
+        children: "update"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "activate"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "deactivate"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "archive"
+      }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "unarchive"
+      }), ") call ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "replaceSnapshot()"
+      }), " under the hood, so ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "resource.data"
+      }), " stays current after each call. ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "updateTags()"
+      }), " calls ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "mergeSnapshot()"
+      }), " to patch the tags field without re-fetching the full workflow."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "nested-executions",
+      children: "Nested executions"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "resource.executions()"
+      }), " returns a collection scoped to the workflow:"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const runs = await workflow.executions().list({ status: 'error', limit: 10 });\nconst runResource = await workflow.executions().getResource(123);\n"
+      })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Both ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "get"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "getResource"
+      }), " verify the execution belongs to this workflow via paginated list before fetching."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "typical-flow",
       children: "Typical Flow"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-ts",
         children: "const workflow = client.workflows();\n\nconst { data } = await workflow.list({ projectId: 'proj-1', active: false, limit: 10 });\n\nif (data[0]) {\n  await workflow.activate(data[0].id);\n}\n"
+      })
+    }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
+      id: "typical-flow-with-resource",
+      children: "Typical Flow with Resource"
+    }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
+      children: (0,jsx_runtime.jsx)(_components.code, {
+        className: "language-ts",
+        children: "const resource = await client.workflows().getResource('wf-123');\n\nawait resource.update({\n  name: 'Updated Name',\n  description: resource.data.description,\n  nodes: resource.data.nodes,\n  connections: resource.data.connections,\n  settings: resource.data.settings ?? {},\n});\n\nawait resource.activate();\n\nconst runs = await resource.executions().list({ status: 'error', limit: 5 });\n"
       })
     })]
   });
