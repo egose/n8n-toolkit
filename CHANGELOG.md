@@ -1,3 +1,9 @@
+## [0.2.1](https://github.com/egose/n8n-client/compare/v0.2.0...v0.2.1) (2026-06-14)
+
+### Docs
+
+* **website:** document resource classes and update api examples ([1863152](https://github.com/egose/n8n-client/commit/1863152e2fa31f8028bd45482027c150c196916b))
+
 ## [0.2.0](https://github.com/egose/n8n-client/compare/v0.1.2...v0.2.0) (2026-06-13)
 
 ### Features
