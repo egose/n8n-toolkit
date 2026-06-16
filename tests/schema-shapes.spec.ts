@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import YAML from 'yaml';
 
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const SCHEMAS_BASE = join(REPO_ROOT, '.public-api/v1');
+const OPENAPI_PATH = join(REPO_ROOT, '.public-api/v1.1.1.json');
 
 interface SchemaDoc {
   $ref?: string;
@@ -18,67 +17,61 @@ interface SchemaDoc {
   items?: SchemaDoc;
 }
 
-function loadYaml(filePath: string): SchemaDoc {
-  const content = readFileSync(filePath, 'utf8');
-  return YAML.parse(content);
+interface OpenApiDocument {
+  components?: {
+    schemas?: Record<string, SchemaDoc>;
+  };
 }
 
-function resolveRef(ref: string, fromFile: string): SchemaDoc {
-  const refPath = ref.startsWith('.') ? join(dirname(fromFile), ref) : join(SCHEMAS_BASE, ref);
-  return loadYaml(refPath);
+function loadJson<T>(filePath: string): T {
+  return JSON.parse(readFileSync(filePath, 'utf8')) as T;
 }
 
-function resolveSchema(doc: SchemaDoc, fromFile: string): SchemaDoc {
-  if (doc.$ref) {
-    return resolveRef(doc.$ref, fromFile);
+const OPENAPI = loadJson<OpenApiDocument>(OPENAPI_PATH);
+const SCHEMAS = OPENAPI.components?.schemas ?? {};
+
+function getSchema(schemaName: string): SchemaDoc {
+  const schema = SCHEMAS[schemaName];
+  if (!schema) {
+    throw new Error(`Schema not found in ${OPENAPI_PATH}: ${schemaName}`);
   }
-  return doc;
+  return schema;
 }
 
-function collectAllSchemas(): Array<{ name: string; filePath: string; schema: SchemaDoc }> {
-  const schemas: Array<{ name: string; filePath: string; schema: SchemaDoc }> = [];
-
-  function walk(dir: string) {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const fullPath = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        walk(fullPath);
-      } else if (
-        entry.name.endsWith('.yml') &&
-        !entry.name.endsWith('.parameters.yml') &&
-        !entry.name.includes('paths')
-      ) {
-        const schema = loadYaml(fullPath);
-        if (schema && schema.type === 'object' && schema.properties) {
-          schemas.push({
-            name: entry.name.replace('.yml', ''),
-            filePath: fullPath,
-            schema,
-          });
-        }
-      }
-    }
+function resolveRef(ref: string): SchemaDoc {
+  const prefix = '#/components/schemas/';
+  if (!ref.startsWith(prefix)) {
+    throw new Error(`Unsupported schema ref: ${ref}`);
   }
 
-  walk(SCHEMAS_BASE);
-  return schemas;
+  return getSchema(ref.slice(prefix.length));
 }
 
-function getTopLevelPropertyNames(schema: SchemaDoc, filePath: string): string[] {
-  const resolved = resolveSchema(schema, filePath);
+function resolveSchema(doc: SchemaDoc): SchemaDoc {
+  let resolved = doc;
+
+  while (resolved.$ref) {
+    resolved = resolveRef(resolved.$ref);
+  }
+
+  return resolved;
+}
+
+function getTopLevelPropertyNames(schema: SchemaDoc): string[] {
+  const resolved = resolveSchema(schema);
   if (!resolved.properties) return [];
   return Object.keys(resolved.properties);
 }
 
 function getRequiredProperties(schema: SchemaDoc): string[] {
-  const resolved = schema;
-  return resolved.required ?? [];
+  return resolveSchema(schema).required ?? [];
 }
 
-function getScalarType(yamlType: string | undefined, format?: string): string {
+function getScalarType(schemaType: string | undefined, format?: string): string {
   if (format === 'date-time') return 'string';
   if (format === 'email') return 'string';
-  switch (yamlType) {
+
+  switch (schemaType) {
     case 'string':
       return 'string';
     case 'number':
@@ -96,30 +89,15 @@ function getScalarType(yamlType: string | undefined, format?: string): string {
   }
 }
 
-function inferType(schema: SchemaDoc, filePath: string): string {
-  const resolved = resolveSchema(schema, filePath);
-  if (resolved.$ref) {
-    const refName = resolved.$ref.split('/').pop()!;
-    return refName.replace('.yml', '');
-  }
-  if (resolved.type === 'array') {
-    return 'array';
-  }
-  if (resolved.type === 'object' && resolved.properties) {
-    return 'object';
-  }
-  return getScalarType(resolved.type, resolved.format as string | undefined);
-}
-
 const EXPECTED_SCHEMAS: Array<{
   name: string;
-  specPath: string;
+  schemaName: string;
   requiredProps: string[];
   allProps: string[];
 }> = [
   {
     name: 'Workflow',
-    specPath: 'handlers/workflows/spec/schemas/workflow.yml',
+    schemaName: 'workflow',
     requiredProps: ['name', 'nodes', 'connections', 'settings'],
     allProps: [
       'id',
@@ -144,7 +122,7 @@ const EXPECTED_SCHEMAS: Array<{
   },
   {
     name: 'WorkflowNode',
-    specPath: 'handlers/workflows/spec/schemas/node.yml',
+    schemaName: 'node',
     requiredProps: [],
     allProps: [
       'id',
@@ -172,7 +150,7 @@ const EXPECTED_SCHEMAS: Array<{
   },
   {
     name: 'WorkflowSettings',
-    specPath: 'handlers/workflows/spec/schemas/workflowSettings.yml',
+    schemaName: 'workflowSettings',
     requiredProps: [],
     allProps: [
       'saveExecutionProgress',
@@ -193,7 +171,7 @@ const EXPECTED_SCHEMAS: Array<{
   },
   {
     name: 'Execution',
-    specPath: 'handlers/executions/spec/schemas/execution.yml',
+    schemaName: 'execution',
     requiredProps: [],
     allProps: [
       'id',
@@ -212,55 +190,55 @@ const EXPECTED_SCHEMAS: Array<{
   },
   {
     name: 'Credential',
-    specPath: 'handlers/credentials/spec/schemas/credential.yml',
+    schemaName: 'credential',
     requiredProps: ['name', 'type', 'data'],
     allProps: ['id', 'name', 'type', 'data', 'isResolvable', 'createdAt', 'updatedAt'],
   },
   {
     name: 'Tag',
-    specPath: 'handlers/tags/spec/schemas/tag.yml',
+    schemaName: 'tag',
     requiredProps: ['name'],
     allProps: ['id', 'name', 'createdAt', 'updatedAt'],
   },
   {
     name: 'User',
-    specPath: 'handlers/users/spec/schemas/user.yml',
+    schemaName: 'user',
     requiredProps: ['email'],
     allProps: ['id', 'email', 'firstName', 'lastName', 'isPending', 'createdAt', 'updatedAt', 'role', 'mfaEnabled'],
   },
   {
     name: 'Variable',
-    specPath: 'handlers/variables/spec/schemas/variable.yml',
+    schemaName: 'variable',
     requiredProps: ['key', 'value'],
     allProps: ['id', 'key', 'value', 'type', 'project'],
   },
   {
     name: 'Project',
-    specPath: 'handlers/projects/spec/schemas/project.yml',
+    schemaName: 'project',
     requiredProps: ['name'],
     allProps: ['id', 'name', 'type'],
   },
   {
     name: 'ProjectMember',
-    specPath: 'handlers/projects/spec/schemas/projectMember.yml',
+    schemaName: 'projectMember',
     requiredProps: [],
     allProps: ['id', 'email', 'firstName', 'lastName', 'createdAt', 'updatedAt', 'role'],
   },
   {
     name: 'DataTable',
-    specPath: 'handlers/data-tables/spec/schemas/dataTable.yml',
+    schemaName: 'dataTable',
     requiredProps: ['id', 'name', 'columns', 'projectId', 'createdAt', 'updatedAt'],
     allProps: ['id', 'name', 'columns', 'projectId', 'createdAt', 'updatedAt'],
   },
   {
     name: 'DataTableColumn',
-    specPath: 'handlers/data-tables/spec/schemas/dataTableColumn.yml',
+    schemaName: 'dataTableColumn',
     requiredProps: ['id', 'name', 'dataTableId', 'type', 'index'],
     allProps: ['id', 'name', 'dataTableId', 'type', 'index'],
   },
   {
     name: 'DataTableRow',
-    specPath: 'handlers/data-tables/spec/schemas/dataTableRow.yml',
+    schemaName: 'dataTableRow',
     requiredProps: [],
     allProps: ['id', 'createdAt', 'updatedAt'],
   },
@@ -269,22 +247,21 @@ const EXPECTED_SCHEMAS: Array<{
 describe('Spec schema shape validation', () => {
   for (const expected of EXPECTED_SCHEMAS) {
     describe(expected.name, () => {
-      const fullPath = join(SCHEMAS_BASE, expected.specPath);
-      const specSchema = loadYaml(fullPath);
-      const specAllProps = getTopLevelPropertyNames(specSchema, fullPath);
+      const specSchema = getSchema(expected.schemaName);
+      const specAllProps = getTopLevelPropertyNames(specSchema);
       const specRequired = getRequiredProperties(specSchema);
 
-      test(`spec has the properties we expect`, () => {
-        const missing = expected.allProps.filter((p) => !specAllProps.some((sp) => sp === p));
+      test('spec has the properties we expect', () => {
+        const missing = expected.allProps.filter((property) => !specAllProps.includes(property));
         expect(missing).toEqual([]);
       });
 
-      test(`our allProps list covers all spec properties`, () => {
-        const extra = specAllProps.filter((p) => !expected.allProps.includes(p));
+      test('our allProps list covers all spec properties', () => {
+        const extra = specAllProps.filter((property) => !expected.allProps.includes(property));
         expect(extra).toEqual([]);
       });
 
-      test(`required properties match`, () => {
+      test('required properties match', () => {
         expect(specRequired.sort()).toEqual(expected.requiredProps.sort());
       });
     });
@@ -293,38 +270,38 @@ describe('Spec schema shape validation', () => {
 
 describe('Spec property types vs TypeScript types', () => {
   test('Workflow has correct type for id field', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/workflows/spec/schemas/workflow.yml'));
+    const schema = getSchema('workflow');
     const idProp = schema.properties!.id as SchemaDoc;
     expect(getScalarType(idProp.type, idProp.format as string)).toBe('string');
   });
 
   test('Execution has correct type for id field', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/executions/spec/schemas/execution.yml'));
+    const schema = getSchema('execution');
     const idProp = schema.properties!.id as SchemaDoc;
     expect(getScalarType(idProp.type, idProp.format as string)).toBe('number');
   });
 
   test('Workflow has correct type for active field', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/workflows/spec/schemas/workflow.yml'));
+    const schema = getSchema('workflow');
     const prop = schema.properties!.active as SchemaDoc;
     expect(getScalarType(prop.type, prop.format as string)).toBe('boolean');
   });
 
   test('Execution has correct type for workflowId field', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/executions/spec/schemas/execution.yml'));
+    const schema = getSchema('execution');
     const prop = schema.properties!.workflowId as SchemaDoc;
     expect(getScalarType(prop.type, prop.format as string)).toBe('number');
   });
 
   test('Execution has correct type for status field (enum)', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/executions/spec/schemas/execution.yml'));
+    const schema = getSchema('execution');
     const prop = schema.properties!.status as SchemaDoc;
     expect(getScalarType(prop.type)).toBe('string');
     expect(prop.enum).toEqual(['canceled', 'crashed', 'error', 'new', 'running', 'success', 'unknown', 'waiting']);
   });
 
   test('Execution has correct type for mode field (enum)', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/executions/spec/schemas/execution.yml'));
+    const schema = getSchema('execution');
     const prop = schema.properties!.mode as SchemaDoc;
     expect(getScalarType(prop.type)).toBe('string');
     expect(prop.enum).toEqual([
@@ -342,58 +319,58 @@ describe('Spec property types vs TypeScript types', () => {
   });
 
   test('WorkflowSettings has correct type for saveDataErrorExecution', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/workflows/spec/schemas/workflowSettings.yml'));
+    const schema = getSchema('workflowSettings');
     const prop = schema.properties!.saveDataErrorExecution as SchemaDoc;
     expect(getScalarType(prop.type)).toBe('string');
   });
 
   test('WorkflowSettings has correct type for executionTimeout', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/workflows/spec/schemas/workflowSettings.yml'));
+    const schema = getSchema('workflowSettings');
     const prop = schema.properties!.executionTimeout as SchemaDoc;
     expect(getScalarType(prop.type)).toBe('number');
   });
 
   test('DataTable has correct type for columns (array)', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/data-tables/spec/schemas/dataTable.yml'));
+    const schema = getSchema('dataTable');
     const prop = schema.properties!.columns as SchemaDoc;
     expect(getScalarType(prop.type)).toBe('array');
   });
 
   test('DataTableColumn has correct enum for type field', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/data-tables/spec/schemas/dataTableColumn.yml'));
+    const schema = getSchema('dataTableColumn');
     const prop = schema.properties!.type as SchemaDoc;
     expect(prop.enum).toEqual(['string', 'number', 'boolean', 'date']);
   });
 
   test('Credential is required and has correct fields', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/credentials/spec/schemas/credential.yml'));
-    expect(schema.required).toEqual(['name', 'type', 'data']);
+    const schema = getSchema('credential');
+    expect(schema.required?.slice().sort()).toEqual(['name', 'type', 'data'].sort());
   });
 
   test('Tag is required and has correct fields', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/tags/spec/schemas/tag.yml'));
-    expect(schema.required).toEqual(['name']);
+    const schema = getSchema('tag');
+    expect(schema.required?.slice().sort()).toEqual(['name'].sort());
   });
 
   test('User has correct required fields', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/users/spec/schemas/user.yml'));
-    expect(schema.required).toEqual(['email']);
+    const schema = getSchema('user');
+    expect(schema.required?.slice().sort()).toEqual(['email'].sort());
   });
 
   test('Variable has correct required fields', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/variables/spec/schemas/variable.yml'));
-    expect(schema.required).toEqual(['key', 'value']);
+    const schema = getSchema('variable');
+    expect(schema.required?.slice().sort()).toEqual(['key', 'value'].sort());
   });
 
   test('Project has correct required fields', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/projects/spec/schemas/project.yml'));
-    expect(schema.required).toEqual(['name']);
+    const schema = getSchema('project');
+    expect(schema.required?.slice().sort()).toEqual(['name'].sort());
   });
 });
 
 describe('Spec enum values', () => {
   test('WorkflowNode.onError values', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/workflows/spec/schemas/node.yml'));
+    const schema = getSchema('node');
     const onErrorProp = schema.properties!.onError as SchemaDoc;
     if (onErrorProp.enum) {
       expect(onErrorProp.enum).toContain('continueRegularOutput');
@@ -401,7 +378,7 @@ describe('Spec enum values', () => {
   });
 
   test('WorkflowSettings.callerPolicy values', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/workflows/spec/schemas/workflowSettings.yml'));
+    const schema = getSchema('workflowSettings');
     const prop = schema.properties!.callerPolicy as SchemaDoc;
     if (prop.enum) {
       expect(prop.enum).toContain('any');
@@ -411,27 +388,27 @@ describe('Spec enum values', () => {
 
 describe('Spec additionalProperties', () => {
   test('Workflow has additionalProperties: false', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/workflows/spec/schemas/workflow.yml'));
+    const schema = getSchema('workflow');
     expect(schema.additionalProperties).toBe(false);
   });
 
   test('Tag has additionalProperties: false', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/tags/spec/schemas/tag.yml'));
+    const schema = getSchema('tag');
     expect(schema.additionalProperties).toBe(false);
   });
 
   test('Variable has additionalProperties: false', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/variables/spec/schemas/variable.yml'));
+    const schema = getSchema('variable');
     expect(schema.additionalProperties).toBe(false);
   });
 
   test('Project has additionalProperties: false', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/projects/spec/schemas/project.yml'));
+    const schema = getSchema('project');
     expect(schema.additionalProperties).toBe(false);
   });
 
   test('DataTableRow has additionalProperties: true (dynamic columns)', () => {
-    const schema = loadYaml(join(SCHEMAS_BASE, 'handlers/data-tables/spec/schemas/dataTableRow.yml'));
+    const schema = getSchema('dataTableRow');
     expect(schema.additionalProperties).toBe(true);
   });
 });

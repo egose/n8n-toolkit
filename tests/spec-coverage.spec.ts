@@ -2,15 +2,14 @@ import { describe, expect, test } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import YAML from 'yaml';
 
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const OPENAPI_PATH = join(REPO_ROOT, '.public-api/v1/openapi.yml');
+const OPENAPI_PATH = join(REPO_ROOT, '.public-api/v1.1.1.json');
 const CLIENTS_DIR = join(REPO_ROOT, 'src/clients');
 const METHOD_KEYS = ['get', 'post', 'put', 'patch', 'delete'] as const;
 
 interface OpenApiDocument {
-  paths?: Record<string, { $ref?: string }>;
+  paths?: Record<string, OpenApiPathDocument>;
 }
 
 interface OpenApiPathDocument {
@@ -21,8 +20,8 @@ interface OpenApiPathDocument {
   delete?: unknown;
 }
 
-function loadYaml<T>(filePath: string): T {
-  return YAML.parse(readFileSync(filePath, 'utf8')) as T;
+function loadJson<T>(filePath: string): T {
+  return JSON.parse(readFileSync(filePath, 'utf8')) as T;
 }
 
 function normalizePath(path: string): string {
@@ -30,19 +29,12 @@ function normalizePath(path: string): string {
 }
 
 function readSpecOperations(): Set<string> {
-  const openapi = loadYaml<OpenApiDocument>(OPENAPI_PATH);
+  const openapi = loadJson<OpenApiDocument>(OPENAPI_PATH);
   const operations = new Set<string>();
 
   for (const [path, pathDoc] of Object.entries(openapi.paths ?? {})) {
-    if (!pathDoc.$ref) {
-      continue;
-    }
-
-    const refPath = join(REPO_ROOT, '.public-api/v1', pathDoc.$ref.replace(/^\.\//, ''));
-    const refDoc = loadYaml<OpenApiPathDocument>(refPath);
-
     for (const method of METHOD_KEYS) {
-      if (refDoc[method] === undefined) {
+      if (pathDoc[method] === undefined) {
         continue;
       }
 
