@@ -1,3 +1,9 @@
+## [0.4.1](https://github.com/egose/n8n-client/compare/v0.4.0...v0.4.1) (2026-06-16)
+
+### Bug Fixes
+
+* remove ignored and obsolete public API v1 artifacts ([e46aa55](https://github.com/egose/n8n-client/commit/e46aa555f95608e47b5592e867fb4a73a5ad098d))
+
 ## [0.4.0](https://github.com/egose/n8n-client/compare/v0.3.0...v0.4.0) (2026-06-14)
 
 ### Features
