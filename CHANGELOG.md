@@ -1,3 +1,9 @@
+## [0.4.2](https://github.com/egose/n8n-client/compare/v0.4.1...v0.4.2) (2026-06-19)
+
+### Refactors
+
+* **website:** move faster plugin to devDependencies and adjust tailwind layers ([6ccaeba](https://github.com/egose/n8n-client/commit/6ccaeba1a85dc12eb4e0eeda11a8b597ec98c939))
+
 ## [0.4.1](https://github.com/egose/n8n-client/compare/v0.4.0...v0.4.1) (2026-06-16)
 
 ### Bug Fixes
