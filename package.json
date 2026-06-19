@@ -1,6 +1,6 @@
 {
   "name": "@egose/n8n-client",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "TypeScript client for the n8n Public API with cursor-based pagination and typed resource handles.",
   "keywords": [
     "n8n",
