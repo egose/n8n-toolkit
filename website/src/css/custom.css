@@ -1,7 +1,6 @@
 @import 'tailwindcss';
-@layer theme, base, components, utilities;
+@layer theme, components, utilities;
 @import 'tailwindcss/theme.css' layer(theme);
-@import 'tailwindcss/preflight.css' layer(base);
 @import 'tailwindcss/utilities.css' layer(utilities);
 
 /**
@@ -43,4 +42,14 @@ article.margin-bottom--xl h3 {
 /* Home Button in Breadcrumbs */
 a.breadcrumbs__link[aria-label='Home page'] {
   vertical-align: bottom;
+}
+
+/* Tailwind preflight makes svg display:block, which breaks Docusaurus inline UI icons. */
+.navbar__link svg,
+.navbar__brand svg,
+.breadcrumbs__link svg,
+.pagination-nav__link svg,
+.table-of-contents__link svg {
+  display: inline-block;
+  vertical-align: middle;
 }

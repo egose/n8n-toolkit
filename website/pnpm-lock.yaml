@@ -11,9 +11,6 @@ importers:
       '@docusaurus/core':
         specifier: 3.10.0
         version: 3.10.0(@docusaurus/faster@3.10.1(@docusaurus/types@3.10.0(@swc/core@1.15.41)(acorn@8.15.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)))(@mdx-js/react@3.1.1(@types/react@19.2.14)(react@19.2.5))(@rspack/core@1.7.11)(@swc/core@1.15.41)(acorn@8.15.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3)
-      '@docusaurus/faster':
-        specifier: ^3.10.1
-        version: 3.10.1(@docusaurus/types@3.10.0(@swc/core@1.15.41)(acorn@8.15.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))
       '@docusaurus/preset-classic':
         specifier: 3.10.0
         version: 3.10.0(@algolia/client-search@5.46.2)(@docusaurus/faster@3.10.1(@docusaurus/types@3.10.0(@swc/core@1.15.41)(acorn@8.15.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)))(@mdx-js/react@3.1.1(@types/react@19.2.14)(react@19.2.5))(@rspack/core@1.7.11)(@swc/core@1.15.41)(@types/react@19.2.14)(acorn@8.15.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(search-insights@2.17.3)(typescript@6.0.3)
@@ -42,6 +39,9 @@ importers:
         specifier: ^19.2.3
         version: 19.2.5(react@19.2.5)
     devDependencies:
+      '@docusaurus/faster':
+        specifier: ^3.10.1
+        version: 3.10.1(@docusaurus/types@3.10.0(@swc/core@1.15.41)(acorn@8.15.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))
       '@docusaurus/module-type-aliases':
         specifier: 3.10.0
         version: 3.10.0(@swc/core@1.15.41)(acorn@8.15.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)

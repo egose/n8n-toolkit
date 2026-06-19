@@ -1,26 +1,13 @@
 name: Setup NPM Packages
-description: Setup required NPM packages with caching for pnpm and Cypress
+description: Setup required NPM packages with caching for pnpm
 runs:
   using: composite
   steps:
-    - name: Get pnpm store path
-      id: pnpm-store
-      run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
-      shell: bash
-
-    - name: Cache pnpm store
-      uses: actions/cache@v5.0.5
-      with:
-        path: ${{ env.STORE_PATH }}
-        key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          pnpm-${{ runner.os }}-
-
-    - name: Install NPM packages
-      run: pnpm install
-      shell: bash
-
-    - name: Install Website NPM packages
-      run: pnpm install
-      working-directory: website
-      shell: bash
+  - name: Setup Tools
+    uses: egose/actions/pnpm-packages@10cae796655b21f0f26d89546815206570bb9e2a
+    with:
+      frozen: 'true'
+      ignore-scripts: 'true'
+      paths: |
+        .
+        website
