@@ -1,3 +1,9 @@
+## [0.4.5](https://github.com/egose/n8n-client/compare/v0.4.4...v0.4.5) (2026-07-06)
+
+### Docs
+
+* update license copyright notice ([d41e6f2](https://github.com/egose/n8n-client/commit/d41e6f2f6c223a43098f49682f7faae7594d967a))
+
 ## [0.4.4](https://github.com/egose/n8n-client/compare/v0.4.3...v0.4.4) (2026-06-25)
 
 ## [0.4.3](https://github.com/egose/n8n-client/compare/v0.4.2...v0.4.3) (2026-06-19)
