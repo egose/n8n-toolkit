@@ -24,6 +24,7 @@ repos:
     entry: .bin/prettier.sh
     language: script
     pass_filenames: true
+    require_serial: true
     files: \.(ts|tsx|js|jsx|json|css|scss|md|html|yaml|yml)$
     exclude: .git/COMMIT_EDITMSG
   - id: python-format

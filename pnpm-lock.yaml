@@ -23,18 +23,15 @@ importers:
       '@release-it/bumper':
         specifier: ^7.0.5
         version: 7.0.6(release-it@20.2.0(@types/node@25.9.2))
+      '@repo-toolkit/changelog':
+        specifier: ^0.1.0
+        version: 0.1.0(conventional-commits-filter@5.0.0)
       '@types/eslint-config-prettier':
         specifier: ^6.11.3
         version: 6.11.3
       '@types/node':
         specifier: ^25.5.0
         version: 25.9.2
-      conventional-changelog:
-        specifier: ^7.2.0
-        version: 7.2.0(conventional-commits-filter@5.0.0)
-      conventional-changelog-conventionalcommits:
-        specifier: ^9.3.1
-        version: 9.3.1
       dotenv:
         specifier: ^17.4.0
         version: 17.4.2
@@ -810,6 +807,11 @@ packages:
     peerDependencies:
       release-it: ^18.0.0 || ^19.0.0 || ^20.0.0
 
+  '@repo-toolkit/changelog@0.1.0':
+    resolution: {integrity: sha512-t2t7WGHKPmBbHt7dPlyaKKDeW4huCQeDFBKwH+RVL6CBDAhYdPimLvQEltyzdQkVnPNVQ5m7L1HaQ4A+VHUl9Q==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   '@rolldown/binding-android-arm64@1.0.3':
     resolution: {integrity: sha512-454rs7jHngixp/NMxd5srYD57OnzSlZ/eFTETjORQHLwJG1lRtmNOJcBerZlfu4GjKqeq8aCCIQrMdHyhI51Hw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -1403,8 +1405,8 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  conventional-changelog@7.2.0:
-    resolution: {integrity: sha512-BEdgG+vPl53EVlTTk9sZ96aagFp0AQ5pw/ggiQMy2SClLbTo1r0l+8dSg79gkLOO5DS1Lswuhp5fWn6RwE+ivg==}
+  conventional-changelog@7.2.1:
+    resolution: {integrity: sha512-smcpqCeNRCAoL586/Iql8GfVsduP1JDrr7SAzKHWM5C5voDzKhc3QtqwVWeKMhvVw4iYfAr+znz1TF4kPXVm3A==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -1775,6 +1777,7 @@ packages:
   git-raw-commits@5.0.1:
     resolution: {integrity: sha512-Y+csSm2GD/PCSh6Isd/WiMjNAydu0VBiG9J7EdQsNA5P9uXvLayqjmTsNlK5Gs9IhblFZqOU0yid5Il5JPoLiQ==}
     engines: {node: '>=18'}
+    deprecated: Deprecated and no longer maintained. Use @conventional-changelog/git-client instead.
     hasBin: true
 
   git-up@8.1.1:
@@ -3462,6 +3465,13 @@ snapshots:
       release-it: 20.2.0(@types/node@25.9.2)
       semver: 7.8.3
 
+  '@repo-toolkit/changelog@0.1.0(conventional-commits-filter@5.0.0)':
+    dependencies:
+      conventional-changelog: 7.2.1(conventional-commits-filter@5.0.0)
+      conventional-changelog-conventionalcommits: 9.3.1
+    transitivePeerDependencies:
+      - conventional-commits-filter
+
   '@rolldown/binding-android-arm64@1.0.3':
     optional: true
 
@@ -3983,7 +3993,7 @@ snapshots:
       meow: 13.2.0
       semver: 7.8.3
 
-  conventional-changelog@7.2.0(conventional-commits-filter@5.0.0):
+  conventional-changelog@7.2.1(conventional-commits-filter@5.0.0):
     dependencies:
       '@conventional-changelog/git-client': 2.7.0(conventional-commits-filter@5.0.0)(conventional-commits-parser@6.4.0)
       '@simple-libs/hosted-git-info': 1.0.2

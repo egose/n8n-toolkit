@@ -19,12 +19,8 @@ jobs:
     - name: Setup NPM Packages
       uses: ./.github/actions/setup-npm
 
-    - name: Set executable permissions for local format scripts
-      run: |
-        chmod +x .bin/prettier.sh
-
     - name: Run pre-commit
-      uses: egose/actions/precommit@68448c0027aeafe0a824f6c9b33fd875e77b844c
+      uses: egose/actions/precommit@05df4c6833f0542c16f2a8ab90022fbd4a1a4c6b
       with:
         config: .pre-commit-config.yaml
         commit-on-push: false
