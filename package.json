@@ -61,7 +61,7 @@
     "@commitlint/format": "^20.5.0",
     "@eslint/js": "^10.0.1",
     "@release-it/bumper": "^7.0.5",
-    "@repo-toolkit/changelog": "^0.1.0",
+    "@repo-toolkit/changelog": "^0.2.0",
     "@types/eslint-config-prettier": "^6.11.3",
     "@types/node": "^25.5.0",
     "dotenv": "^17.4.0",
