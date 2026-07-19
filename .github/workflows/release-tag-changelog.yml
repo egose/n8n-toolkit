@@ -1,4 +1,4 @@
-name: 20.Create Release Tag
+name: Create Release Tag
 
 on:
   workflow_dispatch:
@@ -19,27 +19,27 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v6.0.3
-        with:
-          ssh-key: ${{ secrets.SSH_KEY }}
-          fetch-depth: 0
-          fetch-tags: true
+    - name: Checkout Repository
+      uses: actions/checkout@v7.0.0
+      with:
+        ssh-key: ${{ secrets.SSH_KEY }}
+        fetch-depth: 0
+        fetch-tags: true
 
-      - name: Setup Tools
-        uses: ./.github/actions/setup-tools
+    - name: Setup Tools
+      uses: ./.github/actions/setup-tools
 
-      - name: Setup NPM Packages
-        uses: ./.github/actions/setup-npm
+    - name: Setup NPM Packages
+      uses: ./.github/actions/setup-npm
 
-      - name: Create Release Tag
-        uses: egose/actions/release-tag@68448c0027aeafe0a824f6c9b33fd875e77b844c
-        with:
-          tag: ${{ github.event.inputs.tag }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-merge-pr: 'true'
-          delete-merged-branch: 'true'
-          # sign-commit: 'true'
-          # gpg-private-key: ${{ secrets.RELEASE_GPG_PRIVATE_KEY }}
-          # gpg-passphrase: ${{ secrets.RELEASE_GPG_PASSPHRASE }}
-          # git-user-email: ${{ secrets.RELEASE_USER_EMAIL }}
+    - name: Create Release Tag
+      uses: egose/actions/release-tag@d0d44d296e8a29197b8ce7c9c692ecc6440b3045
+      with:
+        tag: ${{ github.event.inputs.tag }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        auto-merge-pr: 'true'
+        delete-merged-branch: 'true'
+        sign-commit: 'true'
+        gpg-private-key: ${{ secrets.RELEASE_GPG_PRIVATE_KEY }}
+        gpg-passphrase: ${{ secrets.RELEASE_GPG_PASSPHRASE }}
+        git-user-email: ${{ secrets.RELEASE_USER_EMAIL }}

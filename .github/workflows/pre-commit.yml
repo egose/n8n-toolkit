@@ -1,4 +1,4 @@
-name: 11.Run pre-commit
+name: Check code/commit conventions
 
 on: push
 
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
     - name: Setup Tools
       uses: ./.github/actions/setup-tools
@@ -20,8 +20,8 @@ jobs:
       uses: ./.github/actions/setup-npm
 
     - name: Run pre-commit
-      uses: egose/actions/precommit@05df4c6833f0542c16f2a8ab90022fbd4a1a4c6b
+      uses: egose/actions/pre-commit@d0d44d296e8a29197b8ce7c9c692ecc6440b3045
       with:
         config: .pre-commit-config.yaml
-        commit-on-push: false
+        commit-on-push: true
         commit-on-pr: false

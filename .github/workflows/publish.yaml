@@ -1,4 +1,4 @@
-name: 21.Publish NPM Package
+name: Publish NPM Packages
 
 on:
   push:
@@ -9,10 +9,10 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-24.04
     permissions:
-      contents: read
+      contents: write
 
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
     - name: Setup Tools
       uses: ./.github/actions/setup-tools
@@ -27,4 +27,4 @@ jobs:
         registry=https://registry.npmjs.org/
         always-auth=true
         EOF
-        npm-publish-package
+        pnpm publish-packages -- --version ${{github.ref_name}}
