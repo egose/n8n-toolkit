@@ -1,0 +1,50 @@
+{
+  "name": "@egose/n8n-client",
+  "description": "TypeScript client for the n8n Public API with cursor-based pagination and typed resource handles.",
+  "version": "0.0.0-PLACEHOLDER",
+  "license": "PLACEHOLDER",
+  "sideEffects": false,
+  "repository": "PLACEHOLDER",
+  "author": "PLACEHOLDER",
+  "keywords": [
+    "n8n",
+    "n8n-api",
+    "workflow-automation",
+    "automation",
+    "typescript",
+    "client",
+    "api-client"
+  ],
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "test": "pnpm test:unit && pnpm test:integration",
+    "test:unit": "pnpm --filter @egose/n8n-client... build && vitest run --no-cache --config vitest.unit.config.ts",
+    "test:integration": "pnpm --filter @egose/n8n-client... build && vitest run --no-cache --config vitest.integration.config.ts"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js"
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/egose/n8n-client/issues"
+  },
+  "homepage": "https://n8n-client.pages.dev/",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {}
+}

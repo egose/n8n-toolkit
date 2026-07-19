@@ -1,57 +1,29 @@
 {
-  "name": "@egose/n8n-client",
+  "name": "@egose/n8n-toolkit",
   "version": "0.1.0",
-  "description": "TypeScript client for the n8n Public API with cursor-based pagination and typed resource handles.",
-  "keywords": [
-    "n8n",
-    "n8n-api",
-    "workflow-automation",
-    "automation",
-    "typescript",
-    "client",
-    "api-client"
-  ],
+  "description": "A toolkit for n8n, providing a TypeScript client for the n8n API and utilities for workflow automation.",
   "scripts": {
-    "dev": "tsc -w",
-    "build": "rimraf ./build && tsc",
-    "bundle": "tsup",
     "lint-fix": "eslint --fix .",
+    "build": "pnpm -r --if-present build",
+    "test": "pnpm -r --if-present --workspace-concurrency=1 test",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
-    "test:unit": "vitest run --no-cache --config vitest.unit.config.ts",
-    "test:integration": "vitest run --no-cache --config vitest.integration.config.ts",
-    "test": "vitest run --no-cache",
     "release": "release-it",
-    "changelog": "repo-toolkit-changelog"
+    "changelog": "repo-toolkit-changelog",
+    "publish-packages": "repo-toolkit-publish-packages"
   },
   "type": "module",
-  "author": "J.Dev",
+  "keywords": [],
+  "author": "Junmin Ahn",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "files": [
-    "dist",
-    "!dist/**/*.map",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.js"
-    }
-  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/egose/n8n-client"
+    "url": "https://github.com/egose/n8n-toolkit.git"
   },
   "bugs": {
-    "url": "https://github.com/egose/n8n-client/issues"
+    "url": "https://github.com/egose/n8n-toolkit/issues"
   },
-  "homepage": "https://n8n-client.pages.dev/",
+  "homepage": "https://n8n-toolkit.pages.dev/",
   "engines": {
     "node": ">=20"
   },
@@ -61,7 +33,8 @@
     "@commitlint/format": "^20.5.0",
     "@eslint/js": "^10.0.1",
     "@release-it/bumper": "^7.0.5",
-    "@repo-toolkit/changelog": "^0.2.0",
+    "@repo-toolkit/changelog": "^0.7.2",
+    "@repo-toolkit/publish-packages": "^0.7.2",
     "@types/eslint-config-prettier": "^6.11.3",
     "@types/node": "^25.5.0",
     "dotenv": "^17.4.0",

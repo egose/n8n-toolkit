@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@egose/n8n-client": ["packages/n8n-client/src/index.ts"]
+    }
+  }
+}

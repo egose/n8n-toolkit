@@ -11,7 +11,7 @@ export interface JsonObject {
   [key: string]: JsonValue;
 }
 /** JSON array of arbitrary JSON values. */
-export interface JsonArray extends Array<JsonValue> {}
+export type JsonArray = JsonValue[];
 
 /**
  * Constructor config for `N8nClient`. Exactly one auth method must be provided.
