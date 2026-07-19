@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v6.0.0
+  rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # pragma: allowlist secret; frozen: v6.0.0
   hooks:
   - id: check-case-conflict
   - id: check-executables-have-shebangs
@@ -11,8 +11,13 @@ repos:
   - id: check-ast
   - id: end-of-file-fixer
   - id: trailing-whitespace
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: 4380fbb73a154b5f5624794c1c78d9719ccc860f  # pragma: allowlist secret; frozen: v2.16.0
+  hooks:
+  - id: pretty-format-yaml
+    args: [--autofix, --indent, '2']
 - repo: https://github.com/Yelp/detect-secrets
-  rev: v1.5.0
+  rev: 68e8b45440415753fff70a312ece8da92ba85b4a  # pragma: allowlist secret; frozen: v1.5.0
   hooks:
   - id: detect-secrets
     args: [--baseline, .secrets.baseline]
@@ -27,16 +32,25 @@ repos:
     require_serial: true
     files: \.(ts|tsx|js|jsx|json|css|scss|md|html|yaml|yml)$
     exclude: .git/COMMIT_EDITMSG
+  - id: eslint
+    name: eslint
+    entry: .bin/eslint.sh
+    language: script
+    pass_filenames: true
+    require_serial: true
+    exclude: .git/COMMIT_EDITMSG
   - id: python-format
     name: lint Python
     entry: black
     language: system
     types: [python]
-  # - id: eslint-app
-  #   name: lint app
-  #   entry: bash -c 'pnpm --filter ./app lint-fix'
-  #   language: system
-  #   pass_filenames: false
+  - id: commitlint
+    name: commitlint
+    entry: .bin/commitlint.sh
+    language: script
+    verbose: true
+    pass_filenames: false
+    stages: [commit-msg]
 
 exclude: |
   (?x)^(
