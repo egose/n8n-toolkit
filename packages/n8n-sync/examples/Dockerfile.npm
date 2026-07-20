@@ -1,0 +1,54 @@
+# syntax=docker/dockerfile:1
+#
+# Custom n8n image with the @egose/n8n-sync external-hook bundles installed
+# from the published npm package.
+#
+# Build:
+#   docker build -f Dockerfile.npm \
+#     --build-arg N8N_VERSION=2.31.2 \
+#     --build-arg N8N_SYNC_VERSION=0.7.0 \
+#     -t n8n-with-sync .
+#
+# Run as publisher (source instance):
+#   docker run -e SYNC_SUBSCRIBER_URLS=https://n8n-target.example.com \
+#              -e SYNC_SHARED_SECRET=<shared-secret> \
+#              -e EXTERNAL_HOOKS_FILES=/opt/n8n-hooks/publisher.cjs \
+#              n8n-with-sync
+#
+# Run as subscriber (target instance):
+#   docker run -e SYNC_SHARED_SECRET=<shared-secret> \
+#              -e EXTERNAL_HOOKS_FILES=/opt/n8n-hooks/subscriber.cjs \
+#              n8n-with-sync
+#
+# Both bundles are copied into the image; EXTERNAL_HOOKS_FILES selects which
+# one(s) to load (colon-separated for multiple files).
+
+ARG N8N_VERSION=latest
+ARG N8N_SYNC_VERSION=latest
+
+# ---------------------------------------------------------------------------
+# Stage 1: download @egose/n8n-sync from npm and extract the hook bundles
+# ---------------------------------------------------------------------------
+FROM node:22-alpine AS bundles
+ARG N8N_SYNC_VERSION
+
+WORKDIR /tmp
+RUN set -eux; \
+    npm pack "@egose/n8n-sync@${N8N_SYNC_VERSION}" --pack-destination /tmp; \
+    tarball="$(ls egose-n8n-sync-*.tgz)"; \
+    tar -xzf "${tarball}"; \
+    mkdir -p /bundles; \
+    cp package/publisher.cjs package/subscriber.cjs /bundles/
+
+# ---------------------------------------------------------------------------
+# Stage 2: n8n runtime image with the hook bundles baked in
+# ---------------------------------------------------------------------------
+FROM n8nio/n8n:${N8N_VERSION}
+
+COPY --from=bundles /bundles/ /opt/n8n-hooks/
+
+# Select the role for this container (override at runtime as needed):
+#   publisher:  /opt/n8n-hooks/publisher.cjs
+#   subscriber: /opt/n8n-hooks/subscriber.cjs
+#   both:       /opt/n8n-hooks/publisher.cjs:/opt/n8n-hooks/subscriber.cjs
+ENV EXTERNAL_HOOKS_FILES=/opt/n8n-hooks/publisher.cjs
