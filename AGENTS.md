@@ -1,5 +1,14 @@
 # AGENTS.md — Coding Agent Reference
 
+This monorepo contains two packages under `packages/`:
+
+| Package             | Purpose                                                                        | Reference                          |
+| ------------------- | ------------------------------------------------------------------------------ | ---------------------------------- |
+| `@egose/n8n-client` | Typed TypeScript client for the n8n Public API v1.                             | this file + `packages/n8n-client/` |
+| `@egose/n8n-sync`   | n8n external-hook bundles to sync credentials and workflows between instances. | `packages/n8n-sync/AGENTS.md`      |
+
+---
+
 Package: `@egose/n8n-client`
 Purpose: Typed TypeScript client for the n8n Public API v1.
 

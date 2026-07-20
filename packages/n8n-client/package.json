@@ -17,6 +17,7 @@
   ],
   "scripts": {
     "build": "tsup --config tsup.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
     "test": "pnpm test:unit",
     "test:unit": "pnpm --filter @egose/n8n-client... build && vitest run --no-cache --config vitest.unit.config.ts",
     "test:integration": "pnpm --filter @egose/n8n-client... build && vitest run --no-cache --config vitest.integration.config.ts"

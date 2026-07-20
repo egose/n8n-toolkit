@@ -1,0 +1,45 @@
+{
+  "name": "@egose/n8n-sync",
+  "description": "n8n external-hook bundles to sync credentials and workflows between n8n instances (publisher + subscriber).",
+  "version": "0.0.0-PLACEHOLDER",
+  "license": "PLACEHOLDER",
+  "sideEffects": false,
+  "repository": "PLACEHOLDER",
+  "author": "PLACEHOLDER",
+  "keywords": [
+    "n8n",
+    "n8n-hooks",
+    "n8n-external-hooks",
+    "workflow-automation",
+    "automation",
+    "typescript",
+    "sync"
+  ],
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
+    "test": "vitest run --no-cache --config vitest.config.ts"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "exports": {
+    "./publisher": {
+      "require": "./dist/publisher.cjs"
+    },
+    "./subscriber": {
+      "require": "./dist/subscriber.cjs"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  }
+}

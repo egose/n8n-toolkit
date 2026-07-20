@@ -2,3 +2,4 @@ node_modules
 dist
 build
 .wip
+.n8n
