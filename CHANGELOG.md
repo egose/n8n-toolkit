@@ -1,3 +1,14 @@
+## [0.7.0](https://github.com/egose/n8n-toolkit/compare/v0.6.0...v0.7.0) (2026-07-20)
+
+### Features
+
+* add n8n sync hook bundles and documentation ([c16ddca](https://github.com/egose/n8n-toolkit/commit/c16ddca194976364f93db5ef4f69e98ef232ac24))
+* **n8n-sync:** add multi-target sync delivery and dual auth modes ([d4d172d](https://github.com/egose/n8n-toolkit/commit/d4d172d689a2e5835bdb1eba13a9e88079568f57))
+
+### Documentation
+
+* **n8n-sync:** update sync package documentation for fan-out and hmac auth ([a6286e0](https://github.com/egose/n8n-toolkit/commit/a6286e024f119a36fb84ba7a0efda18df273e4ef))
+
 ## [0.6.0](https://github.com/egose/n8n-toolkit/compare/v0.5.0...v0.6.0) (2026-07-19)
 
 ### Features
