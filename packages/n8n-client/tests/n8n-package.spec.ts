@@ -20,6 +20,9 @@ describe('Implementation Consistency: N8nPackage', () => {
     const response = {
       package: { sourceN8nVersion: '1.0.0', sourceId: 'src-1', exportedAt: '2024-01-01T00:00:00.000Z' },
       workflows: [],
+      folders: [],
+      projects: [],
+      credentials: { matched: [], stubbed: [] },
       bindings: { workflows: {}, credentials: {} },
     };
     const http = createMockHttpClient([{ body: response }]);
@@ -43,5 +46,47 @@ describe('Implementation Consistency: N8nPackage', () => {
     expect(body.get('projectId')).toBe('proj-1');
     expect(body.get('workflowConflictPolicy')).toBe('new-version');
     expect(result).toEqual(response);
+  });
+
+  test('importPackage sends extended multipart options accepted by the handler', async () => {
+    const response = {
+      package: { sourceN8nVersion: '1.0.0', sourceId: 'src-1', exportedAt: '2024-01-01T00:00:00.000Z' },
+      workflows: [],
+      folders: [],
+      projects: [],
+      credentials: { matched: [], stubbed: [] },
+      bindings: { workflows: {}, credentials: {} },
+    };
+    const http = createMockHttpClient([{ body: response }]);
+    const handle = new N8nPackageClient(http);
+    const pkg = new Blob(['test']);
+
+    await handle.importPackage(pkg, {
+      projectId: 'proj-1',
+      folderId: 'folder-1',
+      credentialMatchingMode: 'name-and-type',
+      credentialMissingMode: 'create-stub',
+      bindings: { credentials: { 'cred-src-1': 'cred-dst-1' } },
+      workflowConflictPolicy: 'skip',
+      workflowPublishingPolicy: 'publish-all',
+      workflowIdPolicy: 'source',
+      folderConflictPolicy: 'fail',
+      dataTableMatchingMode: 'by-id',
+      dataTableMissingMode: 'must-preexist',
+      dataTableSchemaConflictPolicy: 'fail',
+    });
+
+    const request = http.request.mock.calls[0][0] as Record<string, unknown>;
+    const body = request.body as FormData;
+    expect(body.get('folderId')).toBe('folder-1');
+    expect(body.get('credentialMatchingMode')).toBe('name-and-type');
+    expect(body.get('credentialMissingMode')).toBe('create-stub');
+    expect(body.get('bindings')).toBe('{"credentials":{"cred-src-1":"cred-dst-1"}}');
+    expect(body.get('workflowPublishingPolicy')).toBe('publish-all');
+    expect(body.get('workflowIdPolicy')).toBe('source');
+    expect(body.get('folderConflictPolicy')).toBe('fail');
+    expect(body.get('dataTableMatchingMode')).toBe('by-id');
+    expect(body.get('dataTableMissingMode')).toBe('must-preexist');
+    expect(body.get('dataTableSchemaConflictPolicy')).toBe('fail');
   });
 });
