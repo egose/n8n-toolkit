@@ -1,3 +1,21 @@
+## [0.8.0](https://github.com/egose/n8n-toolkit/compare/v0.7.0...v0.8.0) (2026-07-21)
+
+### Features
+
+* **n8n-sync:** add integration sandbox and end-to-end sync coverage ([ef4f085](https://github.com/egose/n8n-toolkit/commit/ef4f0858968c8d21c7b4fe7282192d78573f346d))
+* **n8n-sync:** add owner project fallback for synced entities and update hook env docs ([5376d46](https://github.com/egose/n8n-toolkit/commit/5376d46b3f1e9d056156664014aa547df4b4e4f3))
+* **n8n-sync:** handle n8n hook payload variations for workflows and credentials ([67eb8e2](https://github.com/egose/n8n-toolkit/commit/67eb8e22797e238af63693b8af953ae1c64e415f))
+
+### Bug Fixes
+
+* **n8n-sync:** fail fast when integration source credentials are unauthorized ([5d96a3f](https://github.com/egose/n8n-toolkit/commit/5d96a3fd8c9d76f100189056ba00234aaab56615))
+* **n8n-sync:** resolve credentials from payload or database consistently ([537a726](https://github.com/egose/n8n-toolkit/commit/537a726f0565833037aa26338e233d8b6600406d))
+
+### Documentation
+
+* add container examples for syncing hooks ([c8b1400](https://github.com/egose/n8n-toolkit/commit/c8b14002c767660ee68fdb923f58ac1a02de8e99))
+* **n8n-sync:** clarify external hook configuration in package guidance ([1b2d034](https://github.com/egose/n8n-toolkit/commit/1b2d034105ddf54a78b0361e06ce55ea61a87740))
+
 ## [0.7.0](https://github.com/egose/n8n-toolkit/compare/v0.6.0...v0.7.0) (2026-07-20)
 
 ### Features
