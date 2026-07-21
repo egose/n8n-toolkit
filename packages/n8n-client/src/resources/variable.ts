@@ -1,5 +1,5 @@
 import VariableClient from '../clients/variable.js';
-import type { Variable, VariableCreate, VariableListParams } from '../types.js';
+import type { Variable, VariableListParams, VariableUpdate } from '../types.js';
 import BaseResource from './base.js';
 
 export default class VariableResource extends BaseResource<Variable> {
@@ -27,19 +27,13 @@ export default class VariableResource extends BaseResource<Variable> {
     return this.replaceSnapshot((await this.variables.getResource(this.id, this.params)).data);
   }
 
-  async update(data: VariableCreate): Promise<this> {
+  async update(data: VariableUpdate): Promise<this> {
     await this.variables.update(this.id, data);
     return this.mergeSnapshot(data);
   }
 
-  async patch(data: Partial<VariableCreate>): Promise<this> {
-    await this.variables.update(this.id, {
-      key: this.data.key,
-      value: this.data.value,
-      ...(this.data.project ? { projectId: this.data.project.id } : {}),
-      ...data,
-    });
-
+  async patch(data: VariableUpdate): Promise<this> {
+    await this.variables.update(this.id, data);
     return this.mergeSnapshot(data);
   }
 

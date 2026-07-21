@@ -98,17 +98,14 @@ describe('Implementation Consistency: Variable', () => {
     expect(http.delete).toHaveBeenCalledWith('/variables/v-1');
   });
 
-  test('variable resource patch merges key and value from the current snapshot', async () => {
+  test('variable resource patch sends only the partial payload (handler accepts partial updates)', async () => {
     const http = createMockHttpClient([{ body: undefined }]);
     const handle = new VariableClient(http);
     const resource = new VariableResource(handle, { id: 'v-1', key: 'MY_API_KEY', value: 'secret123' });
 
     await resource.patch({ value: 'newsecret' });
 
-    expect(http.put).toHaveBeenCalledWith('/variables/v-1', {
-      key: 'MY_API_KEY',
-      value: 'newsecret',
-    });
+    expect(http.put).toHaveBeenCalledWith('/variables/v-1', { value: 'newsecret' });
     expect(resource.value).toBe('newsecret');
   });
 });

@@ -79,9 +79,11 @@ import type {
   InstallCommunityPackageRequest,
   JsonObject,
   PaginationParams,
+  Project,
+  ProjectCreate,
   ProjectListResponse,
   ProjectMemberListResponse,
-  ProjectMutation,
+  ProjectUpdate,
   PullRequest,
   SourceControlledFile,
   StopManyExecutionsRequest,
@@ -106,6 +108,7 @@ import type {
   VariableCreate,
   VariableListParams,
   VariableListResponse,
+  VariableUpdate,
   Workflow,
   WorkflowActivateRequest,
   WorkflowConnections,
@@ -264,9 +267,12 @@ describe('Public API contracts', () => {
       Promise<{ data: ProjectResource[]; nextCursor?: string }>
     >();
     expectTypeOf<ReturnType<ProjectClient['getResource']>>().toEqualTypeOf<Promise<ProjectResource>>();
-    expectTypeOf(handle.create({ name: 'Project' } satisfies ProjectMutation)).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.update('proj-1', { name: 'Renamed' } satisfies ProjectMutation)).toEqualTypeOf<Promise<void>>();
+    expectTypeOf(handle.create({ name: 'Project' } satisfies ProjectCreate)).toEqualTypeOf<Promise<Project>>();
+    expectTypeOf<ReturnType<ProjectClient['createResource']>>().toEqualTypeOf<Promise<ProjectResource>>();
+    expectTypeOf(handle.update('proj-1', { name: 'Renamed' } satisfies ProjectUpdate)).toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<ProjectClient['updateResource']>>().toEqualTypeOf<Promise<ProjectResource>>();
     expectTypeOf(handle.delete('proj-1')).toEqualTypeOf<Promise<void>>();
+    expectTypeOf(handle.delete('proj-1', 'proj-2')).toEqualTypeOf<Promise<void>>();
     expectTypeOf(handle.listMembers('proj-1', {} satisfies PaginationParams)).toEqualTypeOf<
       Promise<ProjectMemberListResponse>
     >();
@@ -388,7 +394,7 @@ describe('Public API contracts', () => {
     expectTypeOf<ReturnType<VariableClient['get']>>().toEqualTypeOf<Promise<Variable>>();
     expectTypeOf<ReturnType<VariableClient['getResource']>>().toEqualTypeOf<Promise<VariableResource>>();
     expectTypeOf(handle.create({ key: 'x', value: 'y' } satisfies VariableCreate)).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.update('var-1', { key: 'x', value: 'y' } satisfies VariableCreate)).toEqualTypeOf<
+    expectTypeOf(handle.update('var-1', { key: 'x', value: 'y' } satisfies VariableUpdate)).toEqualTypeOf<
       Promise<void>
     >();
     expectTypeOf(handle.delete('var-1')).toEqualTypeOf<Promise<void>>();
@@ -473,6 +479,13 @@ describe('Public API contracts', () => {
     const project = new ProjectResource(projects, workflows, folders, variables, dataTables, executions, {
       id: 'proj-1',
       name: 'Project',
+      type: 'team',
+      creatorId: 'user-1',
+      icon: null,
+      description: null,
+      customTelemetryTags: [],
+      createdAt: '',
+      updatedAt: '',
     });
     const workflow = new WorkflowResource(workflows, executions, {
       id: 'wf-1',

@@ -661,7 +661,7 @@ export interface Variable {
   /** Optional variable type metadata from the API. */
   type?: string;
   /** Owning project, when included by the API response. */
-  project?: Project;
+  project?: ProjectListItem;
 }
 
 /** Payload for creating or replacing a variable. */
@@ -672,6 +672,25 @@ export interface VariableCreate {
   value: string;
   /** Target project ID. */
   projectId?: string;
+}
+
+/**
+ * Payload for partially updating a variable.
+ *
+ * The n8n handler's `UpdateVariableRequestDto` accepts every field as
+ * optional, so `PUT /variables/{id}` performs a true partial update (unlike
+ * the spec, which reuses `variable.create` and requires `key`+`value`).
+ * Any field omitted from this payload is left unchanged on the server.
+ */
+export interface VariableUpdate {
+  /** Variable key name (e.g. `API_URL`). */
+  key?: string;
+  /** Variable value. */
+  value?: string;
+  /** Target project ID. Pass `null` to clear project scoping. */
+  projectId?: string | null;
+  /** Optional variable type metadata. */
+  type?: string;
 }
 
 /** Cursor-paginated variable list response. */
@@ -690,14 +709,53 @@ export interface VariableListParams extends PaginationParams {
 
 // ─── Project ─────────────────────────────────────────────────────────────────
 
-/** n8n project visible to the authenticated caller. */
-export interface Project {
+/** Optional icon descriptor for a project, as accepted by n8n's create/update handlers. */
+export interface ProjectIcon {
+  type: 'emoji' | 'icon';
+  value: string;
+  color?: string;
+}
+
+/** Custom telemetry span attribute attached to a project. */
+export interface ProjectCustomTelemetryTag {
+  key: string;
+  value: string;
+}
+
+/** Member assignment used when adding users to a project (also accepted on update). */
+export interface ProjectRelation {
+  userId: string;
+  role: string;
+}
+
+/** Project item returned by `GET /projects`. */
+export interface ProjectListItem {
   /** Unique project identifier. */
   id: string;
   /** Display name. */
   name: string;
-  /** Optional project type from the API. */
-  type?: string;
+  /** Project type returned by the API. */
+  type: 'personal' | 'team';
+  /** Creator user id. */
+  creatorId: string;
+  /** Optional project icon, or `null` when unset. */
+  icon: ProjectIcon | null;
+  /** Optional free-text project description, or `null` when unset. */
+  description: string | null;
+  /** Custom telemetry span attributes returned by the API. */
+  customTelemetryTags: ProjectCustomTelemetryTag[];
+  /** ISO 8601 timestamp of creation. */
+  createdAt: string;
+  /** ISO 8601 timestamp of last update. */
+  updatedAt: string;
+}
+
+/** Full project payload returned by create/enriched project endpoints. */
+export interface Project extends ProjectListItem {
+  /** Current caller role on this project. */
+  role: string;
+  /** Effective scopes for the current caller on this project. */
+  scopes: string[];
 }
 
 /** Member of a project with the resolved project role. */
@@ -713,7 +771,7 @@ export interface ProjectMember {
 
 /** Cursor-paginated project list response. */
 export interface ProjectListResponse {
-  data: Project[];
+  data: ProjectListItem[];
   nextCursor?: string;
 }
 
@@ -723,19 +781,56 @@ export interface ProjectMemberListResponse {
   nextCursor?: string;
 }
 
-/** Payload for creating or renaming a project. */
-export interface ProjectMutation {
+/**
+ * Payload for creating a project.
+ *
+ * The n8n handler's `CreateProjectDto` accepts the optional `icon` and
+ * `uiContext` fields beyond the spec's `name`, although only `name` is
+ * formally documented in the OpenAPI schema.
+ */
+export interface ProjectCreate {
   /** Project display name. */
   name: string;
+  /** Optional icon descriptor. */
+  icon?: ProjectIcon;
+  /** Optional UI context string. */
+  uiContext?: string;
 }
 
-/** Member assignment used when adding users to a project. */
-export interface ProjectMemberRelation {
-  /** User ID to add to the project. */
-  userId: string;
-  /** Project role name (e.g. `project:editor`). */
-  role: string;
+/**
+ * Payload for updating a project.
+ *
+ * The n8n handler's `UpdateProjectWithRelationsDto` accepts every field as
+ * optional (true partial update) and additionally supports `icon`,
+ * `description`, `customTelemetryTags`, and `relations` — none of which are
+ * listed in the OpenAPI `project` schema. Any omitted field is left
+ * unchanged on the server.
+ */
+export interface ProjectUpdate {
+  /** Project display name. */
+  name?: string;
+  /** Optional icon descriptor. */
+  icon?: ProjectIcon;
+  /** Optional free-text description. */
+  description?: string;
+  /** Optional custom telemetry span attributes. */
+  customTelemetryTags?: ProjectCustomTelemetryTag[];
+  /** Optional member relations to add/replace on the project. */
+  relations?: ProjectRelation[];
 }
+
+/**
+ * Backwards-compatible alias for full project mutations covering create/rename.
+ *
+ * @deprecated Prefer {@link ProjectCreate} for `create()` and
+ * {@link ProjectUpdate} for `update()` — both align with the actual handler
+ * DTOs (`CreateProjectDto` / `UpdateProjectWithRelationsDto`), whereas this
+ * alias only carries `name`.
+ */
+export type ProjectMutation = Pick<ProjectCreate, 'name'>;
+
+/** Member assignment used when adding users to a project. */
+export type ProjectMemberRelation = ProjectRelation;
 
 /** Payload for changing an existing member role in a project. */
 export interface ProjectMemberRoleChangeRequest {
@@ -1154,7 +1249,27 @@ export interface DiscoverParams {
 // ─── N8n Package (Beta) ─────────────────────────────────────────────────────
 
 export interface ExportWorkflowsRequest {
-  workflowIds: string[];
+  /** Loose workflows to export. Mutually exclusive with exporting whole projects. */
+  workflowIds?: string[];
+  /** Folders to export, including nested folders. */
+  folderIds?: string[];
+  /** Whole projects to export. Mutually exclusive with loose workflow/folder exports. */
+  projectIds?: string[];
+  /** Whether referenced variable values should be bundled into the package. Defaults to `true`. */
+  includeVariableValues?: boolean;
+  /**
+   * Policy for missing static sub-workflow dependencies.
+   *
+   * The handler currently defaults to `fail`.
+   */
+  missingWorkflowDependencyPolicy?: 'fail' | 'reference-only' | 'include-in-package';
+}
+
+export interface ImportPackageWorkflowPublishing {
+  state: 'published' | 'unpublished' | 'unchanged' | 'blocked' | 'failed';
+  error?: string;
+  blockedReason?: 'stub-credential';
+  skippedPublishReason?: 'stub-credential';
 }
 
 export interface ImportPackageWorkflow {
@@ -1164,7 +1279,28 @@ export interface ImportPackageWorkflow {
   projectId: string;
   parentFolderId: string | null;
   activeVersionId: string | null;
+  publishing: ImportPackageWorkflowPublishing;
   status: 'created' | 'updated' | 'skipped';
+}
+
+export interface ImportPackageFolder {
+  sourceFolderId: string;
+  localId: string;
+  name: string;
+  parentFolderId: string | null;
+  status: 'created' | 'skipped';
+}
+
+export interface ImportPackageProject {
+  sourceProjectId: string;
+  localId: string;
+  name: string;
+  status: 'created' | 'updated';
+}
+
+export interface ImportPackageCredentials {
+  matched: string[];
+  stubbed: string[];
 }
 
 export interface ImportPackageBindings {
@@ -1175,6 +1311,9 @@ export interface ImportPackageBindings {
 export interface ImportPackageResponse {
   package: { sourceN8nVersion: string; sourceId: string; exportedAt: string };
   workflows: ImportPackageWorkflow[];
+  folders: ImportPackageFolder[];
+  projects: ImportPackageProject[];
+  credentials: ImportPackageCredentials;
   bindings: ImportPackageBindings;
 }
 
@@ -1196,12 +1335,26 @@ export interface ImportPackageOptions {
   projectId?: string;
   /** Target folder for imported workflows. */
   folderId?: string;
-  /** How to match existing credentials: `'id-only'`. */
-  credentialMatchingMode?: 'id-only';
-  /** Fail if referenced credentials are missing: `'must-preexist'`. */
-  credentialMissingMode?: 'must-preexist';
+  /** How to match existing credentials. */
+  credentialMatchingMode?: 'id-only' | 'name-and-type' | 'type-only';
+  /** What to do when referenced credentials are missing. */
+  credentialMissingMode?: 'must-preexist' | 'create-stub';
+  /** Optional explicit source→target id bindings, currently for credentials. */
+  bindings?: { credentials?: Record<string, string> };
   /** How to handle workflow name conflicts: `'new-version'`, `'fail'`, or `'skip'`. Required. */
   workflowConflictPolicy: 'new-version' | 'fail' | 'skip';
+  /** Controls the id assigned to newly created workflows. */
+  workflowIdPolicy?: 'new' | 'source';
+  /** Controls whether imported workflows are published after import. */
+  workflowPublishingPolicy?: 'preserve-published-state' | 'match-source' | 'publish-all' | 'unpublish-all';
+  /** Controls how folder conflicts are handled. */
+  folderConflictPolicy?: 'merge' | 'fail';
+  /** Controls how data tables are matched. */
+  dataTableMatchingMode?: 'by-id';
+  /** Controls what happens when referenced data tables are missing. */
+  dataTableMissingMode?: 'create' | 'must-preexist' | 'do-nothing';
+  /** Controls how strictly matched data-table schemas are compared. */
+  dataTableSchemaConflictPolicy?: 'keep-existing' | 'fail';
 }
 
 export interface ImportPackageConflictError {

@@ -2,12 +2,14 @@ import { HttpError } from '../http-client.js';
 import type { PaginatedResponse } from '../pagination.js';
 import type {
   Project,
+  ProjectCreate,
+  ProjectListItem,
   ProjectListResponse,
   ProjectMemberListResponse,
   PaginationParams,
-  ProjectMutation,
   ProjectMemberRelation,
   ProjectMemberRoleChangeRequest,
+  ProjectUpdate,
 } from '../types.js';
 import BaseClient from './base.js';
 import DataTableClient from './data-table.js';
@@ -29,27 +31,41 @@ export default class ProjectClient extends BaseClient {
       throw new HttpError(404, `Project not found: ${id}`, { id });
     }
 
-    return this.createResource(project);
+    return this.bindResource(project);
   }
 
   async listResources(params?: PaginationParams): Promise<PaginatedResponse<ProjectResource>> {
     const response = await this.list(params);
 
     return {
-      data: response.data.map((project) => this.createResource(project)),
+      data: response.data.map((project) => this.bindResource(project)),
       nextCursor: response.nextCursor,
     };
   }
 
-  async create(data: ProjectMutation): Promise<void> {
-    await this.http.post<void>('/projects', data);
+  async create(data: ProjectCreate): Promise<Project> {
+    return this.http.post<Project>('/projects', data);
   }
 
-  async update(id: string, data: ProjectMutation): Promise<void> {
+  async createResource(data: ProjectCreate): Promise<ProjectResource> {
+    return this.bindResource(await this.create(data));
+  }
+
+  async update(id: string, data: ProjectUpdate): Promise<void> {
     await this.http.put<void>(`/projects/${id}`, data);
   }
 
-  async delete(id: string): Promise<void> {
+  async updateResource(id: string, data: ProjectUpdate): Promise<ProjectResource> {
+    await this.update(id, data);
+    return this.getResource(id);
+  }
+
+  async delete(id: string, transferId?: string): Promise<void> {
+    if (transferId) {
+      await this.http.delete<void>(`/projects/${id}`, { transferId });
+      return;
+    }
+
     await this.http.delete<void>(`/projects/${id}`);
   }
 
@@ -70,7 +86,7 @@ export default class ProjectClient extends BaseClient {
     await this.http.patch<void>(`/projects/${projectId}/users/${userId}`, data);
   }
 
-  private createResource(project: Project): ProjectResource {
+  private bindResource(project: Project | ProjectListItem): ProjectResource {
     return new ProjectResource(
       this,
       new WorkflowClient(this.http),
@@ -82,7 +98,7 @@ export default class ProjectClient extends BaseClient {
     );
   }
 
-  private async findProject(id: string): Promise<Project | undefined> {
+  private async findProject(id: string): Promise<ProjectListItem | undefined> {
     let cursor: string | undefined;
 
     do {

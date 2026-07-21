@@ -1,6 +1,6 @@
 import { HttpError } from '../http-client.js';
 import type { PaginatedResponse } from '../pagination.js';
-import type { Variable, VariableCreate, VariableListResponse, VariableListParams } from '../types.js';
+import type { Variable, VariableCreate, VariableListResponse, VariableListParams, VariableUpdate } from '../types.js';
 import BaseClient from './base.js';
 import VariableResource from '../resources/variable.js';
 
@@ -36,7 +36,7 @@ export default class VariableClient extends BaseClient {
     await this.http.post<void>('/variables', data);
   }
 
-  async update(id: string, data: VariableCreate): Promise<void> {
+  async update(id: string, data: VariableUpdate): Promise<void> {
     await this.http.put<void>(`/variables/${id}`, data);
   }
 

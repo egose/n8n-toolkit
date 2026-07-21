@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import DataTableClient from '../src/clients/data-table';
 import ExecutionClient from '../src/clients/execution';
 import FolderClient from '../src/clients/folder';
@@ -13,6 +13,56 @@ import VariableResource from '../src/resources/variable';
 import WorkflowResource from '../src/resources/workflow';
 import { createMockHttpClient } from './test-utils';
 
+function projectListItem(
+  overrides: Partial<{
+    id: string;
+    name: string;
+    type: 'personal' | 'team';
+    creatorId: string;
+    icon: null;
+    description: null;
+    customTelemetryTags: [];
+    createdAt: string;
+    updatedAt: string;
+  }> = {},
+) {
+  return {
+    id: 'p-1',
+    name: 'Project One',
+    type: 'team' as const,
+    creatorId: 'user-1',
+    icon: null,
+    description: null,
+    customTelemetryTags: [],
+    createdAt: '',
+    updatedAt: '',
+    ...overrides,
+  };
+}
+
+function projectDetail(
+  overrides: Partial<{
+    id: string;
+    name: string;
+    type: 'personal' | 'team';
+    creatorId: string;
+    icon: null;
+    description: null;
+    customTelemetryTags: [];
+    createdAt: string;
+    updatedAt: string;
+    role: string;
+    scopes: string[];
+  }> = {},
+) {
+  return {
+    ...projectListItem(overrides),
+    role: 'project:admin',
+    scopes: ['project:create', 'project:read', 'project:update', 'project:delete', 'project:list'],
+    ...overrides,
+  };
+}
+
 describe('Implementation Consistency: Project', () => {
   test('list calls GET /projects', async () => {
     const http = createMockHttpClient([{ body: { data: [], nextCursor: undefined } }]);
@@ -26,8 +76,8 @@ describe('Implementation Consistency: Project', () => {
 
   test('getResource finds a project through list pagination', async () => {
     const http = createMockHttpClient([
-      { body: { data: [{ id: 'p-1', name: 'One' }], nextCursor: 'next' } },
-      { body: { data: [{ id: 'p-2', name: 'Two' }], nextCursor: undefined } },
+      { body: { data: [projectListItem({ id: 'p-1', name: 'One' })], nextCursor: 'next' } },
+      { body: { data: [projectListItem({ id: 'p-2', name: 'Two' })], nextCursor: undefined } },
     ]);
     const handle = new ProjectClient(http);
 
@@ -40,7 +90,9 @@ describe('Implementation Consistency: Project', () => {
   });
 
   test('listResources wraps projects as project resources', async () => {
-    const http = createMockHttpClient([{ body: { data: [{ id: 'p-1', name: 'One' }], nextCursor: 'next' } }]);
+    const http = createMockHttpClient([
+      { body: { data: [projectListItem({ id: 'p-1', name: 'One' })], nextCursor: 'next' } },
+    ]);
     const handle = new ProjectClient(http);
 
     const result = await handle.listResources({ limit: 1 });
@@ -50,13 +102,27 @@ describe('Implementation Consistency: Project', () => {
     expect(result.nextCursor).toBe('next');
   });
 
-  test('create calls POST /projects', async () => {
-    const http = createMockHttpClient([{ body: undefined }]);
+  test('create calls POST /projects and returns the created project body', async () => {
+    const created = projectDetail({ id: 'p-2', name: 'New Project' });
+    const http = createMockHttpClient([{ body: created }]);
     const handle = new ProjectClient(http);
 
-    await handle.create({ name: 'New Project' });
+    const result = await handle.create({ name: 'New Project', uiContext: 'sidebar' });
+
+    expect(http.post).toHaveBeenCalledWith('/projects', { name: 'New Project', uiContext: 'sidebar' });
+    expect(result).toEqual(created);
+  });
+
+  test('createResource wraps the created project as a resource', async () => {
+    const created = projectDetail({ id: 'p-2', name: 'New Project' });
+    const http = createMockHttpClient([{ body: created }]);
+    const handle = new ProjectClient(http);
+
+    const result = await handle.createResource({ name: 'New Project' });
 
     expect(http.post).toHaveBeenCalledWith('/projects', { name: 'New Project' });
+    expect(result).toBeInstanceOf(ProjectResource);
+    expect(result.id).toBe('p-2');
   });
 
   test('update calls PUT /projects/:id', async () => {
@@ -68,6 +134,21 @@ describe('Implementation Consistency: Project', () => {
     expect(http.put).toHaveBeenCalledWith('/projects/p-1', { name: 'Updated Project' });
   });
 
+  test('updateResource refreshes the project through list pagination and returns a bound resource', async () => {
+    const http = createMockHttpClient([
+      { body: undefined },
+      { body: { data: [projectListItem({ id: 'p-1', name: 'Updated Project' })], nextCursor: undefined } },
+    ]);
+    const handle = new ProjectClient(http);
+
+    const result = await handle.updateResource('p-1', { name: 'Updated Project' });
+
+    expect(http.put).toHaveBeenNthCalledWith(1, '/projects/p-1', { name: 'Updated Project' });
+    expect(http.get).toHaveBeenNthCalledWith(1, '/projects', undefined);
+    expect(result).toBeInstanceOf(ProjectResource);
+    expect(result.name).toBe('Updated Project');
+  });
+
   test('delete calls DELETE /projects/:id', async () => {
     const http = createMockHttpClient([{ body: undefined }]);
     const handle = new ProjectClient(http);
@@ -75,6 +156,15 @@ describe('Implementation Consistency: Project', () => {
     await handle.delete('p-1');
 
     expect(http.delete).toHaveBeenCalledWith('/projects/p-1');
+  });
+
+  test('delete forwards optional transferId query param', async () => {
+    const http = createMockHttpClient([{ body: undefined }]);
+    const handle = new ProjectClient(http);
+
+    await handle.delete('p-1', 'p-2');
+
+    expect(http.delete).toHaveBeenCalledWith('/projects/p-1', { transferId: 'p-2' });
   });
 
   test('listMembers calls GET /projects/:id/users', async () => {
@@ -140,10 +230,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const listed = await resource.workflows().list({ limit: 5, active: true });
@@ -183,10 +270,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const workflow = await resource.workflows().getResource('wf-1');
@@ -229,10 +313,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const workflow = await resource.workflows().get('wf-1');
@@ -294,7 +375,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      { id: 'p-1', name: 'Project One' },
+      projectListItem(),
     );
 
     const patched = await resource.workflows().patch('wf-1', { name: 'Patched' });
@@ -333,19 +414,16 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Old Name',
-      },
+      projectListItem({ name: 'Old Name' }),
     );
 
     await resource.update({ name: 'New Name' });
 
     expect(resource.name).toBe('New Name');
-    expect(resource.data).toEqual({ id: 'p-1', name: 'New Name' });
+    expect(resource.data).toEqual(projectListItem({ name: 'New Name' }));
   });
 
-  test('project resource patch uses current resource data as the base payload', async () => {
+  test('project resource patch sends only the partial payload', async () => {
     const http = createMockHttpClient([{ body: undefined }]);
     const handle = new ProjectClient(http);
     const resource = new ProjectResource(
@@ -355,15 +433,12 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Existing Name',
-      },
+      projectListItem({ name: 'Existing Name' }),
     );
 
-    await resource.patch({});
+    await resource.patch({ description: 'Updated description' });
 
-    expect(http.put).toHaveBeenCalledWith('/projects/p-1', { name: 'Existing Name' });
+    expect(http.put).toHaveBeenCalledWith('/projects/p-1', { description: 'Updated description' });
     expect(resource.name).toBe('Existing Name');
   });
 
@@ -384,10 +459,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const listed = await resource.folders().list({ take: '10' });
@@ -427,7 +499,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      { id: 'p-1', name: 'Project One' },
+      projectListItem(),
     );
 
     const patched = await resource.folders().patch('f-1', { parentFolderId: 'parent-2' });
@@ -461,10 +533,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const listed = await resource.variables().list({ state: 'empty' });
@@ -496,10 +565,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const variable = await resource.variables().get('v-1');
@@ -528,14 +594,14 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      { id: 'p-1', name: 'Project One' },
+      projectListItem(),
     );
 
     await resource.variables().patch('v-1', { value: 'two' });
     const patchedResource = await resource.variables().patchResource('v-1', { value: 'three' });
 
-    expect(http.put).toHaveBeenNthCalledWith(1, '/variables/v-1', { key: 'FIRST', value: 'two' });
-    expect(http.put).toHaveBeenNthCalledWith(2, '/variables/v-1', { key: 'FIRST', value: 'three' });
+    expect(http.put).toHaveBeenNthCalledWith(1, '/variables/v-1', { value: 'two' });
+    expect(http.put).toHaveBeenNthCalledWith(2, '/variables/v-1', { value: 'three' });
     expect(patchedResource).toBeInstanceOf(VariableResource);
     expect(patchedResource.value).toBe('three');
   });
@@ -553,10 +619,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const created = await resource.dataTables().create({ name: 'Three', columns: [] });
@@ -586,10 +649,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const dataTable = await resource.dataTables().get('dt-1');
@@ -621,7 +681,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      { id: 'p-1', name: 'Project One' },
+      projectListItem(),
     );
 
     const patched = await resource.dataTables().patch('dt-1', {});
@@ -664,10 +724,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const listed = await resource.executions().list({ status: 'success', limit: 10 });
@@ -702,10 +759,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const execution = await resource.executions().getResource(3, { includeData: true });
@@ -734,10 +788,7 @@ describe('Implementation Consistency: Project', () => {
       new VariableClient(http),
       new DataTableClient(http),
       new ExecutionClient(http),
-      {
-        id: 'p-1',
-        name: 'Project One',
-      },
+      projectListItem(),
     );
 
     const execution = await resource.executions().get(3, { includeData: true });

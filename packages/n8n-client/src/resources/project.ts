@@ -21,12 +21,14 @@ import type {
   ExecutionListResponse,
   PaginationParams,
   Project,
+  ProjectListItem,
   ProjectMemberListResponse,
   ProjectMemberRelation,
-  ProjectMutation,
+  ProjectUpdate,
   VariableCreate,
   VariableListParams,
   VariableListResponse,
+  VariableUpdate,
   WorkflowCreate,
   WorkflowListParams,
   WorkflowListResponse,
@@ -71,10 +73,10 @@ export interface ProjectVariableResourceCollection {
   get(id: string): Promise<import('../types.js').Variable>;
   getResource(id: string): Promise<VariableResource>;
   create(data: Omit<VariableCreate, 'projectId'>): Promise<void>;
-  update(id: string, data: Omit<VariableCreate, 'projectId'>): Promise<void>;
-  patch(id: string, data: Partial<Omit<VariableCreate, 'projectId'>>): Promise<void>;
-  updateResource(id: string, data: Omit<VariableCreate, 'projectId'>): Promise<VariableResource>;
-  patchResource(id: string, data: Partial<Omit<VariableCreate, 'projectId'>>): Promise<VariableResource>;
+  update(id: string, data: Omit<VariableUpdate, 'projectId'>): Promise<void>;
+  patch(id: string, data: Partial<Omit<VariableUpdate, 'projectId'>>): Promise<void>;
+  updateResource(id: string, data: Omit<VariableUpdate, 'projectId'>): Promise<VariableResource>;
+  patchResource(id: string, data: Partial<Omit<VariableUpdate, 'projectId'>>): Promise<VariableResource>;
   delete(id: string): Promise<void>;
 }
 
@@ -105,7 +107,7 @@ interface ProjectRelations {
   executions: ExecutionClient;
 }
 
-export default class ProjectResource extends BaseResource<Project> {
+export default class ProjectResource extends BaseResource<Project | ProjectListItem> {
   private readonly relations: ProjectRelations;
 
   constructor(
@@ -115,7 +117,7 @@ export default class ProjectResource extends BaseResource<Project> {
     variablesClient: VariableClient,
     dataTablesClient: DataTableClient,
     executionsClient: ExecutionClient,
-    project: Project,
+    project: Project | ProjectListItem,
   ) {
     super(project);
     this.relations = {
@@ -135,24 +137,21 @@ export default class ProjectResource extends BaseResource<Project> {
     return this.data.name;
   }
 
-  get type(): string | undefined {
+  get type(): 'personal' | 'team' {
     return this.data.type;
   }
 
-  async update(data: ProjectMutation): Promise<this> {
+  async update(data: ProjectUpdate): Promise<this> {
     await this.projects.update(this.id, data);
     return this.mergeSnapshot(data);
   }
 
-  async patch(data: Partial<ProjectMutation>): Promise<this> {
-    return this.update({
-      name: this.data.name,
-      ...data,
-    });
+  async patch(data: ProjectUpdate): Promise<this> {
+    return this.update(data);
   }
 
-  async delete(): Promise<void> {
-    await this.projects.delete(this.id);
+  async delete(transferId?: string): Promise<void> {
+    await this.projects.delete(this.id, transferId);
   }
 
   async listMembers(params?: PaginationParams): Promise<ProjectMemberListResponse> {
