@@ -38,8 +38,13 @@ export interface ICredentialsDb {
   id: string;
   name: string;
   type: string;
-  /** Credential payload encrypted with the instance's N8N_ENCRYPTION_KEY. */
-  data: string;
+  /**
+   * Credential payload as exposed by n8n's hook runtime.
+   *
+   * Depending on the hook/version this can arrive either as the encrypted DB
+   * blob or as the plain JSON object that n8n will encrypt on save.
+   */
+  data: string | Record<string, unknown>;
   isGlobal?: boolean;
   isManaged?: boolean;
   createdAt?: Date;
@@ -88,8 +93,12 @@ export interface SyncCredentialDto {
   id: string;
   name: string;
   type: string;
-  /** Encrypted credential payload, verbatim from the source instance. */
-  data: string;
+  /**
+   * Credential payload, passed through verbatim from n8n's hook runtime.
+   * This may already be encrypted, or it may be the plain JSON object n8n
+   * encrypts when persisting the row.
+   */
+  data: string | Record<string, unknown>;
   isGlobal?: boolean;
   isManaged?: boolean;
   createdAt?: string;

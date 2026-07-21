@@ -49,12 +49,12 @@ Signature verification uses the exact raw request bytes (read from n8n's global 
 
 ## Setup
 
-Build the bundles (`pnpm --filter @egose/n8n-sync build`), copy them to both instances, and point n8n at the appropriate file via `EXTERNAL_HOOKS_FILES`.
+Build the bundles (`pnpm --filter @egose/n8n-sync build`), copy them to both instances, and point n8n at the appropriate file via `EXTERNAL_HOOK_FILES`.
 
 ### Source instance (publisher)
 
 ```bash
-export EXTERNAL_HOOKS_FILES=/path/to/publisher.cjs
+export EXTERNAL_HOOK_FILES=/path/to/publisher.cjs
 export SYNC_SUBSCRIBER_URLS=https://n8n-target-a.example.com,https://n8n-target-b.example.com
 export SYNC_SHARED_SECRET=<shared-secret>
 ```
@@ -62,7 +62,7 @@ export SYNC_SHARED_SECRET=<shared-secret>
 ### Target instance(s) (subscriber)
 
 ```bash
-export EXTERNAL_HOOKS_FILES=/path/to/subscriber.cjs
+export EXTERNAL_HOOK_FILES=/path/to/subscriber.cjs
 export SYNC_SHARED_SECRET=<shared-secret>
 # optional:
 export SYNC_TARGET_PROJECT_ID=<project-id>   # link synced entities to this project

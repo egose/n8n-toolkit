@@ -43,31 +43,82 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   const applyActiveState = options.applyActiveState ?? false;
   const targetProjectId = options.targetProjectId || undefined;
 
-  async function linkWorkflowToProject(workflowId: string): Promise<void> {
-    if (!targetProjectId) return;
+  // Cache for the owner-fallback resolution. `undefined` means not yet
+  // resolved; `null` means resolution was attempted and failed (so we don't
+  // re-attempt on every event); a string is the resolved project id.
+  let cachedFallbackProjectId: string | null | undefined;
+
+  /**
+   * Resolve the project id to link newly created workflows/credentials to.
+   * When `targetProjectId` is configured, it wins. Otherwise, fall back to
+   * the target instance owner's personal project so synced entities are
+   * visible through the target's Public API without explicit configuration.
+   * The fallback is resolved lazily and cached (including the negative
+   * case) to avoid repeating DB lookups on every event.
+   */
+  async function resolveLinkProjectId(): Promise<string | undefined> {
+    if (targetProjectId) return targetProjectId;
+    if (cachedFallbackProjectId !== undefined) return cachedFallbackProjectId ?? undefined;
     try {
-      await repos.sharedWorkflow.save({ workflowId, projectId: targetProjectId, role: 'workflow:owner' });
+      const owner = await repos.user.findOne({
+        where: { role: { slug: 'global:owner' } },
+        relations: ['role'],
+        order: { createdAt: 'ASC' },
+        take: 1,
+      });
+      if (!owner) {
+        log.warn('Owner fallback: no global:owner user found on target');
+        cachedFallbackProjectId = null;
+        return undefined;
+      }
+      const project = await repos.project.getPersonalProjectForUser(owner.id);
+      if (!project) {
+        log.warn('Owner fallback: owner has no personal project', { ownerId: owner.id });
+        cachedFallbackProjectId = null;
+        return undefined;
+      }
+      log.debug('Owner fallback resolved personal project', {
+        ownerId: owner.id,
+        projectId: project.id,
+      });
+      cachedFallbackProjectId = project.id;
+      return project.id;
+    } catch (error) {
+      log.warn('Owner fallback: failed to resolve personal project', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      cachedFallbackProjectId = null;
+      return undefined;
+    }
+  }
+
+  async function linkWorkflowToProject(workflowId: string): Promise<void> {
+    const projectId = await resolveLinkProjectId();
+    if (!projectId) return;
+    try {
+      await repos.sharedWorkflow.save({ workflowId, projectId, role: 'workflow:owner' });
     } catch (error) {
       log.warn('Failed to link workflow to target project', {
         workflowId,
-        projectId: targetProjectId,
+        projectId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
   async function linkCredentialToProject(credentialId: string): Promise<void> {
-    if (!targetProjectId) return;
+    const projectId = await resolveLinkProjectId();
+    if (!projectId) return;
     try {
       await repos.sharedCredentials.save({
         credentialsId: credentialId,
-        projectId: targetProjectId,
+        projectId,
         role: 'credential:owner',
       });
     } catch (error) {
       log.warn('Failed to link credential to target project', {
         credentialId,
-        projectId: targetProjectId,
+        projectId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -136,8 +187,9 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
     const fields: Record<string, unknown> = {
       name: credential.name,
       type: credential.type,
-      // Encrypted blob passthrough — requires both instances to share
-      // N8N_ENCRYPTION_KEY so the target can decrypt it at runtime.
+      // n8n credential hooks can surface either the encrypted DB blob or the
+      // plain JSON object n8n encrypts on save. Pass it through verbatim and
+      // let the target repository persist it using its own entity semantics.
       data: credential.data,
       isGlobal: credential.isGlobal ?? false,
       isManaged: credential.isManaged ?? false,

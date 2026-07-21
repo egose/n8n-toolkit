@@ -1,3 +1,5 @@
+import type { Express } from 'express';
+
 import {
   SYNC_APPLY_ACTIVE_STATE,
   SYNC_AUTH_MODE,
@@ -12,6 +14,11 @@ import { buildN8nSyncRepositories } from './n8n-runtime';
 import { createSyncRouteHandler, mountSyncRoutes } from './routes';
 
 const log = createLogger('N8nSyncSubscriber');
+
+function resolveExpressApp(server: { app?: Express } | Express): Express {
+  const app = (server as { app?: Express }).app;
+  return app && typeof app.get === 'function' && typeof app.post === 'function' ? app : (server as Express);
+}
 
 function createHookConfig() {
   return createSubscriberHooks({
@@ -30,7 +37,7 @@ function createHookConfig() {
       });
 
       const handler = createSyncRouteHandler({ secret: SYNC_SHARED_SECRET, apply, log, authMode: SYNC_AUTH_MODE });
-      mountSyncRoutes(server.app, handler, SYNC_ROUTE_BASE);
+      mountSyncRoutes(resolveExpressApp(server), handler, SYNC_ROUTE_BASE);
 
       log.info('n8n-sync subscriber routes active.', { routeBase: SYNC_ROUTE_BASE, authMode: SYNC_AUTH_MODE });
     },

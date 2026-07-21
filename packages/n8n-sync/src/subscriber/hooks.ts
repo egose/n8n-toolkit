@@ -1,8 +1,10 @@
+import type { Express } from 'express';
+
 import type { IExternalHooksFileData, N8nServer } from '../shared/types';
 
 export interface SubscriberDeps {
   /** Runs inside the `n8n.ready` hook, where n8n's DI container is available. */
-  ready: (server: N8nServer) => Promise<void>;
+  ready: (server: N8nServer | Express) => Promise<void>;
 }
 
 /**
@@ -13,7 +15,7 @@ export function createSubscriberHooks(deps: SubscriberDeps): IExternalHooksFileD
   return {
     n8n: {
       ready: [
-        async function (server: N8nServer) {
+        async function (server: N8nServer | Express) {
           await deps.ready(server);
         },
       ],

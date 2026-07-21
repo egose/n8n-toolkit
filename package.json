@@ -6,6 +6,7 @@
     "lint-fix": "eslint --fix .",
     "build": "pnpm -r --if-present build",
     "test": "pnpm -r --if-present --workspace-concurrency=1 test",
+    "test:integration": "tsx sandbox/run-integration.ts",
     "typecheck": "pnpm -r --if-present typecheck",
     "release": "release-it",
     "changelog": "repo-toolkit-changelog",

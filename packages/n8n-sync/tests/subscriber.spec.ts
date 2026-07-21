@@ -222,4 +222,14 @@ describe('createSubscriberHooks', () => {
 
     expect(ready).toHaveBeenCalledWith(server);
   });
+
+  it('also accepts the raw express app when n8n.ready passes the app directly', async () => {
+    const ready = vi.fn().mockResolvedValue(undefined);
+    const hooks = createSubscriberHooks({ ready });
+    const app = { get: vi.fn(), post: vi.fn() };
+
+    await hooks.n8n.ready[0](app as never);
+
+    expect(ready).toHaveBeenCalledWith(app);
+  });
 });

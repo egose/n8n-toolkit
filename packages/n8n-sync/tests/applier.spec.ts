@@ -29,6 +29,8 @@ function makeRepos(existing: { workflow?: unknown; credential?: unknown } = {}) 
     },
     sharedWorkflow: { save: vi.fn().mockResolvedValue(undefined) },
     sharedCredentials: { save: vi.fn().mockResolvedValue(undefined) },
+    user: { findOne: vi.fn().mockResolvedValue(null) },
+    project: { getPersonalProjectForUser: vi.fn().mockResolvedValue(null) },
   };
   return mocks as unknown as N8nSyncRepositories & { [K in keyof typeof mocks]: (typeof mocks)[K] };
 }
@@ -220,6 +222,106 @@ describe('createApplier', () => {
       await apply({ type: 'credentials.delete', at: '', sourceId: 's', credentialId: 'cred-1' });
 
       expect(repos.credentials.delete).toHaveBeenCalledWith('cred-1');
+    });
+  });
+
+  describe('owner fallback (no targetProjectId)', () => {
+    it('links a created workflow to the owner personal project when targetProjectId is empty', async () => {
+      const repos = makeRepos();
+      repos.user.findOne.mockResolvedValueOnce({ id: 'owner-1' });
+      repos.project.getPersonalProjectForUser.mockResolvedValueOnce({ id: 'personal-proj-1' });
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'workflow.upsert', at: '', sourceId: 's', workflow });
+
+      expect(repos.user.findOne).toHaveBeenCalledTimes(1);
+      const findOpts = repos.user.findOne.mock.calls[0][0] as Record<string, unknown>;
+      expect(findOpts.where).toEqual({ role: { slug: 'global:owner' } });
+      expect(findOpts.relations).toEqual(['role']);
+      expect(repos.project.getPersonalProjectForUser).toHaveBeenCalledWith('owner-1');
+      expect(repos.sharedWorkflow.save).toHaveBeenCalledWith({
+        workflowId: 'wf-1',
+        projectId: 'personal-proj-1',
+        role: 'workflow:owner',
+      });
+    });
+
+    it('links a created credential to the owner personal project when targetProjectId is empty', async () => {
+      const repos = makeRepos();
+      repos.user.findOne.mockResolvedValueOnce({ id: 'owner-1' });
+      repos.project.getPersonalProjectForUser.mockResolvedValueOnce({ id: 'personal-proj-1' });
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'credentials.upsert', at: '', sourceId: 's', credential });
+
+      expect(repos.sharedCredentials.save).toHaveBeenCalledWith({
+        credentialsId: 'cred-1',
+        projectId: 'personal-proj-1',
+        role: 'credential:owner',
+      });
+    });
+
+    it('caches the resolved personal project across events (single lookup)', async () => {
+      const repos = makeRepos();
+      repos.user.findOne.mockResolvedValueOnce({ id: 'owner-1' });
+      repos.project.getPersonalProjectForUser.mockResolvedValueOnce({ id: 'personal-proj-1' });
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'workflow.upsert', at: '', sourceId: 's', workflow });
+      // Pretend the workflow was deleted so the next create actually inserts a new row.
+      repos.workflow.findOneBy.mockResolvedValue(null);
+      const wf2 = { ...workflow, id: 'wf-2' };
+      await apply({ type: 'workflow.upsert', at: '', sourceId: 's', workflow: wf2 });
+
+      // Should only have queried the user once (cached).
+      expect(repos.user.findOne).toHaveBeenCalledTimes(1);
+      expect(repos.project.getPersonalProjectForUser).toHaveBeenCalledTimes(1);
+      expect(repos.sharedWorkflow.save).toHaveBeenCalledWith({
+        workflowId: 'wf-2',
+        projectId: 'personal-proj-1',
+        role: 'workflow:owner',
+      });
+    });
+
+    it('skips linking when no owner is found and does not retry on subsequent events', async () => {
+      const repos = makeRepos();
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'workflow.upsert', at: '', sourceId: 's', workflow });
+      await apply({ type: 'credentials.upsert', at: '', sourceId: 's', credential });
+
+      expect(repos.sharedWorkflow.save).not.toHaveBeenCalled();
+      expect(repos.sharedCredentials.save).not.toHaveBeenCalled();
+      expect(repos.user.findOne).toHaveBeenCalledTimes(1);
+      expect(repos.project.getPersonalProjectForUser).not.toHaveBeenCalled();
+    });
+
+    it('skips linking when owner has no personal project', async () => {
+      const repos = makeRepos();
+      repos.user.findOne.mockResolvedValueOnce({ id: 'owner-1' });
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'workflow.upsert', at: '', sourceId: 's', workflow });
+
+      expect(repos.sharedWorkflow.save).not.toHaveBeenCalled();
+      expect(repos.project.getPersonalProjectForUser).toHaveBeenCalledWith('owner-1');
+    });
+
+    it('explicit targetProjectId wins over the owner fallback', async () => {
+      const repos = makeRepos();
+      repos.user.findOne.mockResolvedValue({ id: 'owner-1' });
+      repos.project.getPersonalProjectForUser.mockResolvedValue({ id: 'personal-proj-1' });
+      const apply = createApplier(repos, { log, targetProjectId: 'proj-1' });
+
+      await apply({ type: 'workflow.upsert', at: '', sourceId: 's', workflow });
+
+      expect(repos.user.findOne).not.toHaveBeenCalled();
+      expect(repos.project.getPersonalProjectForUser).not.toHaveBeenCalled();
+      expect(repos.sharedWorkflow.save).toHaveBeenCalledWith({
+        workflowId: 'wf-1',
+        projectId: 'proj-1',
+        role: 'workflow:owner',
+      });
     });
   });
 });

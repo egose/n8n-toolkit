@@ -14,12 +14,12 @@
 # Run as publisher (source instance):
 #   docker run -e SYNC_SUBSCRIBER_URLS=https://n8n-target.example.com \
 #              -e SYNC_SHARED_SECRET=<shared-secret> \
-#              -e EXTERNAL_HOOKS_FILES=/opt/n8n-hooks/publisher.cjs \
+#              -e EXTERNAL_HOOK_FILES=/opt/n8n-hooks/publisher.cjs \
 #              n8n-with-sync
 #
 # Run as subscriber (target instance):
 #   docker run -e SYNC_SHARED_SECRET=<shared-secret> \
-#              -e EXTERNAL_HOOKS_FILES=/opt/n8n-hooks/subscriber.cjs \
+#              -e EXTERNAL_HOOK_FILES=/opt/n8n-hooks/subscriber.cjs \
 #              n8n-with-sync
 
 ARG N8N_VERSION=latest
@@ -51,4 +51,4 @@ COPY --from=bundles /bundles/ /opt/n8n-hooks/
 #   publisher:  /opt/n8n-hooks/publisher.cjs
 #   subscriber: /opt/n8n-hooks/subscriber.cjs
 #   both:       /opt/n8n-hooks/publisher.cjs:/opt/n8n-hooks/subscriber.cjs
-ENV EXTERNAL_HOOKS_FILES=/opt/n8n-hooks/publisher.cjs
+ENV EXTERNAL_HOOK_FILES=/opt/n8n-hooks/publisher.cjs

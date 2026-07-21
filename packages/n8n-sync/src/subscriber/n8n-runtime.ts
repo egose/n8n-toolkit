@@ -27,11 +27,31 @@ export interface SharedCredentialsRepositoryLike {
   save(entity: Record<string, unknown>): Promise<unknown>;
 }
 
+/**
+ * Minimal subset of n8n's UserRepository used by the applier's owner fallback.
+ * `findOne` is the inherited TypeORM repository method; we type it loosely
+ * because the `where`/`relations` shape is complex and version-specific.
+ */
+export interface UserRepositoryLike {
+  findOne(options: Record<string, unknown>): Promise<{ id: string } | null>;
+}
+
+/**
+ * Minimal subset of n8n's ProjectRepository used by the applier's owner
+ * fallback. `getPersonalProjectForUser` is the canonical n8n method that
+ * returns the user's personal project (or null).
+ */
+export interface ProjectRepositoryLike {
+  getPersonalProjectForUser(userId: string): Promise<{ id: string } | null>;
+}
+
 export interface N8nSyncRepositories {
   workflow: WorkflowRepositoryLike;
   credentials: CredentialsRepositoryLike;
   sharedWorkflow: SharedWorkflowRepositoryLike;
   sharedCredentials: SharedCredentialsRepositoryLike;
+  user: UserRepositoryLike;
+  project: ProjectRepositoryLike;
 }
 
 type N8nContainer = {
@@ -43,6 +63,8 @@ type N8nDbModule = {
   CredentialsRepository: unknown;
   SharedWorkflowRepository: unknown;
   SharedCredentialsRepository: unknown;
+  UserRepository: unknown;
+  ProjectRepository: unknown;
 };
 
 /**
@@ -55,14 +77,21 @@ type N8nDbModule = {
  */
 export function buildN8nSyncRepositories(): N8nSyncRepositories {
   const { Container } = require(N8N_DI_PATH) as { Container: N8nContainer };
-  const { WorkflowRepository, CredentialsRepository, SharedWorkflowRepository, SharedCredentialsRepository } = require(
-    N8N_DB_PATH,
-  ) as N8nDbModule;
+  const {
+    WorkflowRepository,
+    CredentialsRepository,
+    SharedWorkflowRepository,
+    SharedCredentialsRepository,
+    UserRepository,
+    ProjectRepository,
+  } = require(N8N_DB_PATH) as N8nDbModule;
 
   return {
     workflow: Container.get<WorkflowRepositoryLike>(WorkflowRepository),
     credentials: Container.get<CredentialsRepositoryLike>(CredentialsRepository),
     sharedWorkflow: Container.get<SharedWorkflowRepositoryLike>(SharedWorkflowRepository),
     sharedCredentials: Container.get<SharedCredentialsRepositoryLike>(SharedCredentialsRepository),
+    user: Container.get<UserRepositoryLike>(UserRepository),
+    project: Container.get<ProjectRepositoryLike>(ProjectRepository),
   };
 }

@@ -5,7 +5,7 @@ Purpose: n8n external-hook bundles that sync credentials and workflows between n
 
 ## Quick Start
 
-Build two self-contained CJS hook bundles and point n8n's `EXTERNAL_HOOKS_FILES` at them:
+Build two self-contained CJS hook bundles and point n8n's `EXTERNAL_HOOK_FILES` at them:
 
 - `dist/publisher.cjs` — source instance; lifecycle hooks fan sync events out to every target in `SYNC_SUBSCRIBER_URLS`
 - `dist/subscriber.cjs` — target instance; mounts `POST /rest/sync/v1/events` (+ `GET …/health`) on n8n's own server in the `n8n.ready` hook and applies events via n8n's internal repositories
@@ -58,6 +58,7 @@ Deliberately not wired: `workflow.preExecute`/`workflow.postExecute` (fires per 
 - **No deactivation hook exists in n8n** — `deactivateWorkflow` only emits an internal event. Deactivations do not sync; document this, do not try to work around it with polling.
 - **`workflow.activate` fires before commit** — the applier treats it as an upsert so state converges on the next event.
 - **Credential `data` is an encrypted blob passthrough** — all instances must share `N8N_ENCRYPTION_KEY`. Never attempt to decrypt it.
+- **`SYNC_TARGET_PROJECT_ID` (default empty)** — when set, newly created workflows/credentials are linked to that project. When empty, the applier falls back to the target instance owner's personal project (resolved lazily via `UserRepository` + `ProjectRepository.getPersonalProjectForUser`, cached for the process lifetime including the negative case). The fallback makes synced entities visible through the target's Public API without explicit configuration. An explicit `SYNC_TARGET_PROJECT_ID` always wins.
 - **`SYNC_APPLY_ACTIVE_STATE` (default false)** — writing `active`/`activeVersionId` to the target DB does not register triggers with the target's active workflow manager.
 - **Repository access** happens only inside the `n8n.ready` hook, where n8n's DI `Container` is initialized. Resolving it earlier crashes.
 - Deletes/archives for unknown IDs are no-ops (`update`/`delete` on missing rows) — sync is eventually consistent by design.

@@ -55,7 +55,7 @@ describe('createPublisherHooks', () => {
     expect(emittedEvent(emit)).toMatchObject({ at: NOW.toISOString(), sourceId: 'src-1' });
   });
 
-  it('maps credentials.create and credentials.update to credentials.upsert', async () => {
+  it('maps credentials.create and credentials.update to credentials.upsert from the hook payload', async () => {
     const { emit, hooks } = makeDeps();
 
     await hooks.credentials.create[0](credential as never);
@@ -67,6 +67,40 @@ describe('createPublisherHooks', () => {
     emit.mockClear();
     await hooks.credentials.update[0](credential as never);
     expect(emittedEvent(emit)).toMatchObject({ type: 'credentials.upsert', credential: { id: 'cred-1' } });
+  });
+
+  it('resolves credentials.create from dbCollections when the hook payload is incomplete', async () => {
+    const { emit, hooks } = makeDeps();
+    const findOne = vi.fn().mockResolvedValue(credential);
+
+    await hooks.credentials.create[0].call({ dbCollections: { Credentials: { findOne } } }, {
+      name: credential.name,
+      type: credential.type,
+    } as never);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(emit).toHaveBeenCalledTimes(1);
+    expect(findOne).toHaveBeenCalledWith({
+      where: { name: credential.name, type: credential.type },
+      order: { updatedAt: 'DESC' },
+    });
+    expect(emittedEvent(emit)).toMatchObject({
+      type: 'credentials.upsert',
+      credential: { id: 'cred-1', name: 'C', data: 'encrypted' },
+    });
+  });
+
+  it('does not query dbCollections on credentials.update when the payload is complete', async () => {
+    const { emit, hooks } = makeDeps();
+    const findOne = vi.fn().mockResolvedValue({ ...credential, name: 'from-db' });
+
+    await hooks.credentials.update[0].call({ dbCollections: { Credentials: { findOne } } }, credential as never);
+
+    expect(findOne).not.toHaveBeenCalled();
+    expect(emittedEvent(emit)).toMatchObject({
+      type: 'credentials.upsert',
+      credential: { id: 'cred-1', name: 'C', data: 'encrypted' },
+    });
   });
 
   it('maps credentials.delete to credentials.delete', async () => {
@@ -83,6 +117,17 @@ describe('createPublisherHooks', () => {
 
     emit.mockClear();
     await hooks.workflow.afterUpdate[0](workflow as never);
+    expect(emittedEvent(emit)).toMatchObject({ type: 'workflow.upsert', workflow: { id: 'wf-1' } });
+  });
+
+  it('resolves workflow.afterCreate from dbCollections when n8n passes only the workflow id', async () => {
+    const { emit, hooks } = makeDeps();
+
+    await hooks.workflow.afterCreate[0].call(
+      { dbCollections: { Workflow: { findOne: vi.fn().mockResolvedValue(workflow) } } },
+      'wf-1' as never,
+    );
+
     expect(emittedEvent(emit)).toMatchObject({ type: 'workflow.upsert', workflow: { id: 'wf-1' } });
   });
 

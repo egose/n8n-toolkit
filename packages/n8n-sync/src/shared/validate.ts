@@ -20,7 +20,7 @@ function isValidCredentialDto(value: unknown): value is SyncCredentialDto {
     typeof value.id === 'string' &&
     typeof value.name === 'string' &&
     typeof value.type === 'string' &&
-    typeof value.data === 'string'
+    (typeof value.data === 'string' || isRecord(value.data))
   );
 }
 

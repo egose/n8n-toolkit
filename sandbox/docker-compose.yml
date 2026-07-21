@@ -1,0 +1,157 @@
+# -----------------------------------------------------------------------------
+# Two-instance n8n sandbox for @egose/n8n-sync integration tests.
+#
+#   n8n1 (publisher)  →  http://localhost:${N8N1_PORT:-5678}
+#   n8n2 (subscriber) →  http://localhost:${N8N2_PORT:-5679}
+#
+# Copy .env.example to .env before running `docker compose up`.
+# ----------------------------------------------------------------------------
+
+volumes:
+  n8tool_n8n1_storage:
+  n8tool_n8n2_storage:
+  n8tool_postgres_storage:
+
+networks:
+  n8tool:
+    driver: bridge
+
+x-common-props: &common-props
+  platform: linux/amd64
+  restart: no
+  networks: [n8tool]
+
+x-n8n-env: &n8n-env
+  DB_TYPE: postgresdb
+  DB_POSTGRESDB_HOST: postgres
+  DB_POSTGRESDB_USER: ${POSTGRES_USER}
+  DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+  N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+  N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET}
+  N8N_BASE_URL: ${N8N_BASE_URL}
+  N8N_PORT: '5678'
+  NODE_ENV: production
+  N8N_PROTOCOL: http
+  N8N_TRUST_PROXY: 'true'
+  N8N_PROXY_HOPS: '1'
+  # Expose the Public API on first boot (not required in recent versions, but
+  # harmless and makes provisioning deterministic).
+  N8N_PUBLIC_API_DISABLED: 'false'
+  # Shared auth secret between publisher and subscriber.
+  SYNC_SHARED_SECRET: ${SYNC_SHARED_SECRET}
+  SYNC_AUTH_MODE: ${SYNC_AUTH_MODE:-hmac}
+  LOG_LEVEL: debug
+
+services:
+  postgres:
+    <<: *common-props
+    container_name: n8tool_postgres
+    image: postgres:18.4-alpine3.22
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+    - ${POSTGRES_PORT:-5433}:5432
+    volumes:
+    - n8tool_postgres_storage:/var/lib/postgresql/data
+    - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # n8n #1 — source instance running publisher.cjs
+  # ---------------------------------------------------------------------------
+  n8n1:
+    <<: *common-props
+    container_name: n8tool_n8n1
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    environment:
+      <<: *n8n-env
+      DB_POSTGRESDB_DATABASE: n8n1
+      EXTERNAL_HOOK_FILES: /opt/n8n-hooks/publisher.cjs
+      SYNC_SUBSCRIBER_URLS: http://n8n2:5678
+      SYNC_SOURCE_ID: n8n1
+    ports:
+    - ${N8N1_PORT:-5678}:5678
+    volumes:
+    - n8tool_n8n1_storage:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, wget -qO- http://localhost:5678/healthz || exit 1]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # n8n #2 — target instance running subscriber.cjs
+  # ---------------------------------------------------------------------------
+  n8n2:
+    <<: *common-props
+    container_name: n8tool_n8n2
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    environment:
+      <<: *n8n-env
+      DB_POSTGRESDB_DATABASE: n8n2
+      EXTERNAL_HOOK_FILES: /opt/n8n-hooks/subscriber.cjs
+      SYNC_APPLY_ACTIVE_STATE: 'true'
+    ports:
+    - ${N8N2_PORT:-5679}:5678
+    volumes:
+    - n8tool_n8n2_storage:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, wget -qO- http://localhost:5678/healthz || exit 1]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Provisioner — one-shot container that:
+  #   1. Waits for both n8n instances to be ready.
+  #   2. Sets up the owner account on each (POST /rest/owner/setup).
+  #   3. Creates a personal API key on each and writes the keys to a shared
+  #      secrets file consumed by the integration tests.
+  # ---------------------------------------------------------------------------
+  provisioner:
+    <<: *common-props
+    container_name: n8tool_provisioner
+    image: node:22-alpine
+    restart: no
+    environment:
+      N8N1_URL: http://n8n1:5678
+      N8N2_URL: http://n8n2:5678
+      # Host-published ports the integration tests use to reach each instance
+      # from outside the docker network. The provisioner writes these into
+      # api-keys.json as the `baseUrl` the tests connect to.
+      N8N1_PUBLISHED_URL: http://localhost:${N8N1_PORT:-5678}
+      N8N2_PUBLISHED_URL: http://localhost:${N8N2_PORT:-5679}
+      N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET}
+      OWNER_EMAIL: ${OWNER_EMAIL:-owner@example.com}
+      OWNER_FIRST_NAME: ${OWNER_FIRST_NAME:-Owner}
+      OWNER_LAST_NAME: ${OWNER_LAST_NAME:-User}
+      OWNER_PASSWORD: ${OWNER_PASSWORD:-OwnerPassword123!}
+      API_KEY_LABEL: ${API_KEY_LABEL:-integration-tests}
+    volumes:
+    - ./provisioner:/app:ro
+    - ./secrets:/secrets
+    depends_on:
+      n8n1:
+        condition: service_healthy
+      n8n2:
+        condition: service_healthy
+    entrypoint: [node, /app/provision.js, /secrets/api-keys.json]

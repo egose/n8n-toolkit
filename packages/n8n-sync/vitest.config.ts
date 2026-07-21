@@ -6,6 +6,6 @@ export default defineConfig({
     globals: true,
     testTimeout: 30000,
     fileParallelism: false,
-    exclude: ['node_modules/**', 'dist/**', 'build/**'],
+    exclude: ['node_modules/**', 'dist/**', 'build/**', 'tests/integration-*.spec.ts'],
   },
 });
