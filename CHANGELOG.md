@@ -1,3 +1,15 @@
+## [0.9.0](https://github.com/egose/n8n-toolkit/compare/v0.8.0...v0.9.0) (2026-07-21)
+
+### Features
+
+* **n8n-client:** align client APIs and contract coverage with v1.1.1 handler behavior ([03460a3](https://github.com/egose/n8n-toolkit/commit/03460a3ab05a90e16f001bae614fbea6dad4df4a))
+* **n8n-client:** align project and variable resources with handler payloads ([2eecc68](https://github.com/egose/n8n-toolkit/commit/2eecc68ffa2adda65377b9a5d5d8d551a7d78b42))
+* **n8n-client:** expand package import and export multipart options ([c1b8acb](https://github.com/egose/n8n-toolkit/commit/c1b8acb8266a44be62e53dbae88267176226fa39))
+
+### Documentation
+
+* **n8n-client:** regenerate public api diff artifacts ([96ccaba](https://github.com/egose/n8n-toolkit/commit/96ccaba8cd3776d2277ca1799fef6ab897096aa6))
+
 ## [0.8.0](https://github.com/egose/n8n-toolkit/compare/v0.7.0...v0.8.0) (2026-07-21)
 
 ### Features
