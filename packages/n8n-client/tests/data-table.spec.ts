@@ -3,6 +3,19 @@ import DataTableClient from '../src/clients/data-table';
 import DataTableResource from '../src/resources/data-table';
 import { createMockHttpClient } from './test-utils';
 
+const normalizedRow = <T extends Record<string, unknown>>(row: T) => ({
+  createdAt: null,
+  updatedAt: null,
+  ...row,
+});
+
+const normalizedColumn = <T extends Record<string, unknown>>(column: T) => ({
+  dataTableId: null,
+  createdAt: null,
+  updatedAt: null,
+  ...column,
+});
+
 describe('Implementation Consistency: DataTable', () => {
   test('list calls GET /data-tables', async () => {
     const http = createMockHttpClient([{ body: { data: [], nextCursor: undefined } }]);
@@ -11,7 +24,7 @@ describe('Implementation Consistency: DataTable', () => {
     const result = await handle.list({ limit: 10 });
 
     expect(http.get).toHaveBeenCalledWith('/data-tables', { limit: 10 });
-    expect(result).toEqual({ data: [], nextCursor: undefined });
+    expect(result).toEqual({ data: [], nextCursor: null });
   });
 
   test('get calls GET /data-tables/:id', async () => {
@@ -116,7 +129,7 @@ describe('Implementation Consistency: DataTable', () => {
     const result = await handle.listRows('dt-1', { limit: 25 });
 
     expect(http.get).toHaveBeenCalledWith('/data-tables/dt-1/rows', { limit: 25 });
-    expect(result).toEqual({ data: [], nextCursor: undefined });
+    expect(result).toEqual({ data: [], nextCursor: null });
   });
 
   test('insertRows calls POST /data-tables/:id/rows', async () => {
@@ -163,7 +176,7 @@ describe('Implementation Consistency: DataTable', () => {
       data: { name: 'Alice Updated' },
       returnData: true,
     });
-    expect(result).toEqual(rows);
+    expect(result).toEqual(rows.map(normalizedRow));
   });
 
   test('upsertRow returns boolean when returnData is false', async () => {
@@ -196,7 +209,7 @@ describe('Implementation Consistency: DataTable', () => {
       filter: '{"filters":[{"columnName":"name","condition":"eq","value":"Alice"}]}',
       returnData: true,
     });
-    expect(result).toEqual(rows);
+    expect(result).toEqual(rows.map(normalizedRow));
   });
 
   test('listColumns calls GET /data-tables/:id/columns', async () => {
@@ -207,7 +220,7 @@ describe('Implementation Consistency: DataTable', () => {
     const result = await handle.listColumns('dt-1');
 
     expect(http.get).toHaveBeenCalledWith('/data-tables/dt-1/columns');
-    expect(result).toEqual(columns);
+    expect(result).toEqual(columns.map(normalizedColumn));
   });
 
   test('createColumn calls POST /data-tables/:id/columns', async () => {
@@ -218,7 +231,7 @@ describe('Implementation Consistency: DataTable', () => {
     const result = await handle.createColumn('dt-1', { name: 'age', type: 'number' });
 
     expect(http.post).toHaveBeenCalledWith('/data-tables/dt-1/columns', { name: 'age', type: 'number' });
-    expect(result).toEqual(created);
+    expect(result).toEqual(normalizedColumn(created));
   });
 
   test('deleteColumn calls DELETE /data-tables/:id/columns/:colId', async () => {
@@ -238,7 +251,7 @@ describe('Implementation Consistency: DataTable', () => {
     const result = await handle.updateColumn('dt-1', 'col-1', { name: 'email_address' });
 
     expect(http.patch).toHaveBeenCalledWith('/data-tables/dt-1/columns/col-1', { name: 'email_address' });
-    expect(result).toEqual(updated);
+    expect(result).toEqual(normalizedColumn(updated));
   });
 
   test('data table resource methods use bound dataTable id', async () => {

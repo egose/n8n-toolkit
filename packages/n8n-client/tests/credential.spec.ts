@@ -3,6 +3,19 @@ import CredentialClient from '../src/clients/credential';
 import CredentialResource from '../src/resources/credential';
 import { createMockHttpClient } from './test-utils';
 
+const normalizedCredential = <T extends Record<string, unknown>>(credential: T) => ({
+  resolvableAllowFallback: false,
+  resolverId: null,
+  ...credential,
+});
+
+const normalizedCredentialSchema = <T extends Record<string, unknown>>(schema: T) => ({
+  additionalProperties: false,
+  properties: {},
+  required: [],
+  ...schema,
+});
+
 describe('Implementation Consistency: Credential', () => {
   test('list calls GET /credentials', async () => {
     const http = createMockHttpClient([{ body: { data: [], nextCursor: undefined } }]);
@@ -11,7 +24,7 @@ describe('Implementation Consistency: Credential', () => {
     const result = await handle.list({ limit: 5 });
 
     expect(http.get).toHaveBeenCalledWith('/credentials', { limit: 5 });
-    expect(result).toEqual({ data: [], nextCursor: undefined });
+    expect(result).toEqual({ data: [], nextCursor: null });
   });
 
   test('get calls GET /credentials/:id', async () => {
@@ -31,7 +44,7 @@ describe('Implementation Consistency: Credential', () => {
     const result = await handle.get('c-1');
 
     expect(http.get).toHaveBeenCalledWith('/credentials/c-1');
-    expect(result).toEqual(cred);
+    expect(result).toEqual(normalizedCredential(cred));
   });
 
   test('getResource returns a bound credential resource', async () => {
@@ -51,7 +64,7 @@ describe('Implementation Consistency: Credential', () => {
     const result = await handle.getResource('c-1');
 
     expect(result).toBeInstanceOf(CredentialResource);
-    expect(result.data).toEqual(cred);
+    expect(result.data).toEqual(normalizedCredential(cred));
   });
 
   test('listResources wraps credential list items as resources', async () => {
@@ -103,7 +116,7 @@ describe('Implementation Consistency: Credential', () => {
       type: 'slackApi',
       data: { token: 'xoxb-123' },
     });
-    expect(result).toEqual(created);
+    expect(result).toEqual(normalizedCredential(created));
   });
 
   test('createResource wraps created credential as a resource', async () => {
@@ -123,7 +136,7 @@ describe('Implementation Consistency: Credential', () => {
     const result = await handle.createResource({ name: 'Slack', type: 'slackApi', data: { token: 'xoxb-123' } });
 
     expect(result).toBeInstanceOf(CredentialResource);
-    expect(result.data).toEqual(created);
+    expect(result.data).toEqual(normalizedCredential(created));
   });
 
   test('update calls PATCH /credentials/:id', async () => {
@@ -143,7 +156,7 @@ describe('Implementation Consistency: Credential', () => {
     const result = await handle.update('c-1', { name: 'GitHub Updated' });
 
     expect(http.patch).toHaveBeenCalledWith('/credentials/c-1', { name: 'GitHub Updated' });
-    expect(result).toEqual(updated);
+    expect(result).toEqual(normalizedCredential(updated));
   });
 
   test('updateResource wraps updated credential as a resource', async () => {
@@ -163,7 +176,7 @@ describe('Implementation Consistency: Credential', () => {
     const result = await handle.updateResource('c-1', { name: 'GitHub Updated' });
 
     expect(result).toBeInstanceOf(CredentialResource);
-    expect(result.data).toEqual(updated);
+    expect(result.data).toEqual(normalizedCredential(updated));
   });
 
   test('delete calls DELETE /credentials/:id', async () => {
@@ -211,7 +224,7 @@ describe('Implementation Consistency: Credential', () => {
     const result = await handle.getSchema('githubApi');
 
     expect(http.get).toHaveBeenCalledWith('/credentials/schema/githubApi');
-    expect(result).toEqual(schema);
+    expect(result).toEqual(normalizedCredentialSchema(schema));
   });
 
   test('credential resource methods use bound credential id and type', async () => {
@@ -222,6 +235,8 @@ describe('Implementation Consistency: Credential', () => {
       isManaged: false,
       isGlobal: true,
       isResolvable: true,
+      resolvableAllowFallback: false,
+      resolverId: null,
       createdAt: '',
       updatedAt: '',
     };
@@ -241,6 +256,8 @@ describe('Implementation Consistency: Credential', () => {
       isManaged: false,
       isGlobal: true,
       isResolvable: true,
+      resolvableAllowFallback: false,
+      resolverId: null,
       createdAt: '',
       updatedAt: '',
     });
@@ -254,7 +271,7 @@ describe('Implementation Consistency: Credential', () => {
     expect(resource.name).toBe('Updated');
     expect(testResult).toEqual({ status: 'OK', message: 'Connection successful' });
     expect(http.put).toHaveBeenCalledWith('/credentials/c-1/transfer', { destinationProjectId: 'proj-2' });
-    expect(resultSchema).toEqual(schema);
+    expect(resultSchema).toEqual(normalizedCredentialSchema(schema));
     expect(deleted.id).toBe('c-1');
   });
 
@@ -266,6 +283,8 @@ describe('Implementation Consistency: Credential', () => {
       isManaged: false,
       isGlobal: true,
       isResolvable: true,
+      resolvableAllowFallback: false,
+      resolverId: null,
       createdAt: '',
       updatedAt: '',
     };
@@ -278,6 +297,8 @@ describe('Implementation Consistency: Credential', () => {
       isManaged: false,
       isGlobal: true,
       isResolvable: true,
+      resolvableAllowFallback: false,
+      resolverId: null,
       createdAt: '',
       updatedAt: '',
     });

@@ -71,7 +71,7 @@ describe('Implementation Consistency: Project', () => {
     const result = await handle.list({ limit: 5 });
 
     expect(http.get).toHaveBeenCalledWith('/projects', { limit: 5 });
-    expect(result).toEqual({ data: [], nextCursor: undefined });
+    expect(result).toEqual({ data: [], nextCursor: null });
   });
 
   test('getResource finds a project through list pagination', async () => {
@@ -174,7 +174,7 @@ describe('Implementation Consistency: Project', () => {
     const result = await handle.listMembers('p-1', { limit: 10 });
 
     expect(http.get).toHaveBeenCalledWith('/projects/p-1/users', { limit: 10 });
-    expect(result).toEqual({ data: [], nextCursor: undefined });
+    expect(result).toEqual({ data: [], nextCursor: null });
   });
 
   test('addMembers calls POST /projects/:id/users', async () => {
@@ -387,8 +387,8 @@ describe('Implementation Consistency: Project', () => {
       nodes: [],
       connections: {},
       settings: { executionOrder: 'v1' },
-      staticData: undefined,
-      pinData: undefined,
+      staticData: null,
+      pinData: null,
     });
     expect(http.put).toHaveBeenNthCalledWith(2, '/workflows/wf-1', {
       name: 'Patched Again',
@@ -396,8 +396,8 @@ describe('Implementation Consistency: Project', () => {
       nodes: [],
       connections: {},
       settings: { executionOrder: 'v1' },
-      staticData: undefined,
-      pinData: undefined,
+      staticData: null,
+      pinData: null,
     });
     expect(patched.name).toBe('Patched');
     expect(patchedResource).toBeInstanceOf(WorkflowResource);

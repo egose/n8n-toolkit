@@ -1,0 +1,2158 @@
+{
+  "generatedAt": "2026-07-22T00:30:42.092Z",
+  "baseUrl": "http://localhost:5690",
+  "endpointCount": 72,
+  "okCount": 55,
+  "errCount": 17,
+  "entries": [
+    {
+      "op": "workflows.create",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:39.354Z",
+        "createdAt": "2026-07-22T00:30:39.354Z",
+        "id": "Izi4MsdP1mhKE1Yk",
+        "name": "api-sweep-workflow",
+        "description": null,
+        "active": false,
+        "isArchived": false,
+        "nodes": [
+          {
+            "name": "When clicking Execute",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [0, 0],
+            "parameters": {},
+            "id": "b1cc90be-8de4-4603-bc1f-b29724668309"
+          }
+        ],
+        "connections": {},
+        "settings": {
+          "executionOrder": "v1"
+        },
+        "staticData": null,
+        "meta": null,
+        "nodeGroups": [],
+        "pinData": null,
+        "versionId": "1437d1f5-141c-4542-b9cc-fe3f2d5a972c",
+        "activeVersionId": null,
+        "versionCounter": 1,
+        "triggerCount": 0,
+        "sourceWorkflowId": null,
+        "shared": [
+          {
+            "updatedAt": "2026-07-22T00:30:39.354Z",
+            "createdAt": "2026-07-22T00:30:39.354Z",
+            "role": "workflow:owner",
+            "workflowId": "Izi4MsdP1mhKE1Yk",
+            "projectId": "59dUbSweI7rwPbSG",
+            "project": {
+              "updatedAt": "2026-07-22T00:30:37.175Z",
+              "createdAt": "2026-07-22T00:30:31.071Z",
+              "id": "59dUbSweI7rwPbSG",
+              "name": "Owner User <owner@example.com>",
+              "type": "personal",
+              "icon": null,
+              "description": null,
+              "customTelemetryTags": [],
+              "creatorId": "7138bd7d-19f3-488d-8f95-fb5915fa1241"
+            }
+          }
+        ],
+        "tags": [],
+        "parentFolder": null,
+        "activeVersion": null
+      },
+      "durationMs": 358
+    },
+    {
+      "op": "workflows.list",
+      "status": 200,
+      "payload": {
+        "data": [
+          {
+            "updatedAt": "2026-07-22T00:30:39.354Z",
+            "createdAt": "2026-07-22T00:30:39.354Z",
+            "id": "Izi4MsdP1mhKE1Yk",
+            "name": "api-sweep-workflow",
+            "active": false,
+            "isArchived": false,
+            "nodes": [
+              {
+                "name": "When clicking Execute",
+                "type": "n8n-nodes-base.manualTrigger",
+                "typeVersion": 1,
+                "position": [0, 0],
+                "parameters": {},
+                "id": "b1cc90be-8de4-4603-bc1f-b29724668309"
+              }
+            ],
+            "connections": {},
+            "settings": {
+              "executionOrder": "v1"
+            },
+            "staticData": null,
+            "meta": null,
+            "nodeGroups": [],
+            "pinData": null,
+            "versionId": "1437d1f5-141c-4542-b9cc-fe3f2d5a972c",
+            "activeVersionId": null,
+            "triggerCount": 0,
+            "shared": [
+              {
+                "updatedAt": "2026-07-22T00:30:39.354Z",
+                "createdAt": "2026-07-22T00:30:39.354Z",
+                "role": "workflow:owner",
+                "workflowId": "Izi4MsdP1mhKE1Yk",
+                "projectId": "59dUbSweI7rwPbSG"
+              }
+            ],
+            "activeVersion": null,
+            "tags": []
+          }
+        ],
+        "nextCursor": null
+      },
+      "durationMs": 31
+    },
+    {
+      "op": "workflows.get",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:39.354Z",
+        "createdAt": "2026-07-22T00:30:39.354Z",
+        "id": "Izi4MsdP1mhKE1Yk",
+        "name": "api-sweep-workflow",
+        "description": null,
+        "active": false,
+        "isArchived": false,
+        "nodes": [
+          {
+            "name": "When clicking Execute",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [0, 0],
+            "parameters": {},
+            "id": "b1cc90be-8de4-4603-bc1f-b29724668309"
+          }
+        ],
+        "connections": {},
+        "settings": {
+          "executionOrder": "v1"
+        },
+        "staticData": null,
+        "meta": null,
+        "nodeGroups": [],
+        "pinData": null,
+        "versionId": "1437d1f5-141c-4542-b9cc-fe3f2d5a972c",
+        "activeVersionId": null,
+        "versionCounter": 1,
+        "triggerCount": 0,
+        "sourceWorkflowId": null,
+        "shared": [
+          {
+            "updatedAt": "2026-07-22T00:30:39.354Z",
+            "createdAt": "2026-07-22T00:30:39.354Z",
+            "role": "workflow:owner",
+            "workflowId": "Izi4MsdP1mhKE1Yk",
+            "projectId": "59dUbSweI7rwPbSG",
+            "project": {
+              "updatedAt": "2026-07-22T00:30:37.175Z",
+              "createdAt": "2026-07-22T00:30:31.071Z",
+              "id": "59dUbSweI7rwPbSG",
+              "name": "Owner User <owner@example.com>",
+              "type": "personal",
+              "icon": null,
+              "description": null,
+              "customTelemetryTags": [],
+              "creatorId": "7138bd7d-19f3-488d-8f95-fb5915fa1241"
+            }
+          }
+        ],
+        "tags": [],
+        "activeVersion": null
+      },
+      "durationMs": 30
+    },
+    {
+      "op": "workflows.update",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:39.509Z",
+        "createdAt": "2026-07-22T00:30:39.354Z",
+        "id": "Izi4MsdP1mhKE1Yk",
+        "name": "api-sweep-workflow",
+        "description": null,
+        "active": false,
+        "isArchived": false,
+        "nodes": [
+          {
+            "name": "When clicking Execute",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [0, 0],
+            "parameters": {},
+            "id": "5ace245f-dac7-4845-b3a6-5c5a61fd0d05"
+          }
+        ],
+        "connections": {},
+        "settings": {
+          "executionOrder": "v1"
+        },
+        "staticData": null,
+        "meta": null,
+        "nodeGroups": [],
+        "pinData": null,
+        "versionId": "d9064dfa-b34f-4df9-baf0-9b1070eeb4a0",
+        "activeVersionId": null,
+        "versionCounter": 2,
+        "triggerCount": 0,
+        "sourceWorkflowId": null,
+        "tags": [],
+        "activeVersion": null
+      },
+      "durationMs": 84
+    },
+    {
+      "op": "workflows.activate",
+      "status": 400,
+      "payload": {
+        "message": "Workflow cannot be activated because it has no trigger node. At least one trigger, webhook, or polling node is required."
+      },
+      "error": "Workflow cannot be activated because it has no trigger node. At least one trigger, webhook, or polling node is required.",
+      "durationMs": 33
+    },
+    {
+      "op": "workflows.deactivate",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:39.509Z",
+        "createdAt": "2026-07-22T00:30:39.354Z",
+        "id": "Izi4MsdP1mhKE1Yk",
+        "name": "api-sweep-workflow",
+        "description": null,
+        "active": false,
+        "isArchived": false,
+        "nodes": [
+          {
+            "name": "When clicking Execute",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [0, 0],
+            "parameters": {},
+            "id": "5ace245f-dac7-4845-b3a6-5c5a61fd0d05"
+          }
+        ],
+        "connections": {},
+        "settings": {
+          "executionOrder": "v1"
+        },
+        "staticData": null,
+        "meta": null,
+        "nodeGroups": [],
+        "pinData": null,
+        "versionId": "d9064dfa-b34f-4df9-baf0-9b1070eeb4a0",
+        "activeVersionId": null,
+        "versionCounter": 2,
+        "triggerCount": 0,
+        "sourceWorkflowId": null,
+        "shared": [
+          {
+            "updatedAt": "2026-07-22T00:30:39.354Z",
+            "createdAt": "2026-07-22T00:30:39.354Z",
+            "role": "workflow:owner",
+            "workflowId": "Izi4MsdP1mhKE1Yk",
+            "projectId": "59dUbSweI7rwPbSG",
+            "project": {
+              "updatedAt": "2026-07-22T00:30:37.175Z",
+              "createdAt": "2026-07-22T00:30:31.071Z",
+              "id": "59dUbSweI7rwPbSG",
+              "name": "Owner User <owner@example.com>",
+              "type": "personal",
+              "icon": null,
+              "description": null,
+              "customTelemetryTags": [],
+              "creatorId": "7138bd7d-19f3-488d-8f95-fb5915fa1241"
+            }
+          }
+        ]
+      },
+      "durationMs": 23
+    },
+    {
+      "op": "workflows.archive",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:39.509Z",
+        "createdAt": "2026-07-22T00:30:39.354Z",
+        "id": "Izi4MsdP1mhKE1Yk",
+        "name": "api-sweep-workflow",
+        "description": null,
+        "active": false,
+        "isArchived": true,
+        "nodes": [
+          {
+            "name": "When clicking Execute",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [0, 0],
+            "parameters": {},
+            "id": "5ace245f-dac7-4845-b3a6-5c5a61fd0d05"
+          }
+        ],
+        "connections": {},
+        "settings": {
+          "executionOrder": "v1"
+        },
+        "staticData": null,
+        "meta": null,
+        "nodeGroups": [],
+        "pinData": null,
+        "versionId": "ce8c2d11-8c3a-4e4b-bae5-e713952b456d",
+        "activeVersionId": null,
+        "versionCounter": 2,
+        "triggerCount": 0,
+        "sourceWorkflowId": null,
+        "shared": [
+          {
+            "updatedAt": "2026-07-22T00:30:39.354Z",
+            "createdAt": "2026-07-22T00:30:39.354Z",
+            "role": "workflow:owner",
+            "workflowId": "Izi4MsdP1mhKE1Yk",
+            "projectId": "59dUbSweI7rwPbSG",
+            "project": {
+              "updatedAt": "2026-07-22T00:30:37.175Z",
+              "createdAt": "2026-07-22T00:30:31.071Z",
+              "id": "59dUbSweI7rwPbSG",
+              "name": "Owner User <owner@example.com>",
+              "type": "personal",
+              "icon": null,
+              "description": null,
+              "customTelemetryTags": [],
+              "creatorId": "7138bd7d-19f3-488d-8f95-fb5915fa1241"
+            }
+          }
+        ],
+        "activeVersion": null
+      },
+      "durationMs": 33
+    },
+    {
+      "op": "workflows.unarchive",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:39.602Z",
+        "createdAt": "2026-07-22T00:30:39.354Z",
+        "id": "Izi4MsdP1mhKE1Yk",
+        "name": "api-sweep-workflow",
+        "description": null,
+        "active": false,
+        "isArchived": false,
+        "nodes": [
+          {
+            "name": "When clicking Execute",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [0, 0],
+            "parameters": {},
+            "id": "5ace245f-dac7-4845-b3a6-5c5a61fd0d05"
+          }
+        ],
+        "connections": {},
+        "settings": {
+          "executionOrder": "v1"
+        },
+        "staticData": null,
+        "meta": null,
+        "nodeGroups": [],
+        "pinData": null,
+        "versionId": "56a1a866-1c75-49bc-a2b1-e2c7e5abacb0",
+        "activeVersionId": null,
+        "versionCounter": 2,
+        "triggerCount": 0,
+        "sourceWorkflowId": null,
+        "shared": [
+          {
+            "updatedAt": "2026-07-22T00:30:39.354Z",
+            "createdAt": "2026-07-22T00:30:39.354Z",
+            "role": "workflow:owner",
+            "workflowId": "Izi4MsdP1mhKE1Yk",
+            "projectId": "59dUbSweI7rwPbSG",
+            "project": {
+              "updatedAt": "2026-07-22T00:30:37.175Z",
+              "createdAt": "2026-07-22T00:30:31.071Z",
+              "id": "59dUbSweI7rwPbSG",
+              "name": "Owner User <owner@example.com>",
+              "type": "personal",
+              "icon": null,
+              "description": null,
+              "customTelemetryTags": [],
+              "creatorId": "7138bd7d-19f3-488d-8f95-fb5915fa1241"
+            }
+          }
+        ]
+      },
+      "durationMs": 28
+    },
+    {
+      "op": "workflows.getTags",
+      "status": 200,
+      "payload": [],
+      "durationMs": 26
+    },
+    {
+      "op": "workflows.updateTags",
+      "status": 200,
+      "payload": [],
+      "durationMs": 24
+    },
+    {
+      "op": "workflows.getVersion",
+      "status": 404,
+      "payload": {
+        "message": "Version not found"
+      },
+      "error": "Version not found",
+      "durationMs": 32
+    },
+    {
+      "op": "workflows.listTestRuns",
+      "status": 200,
+      "payload": {
+        "data": [],
+        "nextCursor": null
+      },
+      "durationMs": 27
+    },
+    {
+      "op": "executions.list",
+      "status": 200,
+      "payload": {
+        "data": [],
+        "nextCursor": null
+      },
+      "durationMs": 26
+    },
+    {
+      "op": "executions.get",
+      "status": 404,
+      "payload": {
+        "message": "Not Found"
+      },
+      "error": "Not Found",
+      "durationMs": 24
+    },
+    {
+      "op": "executions.getTags",
+      "status": 404,
+      "payload": {
+        "message": "Not Found"
+      },
+      "error": "Not Found",
+      "durationMs": 26
+    },
+    {
+      "op": "executions.updateTags",
+      "status": 404,
+      "payload": {
+        "message": "Not Found"
+      },
+      "error": "Not Found",
+      "durationMs": 24
+    },
+    {
+      "op": "executions.retry",
+      "status": 404,
+      "payload": {
+        "message": "The execution with the ID \"1\" does not exist."
+      },
+      "error": "The execution with the ID \"1\" does not exist.",
+      "durationMs": 27
+    },
+    {
+      "op": "executions.stop",
+      "status": 404,
+      "payload": {
+        "message": "Failed to find execution to stop"
+      },
+      "error": "Failed to find execution to stop",
+      "durationMs": 23
+    },
+    {
+      "op": "executions.delete",
+      "status": 404,
+      "payload": {
+        "message": "Not Found"
+      },
+      "error": "Not Found",
+      "durationMs": 28
+    },
+    {
+      "op": "executions.stopMany",
+      "status": 200,
+      "payload": {
+        "stopped": 0
+      },
+      "durationMs": 25
+    },
+    {
+      "op": "credentials.create",
+      "status": 200,
+      "payload": {
+        "id": "fFHbiiyuQqBAXMV0",
+        "name": "api-sweep-credential",
+        "type": "httpHeaderAuth",
+        "isManaged": false,
+        "isGlobal": false,
+        "isResolvable": false,
+        "resolvableAllowFallback": false,
+        "resolverId": null,
+        "createdAt": "2026-07-22T00:30:39.974Z",
+        "updatedAt": "2026-07-22T00:30:39.972Z"
+      },
+      "durationMs": 40
+    },
+    {
+      "op": "credentials.list",
+      "status": 200,
+      "payload": {
+        "data": [
+          {
+            "id": "fFHbiiyuQqBAXMV0",
+            "name": "api-sweep-credential",
+            "type": "httpHeaderAuth",
+            "createdAt": "2026-07-22T00:30:39.974Z",
+            "updatedAt": "2026-07-22T00:30:39.972Z",
+            "shared": [
+              {
+                "id": "59dUbSweI7rwPbSG",
+                "name": "Owner User <owner@example.com>",
+                "role": "credential:owner",
+                "createdAt": "2026-07-22T00:30:39.974Z",
+                "updatedAt": "2026-07-22T00:30:39.974Z"
+              }
+            ]
+          }
+        ],
+        "nextCursor": null
+      },
+      "durationMs": 26
+    },
+    {
+      "op": "credentials.get",
+      "status": 200,
+      "payload": {
+        "id": "fFHbiiyuQqBAXMV0",
+        "name": "api-sweep-credential",
+        "type": "httpHeaderAuth",
+        "isManaged": false,
+        "isGlobal": false,
+        "isResolvable": false,
+        "resolvableAllowFallback": false,
+        "resolverId": null,
+        "createdAt": "2026-07-22T00:30:39.974Z",
+        "updatedAt": "2026-07-22T00:30:39.972Z"
+      },
+      "durationMs": 31
+    },
+    {
+      "op": "credentials.update",
+      "status": 200,
+      "payload": {
+        "id": "fFHbiiyuQqBAXMV0",
+        "name": "api-sweep-credential-renamed",
+        "type": "httpHeaderAuth",
+        "isManaged": false,
+        "isGlobal": false,
+        "isResolvable": false,
+        "resolvableAllowFallback": false,
+        "resolverId": null,
+        "createdAt": "2026-07-22T00:30:39.974Z",
+        "updatedAt": "2026-07-22T00:30:40.072Z"
+      },
+      "durationMs": 33
+    },
+    {
+      "op": "credentials.test",
+      "status": 400,
+      "payload": {
+        "message": "Unrecognized node type: n8n-nodes-base.graphqlTool"
+      },
+      "error": "Unrecognized node type: n8n-nodes-base.graphqlTool",
+      "durationMs": 487
+    },
+    {
+      "op": "credentials.transfer",
+      "status": 404,
+      "payload": {
+        "message": "Could not find project with the id \"n8n-personal\". Make sure you have the permission to create credentials in it."
+      },
+      "error": "Could not find project with the id \"n8n-personal\". Make sure you have the permission to create credentials in it.",
+      "durationMs": 24
+    },
+    {
+      "op": "credentials.getSchema",
+      "status": 200,
+      "payload": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "useCustomAuth": {
+            "type": "notice"
+          },
+          "allowedHttpRequestDomains": {
+            "type": "string",
+            "enum": ["all", "domains", "none"]
+          },
+          "allowedDomains": {
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "durationMs": 17
+    },
+    {
+      "op": "tags.create",
+      "status": 200,
+      "payload": {
+        "name": "api-sweep-tag",
+        "id": "YsVLpSfh7lfrc6eK",
+        "updatedAt": "2026-07-22T00:30:40.630Z",
+        "createdAt": "2026-07-22T00:30:40.630Z"
+      },
+      "durationMs": 27
+    },
+    {
+      "op": "tags.list",
+      "status": 200,
+      "payload": {
+        "data": [
+          {
+            "updatedAt": "2026-07-22T00:30:40.630Z",
+            "createdAt": "2026-07-22T00:30:40.630Z",
+            "id": "YsVLpSfh7lfrc6eK",
+            "name": "api-sweep-tag"
+          }
+        ],
+        "nextCursor": null
+      },
+      "durationMs": 21
+    },
+    {
+      "op": "tags.get",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:40.630Z",
+        "createdAt": "2026-07-22T00:30:40.630Z",
+        "id": "YsVLpSfh7lfrc6eK",
+        "name": "api-sweep-tag"
+      },
+      "durationMs": 20
+    },
+    {
+      "op": "tags.update",
+      "status": 200,
+      "payload": {
+        "id": "YsVLpSfh7lfrc6eK",
+        "name": "api-sweep-tag"
+      },
+      "durationMs": 21
+    },
+    {
+      "op": "users.list",
+      "status": 200,
+      "payload": {
+        "data": [
+          {
+            "id": "7138bd7d-19f3-488d-8f95-fb5915fa1241",
+            "email": "owner@example.com",
+            "firstName": "Owner",
+            "lastName": "User",
+            "createdAt": "2026-07-22T00:30:30.505Z",
+            "updatedAt": "2026-07-22T00:30:37.202Z",
+            "isPending": false,
+            "mfaEnabled": false
+          }
+        ],
+        "nextCursor": null
+      },
+      "durationMs": 35
+    },
+    {
+      "op": "users.get",
+      "status": 200,
+      "payload": {
+        "id": "7138bd7d-19f3-488d-8f95-fb5915fa1241",
+        "email": "owner@example.com",
+        "firstName": "Owner",
+        "lastName": "User",
+        "createdAt": "2026-07-22T00:30:30.505Z",
+        "updatedAt": "2026-07-22T00:30:37.202Z",
+        "isPending": false,
+        "mfaEnabled": false
+      },
+      "durationMs": 24
+    },
+    {
+      "op": "users.changeRole",
+      "status": 403,
+      "payload": {
+        "message": "Cannot change your own global role"
+      },
+      "error": "Cannot change your own global role",
+      "durationMs": 21
+    },
+    {
+      "op": "users.create",
+      "status": 200,
+      "payload": [
+        {
+          "user": {
+            "id": "d7de7278-4a06-495d-a319-bb6853fdd2ad",
+            "email": "sweep-user@example.com",
+            "emailSent": false,
+            "role": "global:member",
+            "inviteAcceptUrl": "http://localhost:5678/signup?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbnZpdGVySWQiOiI3MTM4YmQ3ZC0xOWYzLTQ4OGQtOGY5NS1mYjU5MTVmYTEyNDEiLCJpbnZpdGVlSWQiOiJkN2RlNzI3OC00YTA2LTQ5NWQtYTMxOS1iYjY4NTNmZGQyYWQiLCJpYXQiOjE3ODQ2ODAyNDAsImV4cCI6MTc5MjQ1NjI0MH0.XAJy2cyDbLHObfEcDlXkFikbn9Z4nufax0jAfD5gf_A"
+          },
+          "error": ""
+        }
+      ],
+      "durationMs": 39
+    },
+    {
+      "op": "variables.create",
+      "status": 200,
+      "durationMs": 25
+    },
+    {
+      "op": "variables.list",
+      "status": 200,
+      "payload": {
+        "data": [
+          {
+            "id": "7bO0vEzJiKrBw4a0",
+            "key": "API_SWEEP_VAR",
+            "type": "string",
+            "value": "sweep",
+            "project": null
+          }
+        ],
+        "nextCursor": null
+      },
+      "durationMs": 20
+    },
+    {
+      "op": "variables.get",
+      "status": 200,
+      "payload": {
+        "id": "7bO0vEzJiKrBw4a0",
+        "key": "API_SWEEP_VAR",
+        "type": "string",
+        "value": "sweep",
+        "project": null
+      },
+      "durationMs": 14
+    },
+    {
+      "op": "variables.update",
+      "status": 200,
+      "durationMs": 31
+    },
+    {
+      "op": "projects.create",
+      "status": 200,
+      "payload": {
+        "name": "api-sweep-project",
+        "type": "team",
+        "creatorId": "7138bd7d-19f3-488d-8f95-fb5915fa1241",
+        "id": "mMEVH8H3ccZbnsqY",
+        "icon": null,
+        "description": null,
+        "updatedAt": "2026-07-22T00:30:40.923Z",
+        "createdAt": "2026-07-22T00:30:40.923Z",
+        "customTelemetryTags": [],
+        "role": "project:admin",
+        "scopes": [
+          "agent:create",
+          "agent:delete",
+          "agent:execute",
+          "agent:list",
+          "agent:manage",
+          "agent:publish",
+          "agent:read",
+          "agent:unpublish",
+          "agent:update",
+          "aiAssistant:manage",
+          "annotationTag:create",
+          "annotationTag:delete",
+          "annotationTag:list",
+          "annotationTag:read",
+          "annotationTag:update",
+          "apiKey:create",
+          "apiKey:delete",
+          "apiKey:list",
+          "apiKey:manage",
+          "apiKey:update",
+          "auditLogs:manage",
+          "banner:dismiss",
+          "breakingChanges:list",
+          "chatHub:manage",
+          "chatHub:message",
+          "chatHubAgent:create",
+          "chatHubAgent:delete",
+          "chatHubAgent:list",
+          "chatHubAgent:read",
+          "chatHubAgent:update",
+          "community:register",
+          "communityPackage:install",
+          "communityPackage:list",
+          "communityPackage:uninstall",
+          "communityPackage:update",
+          "credential:connect",
+          "credential:create",
+          "credential:delete",
+          "credential:list",
+          "credential:move",
+          "credential:read",
+          "credential:share",
+          "credential:shareGlobally",
+          "credential:unshare",
+          "credential:update",
+          "credentialResolver:create",
+          "credentialResolver:delete",
+          "credentialResolver:list",
+          "credentialResolver:read",
+          "credentialResolver:update",
+          "dataTable:create",
+          "dataTable:delete",
+          "dataTable:list",
+          "dataTable:listProject",
+          "dataTable:read",
+          "dataTable:readColumn",
+          "dataTable:readRow",
+          "dataTable:update",
+          "dataTable:writeColumn",
+          "dataTable:writeRow",
+          "encryptionKey:manage",
+          "eventBusDestination:create",
+          "eventBusDestination:delete",
+          "eventBusDestination:list",
+          "eventBusDestination:read",
+          "eventBusDestination:test",
+          "eventBusDestination:update",
+          "execution:reveal",
+          "externalSecret:list",
+          "externalSecretsProvider:create",
+          "externalSecretsProvider:delete",
+          "externalSecretsProvider:list",
+          "externalSecretsProvider:read",
+          "externalSecretsProvider:sync",
+          "externalSecretsProvider:update",
+          "folder:create",
+          "folder:delete",
+          "folder:list",
+          "folder:move",
+          "folder:read",
+          "folder:update",
+          "insights:list",
+          "insights:read",
+          "instanceAi:eval",
+          "instanceAi:gateway",
+          "instanceAi:manage",
+          "instanceAi:message",
+          "ldap:manage",
+          "ldap:sync",
+          "license:manage",
+          "logStreaming:manage",
+          "mcp:manage",
+          "mcp:oauth",
+          "mcpApiKey:create",
+          "mcpApiKey:rotate",
+          "oidc:manage",
+          "orchestration:read",
+          "otel:manage",
+          "project:create",
+          "project:delete",
+          "project:export",
+          "project:list",
+          "project:read",
+          "project:update",
+          "projectVariable:create",
+          "projectVariable:delete",
+          "projectVariable:list",
+          "projectVariable:read",
+          "projectVariable:update",
+          "provisioning:manage",
+          "role:manage",
+          "role:read",
+          "roleMappingRule:create",
+          "roleMappingRule:delete",
+          "roleMappingRule:list",
+          "roleMappingRule:read",
+          "roleMappingRule:update",
+          "saml:manage",
+          "securityAudit:generate",
+          "securitySettings:manage",
+          "sourceControl:manage",
+          "sourceControl:pull",
+          "sourceControl:push",
+          "tag:create",
+          "tag:delete",
+          "tag:list",
+          "tag:read",
+          "tag:update",
+          "user:changeRole",
+          "user:create",
+          "user:delete",
+          "user:enforceMfa",
+          "user:generateInviteLink",
+          "user:list",
+          "user:read",
+          "user:resetPassword",
+          "user:update",
+          "variable:create",
+          "variable:delete",
+          "variable:list",
+          "variable:read",
+          "variable:update",
+          "workersView:manage",
+          "workflow:create",
+          "workflow:delete",
+          "workflow:disableRedaction",
+          "workflow:enableRedaction",
+          "workflow:execute",
+          "workflow:execute-chat",
+          "workflow:export",
+          "workflow:import",
+          "workflow:list",
+          "workflow:move",
+          "workflow:publish",
+          "workflow:read",
+          "workflow:share",
+          "workflow:unpublish",
+          "workflow:unshare",
+          "workflow:update"
+        ]
+      },
+      "durationMs": 29
+    },
+    {
+      "op": "projects.list",
+      "status": 200,
+      "payload": {
+        "data": [
+          {
+            "updatedAt": "2026-07-22T00:30:37.175Z",
+            "createdAt": "2026-07-22T00:30:31.071Z",
+            "id": "59dUbSweI7rwPbSG",
+            "name": "Owner User <owner@example.com>",
+            "type": "personal",
+            "icon": null,
+            "description": null,
+            "customTelemetryTags": [],
+            "creatorId": "7138bd7d-19f3-488d-8f95-fb5915fa1241"
+          },
+          {
+            "updatedAt": "2026-07-22T00:30:40.799Z",
+            "createdAt": "2026-07-22T00:30:40.799Z",
+            "id": "iaGDvdv5ZM4mrSEd",
+            "name": "<sweep-user@example.com>",
+            "type": "personal",
+            "icon": null,
+            "description": null,
+            "customTelemetryTags": [],
+            "creatorId": "d7de7278-4a06-495d-a319-bb6853fdd2ad"
+          },
+          {
+            "updatedAt": "2026-07-22T00:30:40.923Z",
+            "createdAt": "2026-07-22T00:30:40.923Z",
+            "id": "mMEVH8H3ccZbnsqY",
+            "name": "api-sweep-project",
+            "type": "team",
+            "icon": null,
+            "description": null,
+            "customTelemetryTags": [],
+            "creatorId": "7138bd7d-19f3-488d-8f95-fb5915fa1241"
+          }
+        ],
+        "nextCursor": null
+      },
+      "durationMs": 19
+    },
+    {
+      "op": "projects.update",
+      "status": 200,
+      "durationMs": 24
+    },
+    {
+      "op": "projects.listMembers",
+      "status": 200,
+      "payload": {
+        "data": [
+          {
+            "id": "7138bd7d-19f3-488d-8f95-fb5915fa1241",
+            "email": "owner@example.com",
+            "firstName": "Owner",
+            "lastName": "User",
+            "createdAt": "2026-07-22T00:30:30.505Z",
+            "updatedAt": "2026-07-22T00:30:37.202Z",
+            "role": "project:admin"
+          }
+        ],
+        "nextCursor": null
+      },
+      "durationMs": 32
+    },
+    {
+      "op": "projects.addMembers",
+      "status": 200,
+      "durationMs": 27
+    },
+    {
+      "op": "projects.changeMemberRole",
+      "status": 200,
+      "durationMs": 32
+    },
+    {
+      "op": "projects.removeMember",
+      "status": 200,
+      "durationMs": 25
+    },
+    {
+      "op": "folders.create",
+      "status": 200,
+      "payload": {
+        "name": "api-sweep-folder",
+        "parentFolder": null,
+        "id": "KQAZKX1PRMFvULbS",
+        "parentFolderId": null,
+        "updatedAt": "2026-07-22T00:30:41.118Z",
+        "createdAt": "2026-07-22T00:30:41.118Z"
+      },
+      "durationMs": 30
+    },
+    {
+      "op": "folders.list",
+      "status": 200,
+      "payload": {
+        "count": 1,
+        "data": [
+          {
+            "updatedAt": "2026-07-22T00:30:41.118Z",
+            "createdAt": "2026-07-22T00:30:41.118Z",
+            "id": "KQAZKX1PRMFvULbS",
+            "name": "api-sweep-folder",
+            "parentFolderId": null,
+            "homeProject": {
+              "id": "mMEVH8H3ccZbnsqY",
+              "name": "api-sweep-project",
+              "type": "team",
+              "icon": null
+            },
+            "parentFolder": null,
+            "tags": [],
+            "workflowCount": 0,
+            "subFolderCount": 0
+          }
+        ]
+      },
+      "durationMs": 25
+    },
+    {
+      "op": "folders.get",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:41.118Z",
+        "createdAt": "2026-07-22T00:30:41.118Z",
+        "id": "KQAZKX1PRMFvULbS",
+        "name": "api-sweep-folder",
+        "parentFolderId": null,
+        "totalSubFolders": 0,
+        "totalWorkflows": 0
+      },
+      "durationMs": 23
+    },
+    {
+      "op": "folders.update",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:41.191Z",
+        "createdAt": "2026-07-22T00:30:41.118Z",
+        "id": "KQAZKX1PRMFvULbS",
+        "name": "api-sweep-folder-renamed",
+        "parentFolderId": null
+      },
+      "durationMs": 26
+    },
+    {
+      "op": "dataTables.create",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:41.224Z",
+        "createdAt": "2026-07-22T00:30:41.224Z",
+        "id": "ZbGeQb93fmVaXQ9P",
+        "name": "api-sweep-table",
+        "projectId": "mMEVH8H3ccZbnsqY",
+        "columns": [
+          {
+            "updatedAt": "2026-07-22T00:30:41.224Z",
+            "createdAt": "2026-07-22T00:30:41.224Z",
+            "id": "2c3yZ9lycCvpEQSZ",
+            "dataTableId": "ZbGeQb93fmVaXQ9P",
+            "name": "count",
+            "type": "number",
+            "index": 1
+          },
+          {
+            "updatedAt": "2026-07-22T00:30:41.224Z",
+            "createdAt": "2026-07-22T00:30:41.224Z",
+            "id": "rWu9rgXM5UoWxceP",
+            "dataTableId": "ZbGeQb93fmVaXQ9P",
+            "name": "name",
+            "type": "string",
+            "index": 0
+          }
+        ]
+      },
+      "durationMs": 42
+    },
+    {
+      "op": "dataTables.list",
+      "status": 200,
+      "payload": {
+        "data": [
+          {
+            "updatedAt": "2026-07-22T00:30:41.224Z",
+            "createdAt": "2026-07-22T00:30:41.224Z",
+            "id": "ZbGeQb93fmVaXQ9P",
+            "name": "api-sweep-table",
+            "projectId": "mMEVH8H3ccZbnsqY",
+            "columns": [
+              {
+                "updatedAt": "2026-07-22T00:30:41.224Z",
+                "createdAt": "2026-07-22T00:30:41.224Z",
+                "id": "2c3yZ9lycCvpEQSZ",
+                "name": "count",
+                "type": "number",
+                "index": 1
+              },
+              {
+                "updatedAt": "2026-07-22T00:30:41.224Z",
+                "createdAt": "2026-07-22T00:30:41.224Z",
+                "id": "rWu9rgXM5UoWxceP",
+                "name": "name",
+                "type": "string",
+                "index": 0
+              }
+            ]
+          }
+        ],
+        "nextCursor": null
+      },
+      "durationMs": 24
+    },
+    {
+      "op": "dataTables.get",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:41.224Z",
+        "createdAt": "2026-07-22T00:30:41.224Z",
+        "id": "ZbGeQb93fmVaXQ9P",
+        "name": "api-sweep-table",
+        "projectId": "mMEVH8H3ccZbnsqY",
+        "columns": [
+          {
+            "updatedAt": "2026-07-22T00:30:41.224Z",
+            "createdAt": "2026-07-22T00:30:41.224Z",
+            "id": "2c3yZ9lycCvpEQSZ",
+            "dataTableId": "ZbGeQb93fmVaXQ9P",
+            "name": "count",
+            "type": "number",
+            "index": 1
+          },
+          {
+            "updatedAt": "2026-07-22T00:30:41.224Z",
+            "createdAt": "2026-07-22T00:30:41.224Z",
+            "id": "rWu9rgXM5UoWxceP",
+            "dataTableId": "ZbGeQb93fmVaXQ9P",
+            "name": "name",
+            "type": "string",
+            "index": 0
+          }
+        ]
+      },
+      "durationMs": 21
+    },
+    {
+      "op": "dataTables.update",
+      "status": 200,
+      "payload": {
+        "updatedAt": "2026-07-22T00:30:41.305Z",
+        "createdAt": "2026-07-22T00:30:41.224Z",
+        "id": "ZbGeQb93fmVaXQ9P",
+        "name": "api-sweep-table-renamed",
+        "projectId": "mMEVH8H3ccZbnsqY",
+        "columns": [
+          {
+            "updatedAt": "2026-07-22T00:30:41.224Z",
+            "createdAt": "2026-07-22T00:30:41.224Z",
+            "id": "2c3yZ9lycCvpEQSZ",
+            "dataTableId": "ZbGeQb93fmVaXQ9P",
+            "name": "count",
+            "type": "number",
+            "index": 1
+          },
+          {
+            "updatedAt": "2026-07-22T00:30:41.224Z",
+            "createdAt": "2026-07-22T00:30:41.224Z",
+            "id": "rWu9rgXM5UoWxceP",
+            "dataTableId": "ZbGeQb93fmVaXQ9P",
+            "name": "name",
+            "type": "string",
+            "index": 0
+          }
+        ]
+      },
+      "durationMs": 27
+    },
+    {
+      "op": "dataTables.insertRows",
+      "status": 200,
+      "payload": [
+        {
+          "name": "alpha",
+          "count": 1,
+          "id": 1,
+          "createdAt": "2026-07-22T00:30:41.348Z",
+          "updatedAt": "2026-07-22T00:30:41.348Z"
+        },
+        {
+          "name": "beta",
+          "count": 2,
+          "id": 2,
+          "createdAt": "2026-07-22T00:30:41.348Z",
+          "updatedAt": "2026-07-22T00:30:41.348Z"
+        }
+      ],
+      "durationMs": 45
+    },
+    {
+      "op": "dataTables.listRows",
+      "status": 200,
+      "payload": {
+        "data": [
+          {
+            "name": "alpha",
+            "count": 1,
+            "id": 1,
+            "createdAt": "2026-07-22T00:30:41.348Z",
+            "updatedAt": "2026-07-22T00:30:41.348Z"
+          },
+          {
+            "name": "beta",
+            "count": 2,
+            "id": 2,
+            "createdAt": "2026-07-22T00:30:41.348Z",
+            "updatedAt": "2026-07-22T00:30:41.348Z"
+          }
+        ],
+        "nextCursor": null
+      },
+      "durationMs": 29
+    },
+    {
+      "op": "dataTables.upsertRow",
+      "status": 200,
+      "payload": true,
+      "durationMs": 29
+    },
+    {
+      "op": "dataTables.updateRows",
+      "status": 200,
+      "payload": true,
+      "durationMs": 28
+    },
+    {
+      "op": "dataTables.deleteRows",
+      "status": 400,
+      "payload": {
+        "message": "request/query/filter must match format \"jsonString\""
+      },
+      "error": "request/query/filter must match format \"jsonString\"",
+      "durationMs": 19
+    },
+    {
+      "op": "dataTables.clearRows",
+      "status": 200,
+      "payload": {
+        "deletedCount": 2
+      },
+      "durationMs": 27
+    },
+    {
+      "op": "dataTables.createColumn",
+      "status": 200,
+      "payload": {
+        "dataTableId": "ZbGeQb93fmVaXQ9P",
+        "name": "flag",
+        "type": "boolean",
+        "index": 2,
+        "id": "RR1LYFW8r9loxrdn",
+        "updatedAt": "2026-07-22T00:30:41.508Z",
+        "createdAt": "2026-07-22T00:30:41.508Z"
+      },
+      "durationMs": 28
+    },
+    {
+      "op": "dataTables.listColumns",
+      "status": 200,
+      "payload": [
+        {
+          "updatedAt": "2026-07-22T00:30:41.224Z",
+          "createdAt": "2026-07-22T00:30:41.224Z",
+          "id": "rWu9rgXM5UoWxceP",
+          "dataTableId": "ZbGeQb93fmVaXQ9P",
+          "name": "name",
+          "type": "string",
+          "index": 0
+        },
+        {
+          "updatedAt": "2026-07-22T00:30:41.224Z",
+          "createdAt": "2026-07-22T00:30:41.224Z",
+          "id": "2c3yZ9lycCvpEQSZ",
+          "dataTableId": "ZbGeQb93fmVaXQ9P",
+          "name": "count",
+          "type": "number",
+          "index": 1
+        },
+        {
+          "updatedAt": "2026-07-22T00:30:41.508Z",
+          "createdAt": "2026-07-22T00:30:41.508Z",
+          "id": "RR1LYFW8r9loxrdn",
+          "dataTableId": "ZbGeQb93fmVaXQ9P",
+          "name": "flag",
+          "type": "boolean",
+          "index": 2
+        }
+      ],
+      "durationMs": 24
+    },
+    {
+      "op": "dataTables.updateColumn",
+      "status": 400,
+      "payload": {
+        "message": "request/body/name must match pattern \"^[a-zA-Z][a-zA-Z0-9_]*$\""
+      },
+      "error": "request/body/name must match pattern \"^[a-zA-Z][a-zA-Z0-9_]*$\"",
+      "durationMs": 23
+    },
+    {
+      "op": "dataTables.deleteColumn",
+      "status": 200,
+      "durationMs": 34
+    },
+    {
+      "op": "communityPackages.list",
+      "status": 200,
+      "payload": [],
+      "durationMs": 22
+    },
+    {
+      "op": "audit.generate",
+      "status": 200,
+      "payload": {
+        "Credentials Risk Report": {
+          "risk": "credentials",
+          "sections": [
+            {
+              "title": "Credentials not used in any workflow",
+              "description": "This credential is not used in any workflow. Keeping unused credentials in your instance is an unneeded security risk.",
+              "recommendation": "Consider deleting these credentials if you no longer need them.",
+              "location": [
+                {
+                  "kind": "credential",
+                  "id": "fFHbiiyuQqBAXMV0",
+                  "name": "api-sweep-credential-renamed"
+                }
+              ]
+            },
+            {
+              "title": "Credentials not used in any active workflow",
+              "description": "This credential is not used in active workflows. Keeping unused credentials in your instance is an unneeded security risk.",
+              "recommendation": "Consider deleting these credentials if you no longer need them.",
+              "location": [
+                {
+                  "kind": "credential",
+                  "id": "fFHbiiyuQqBAXMV0",
+                  "name": "api-sweep-credential-renamed"
+                }
+              ]
+            },
+            {
+              "title": "Credentials not used in recently executed workflows",
+              "description": "This credential is not used in recently executed workflows, i.e. workflows executed in the past 90 days. Keeping unused credentials in your instance is an unneeded security risk.",
+              "recommendation": "Consider deleting these credentials if you no longer need them.",
+              "location": [
+                {
+                  "kind": "credential",
+                  "id": "fFHbiiyuQqBAXMV0",
+                  "name": "api-sweep-credential-renamed"
+                }
+              ]
+            }
+          ]
+        },
+        "Instance Risk Report": {
+          "risk": "instance",
+          "sections": [
+            {
+              "title": "Outdated instance",
+              "description": "This n8n instance is outdated. Currently at version 2.30.8, missing 1 update.",
+              "recommendation": "Consider updating this n8n instance to the latest version to prevent security vulnerabilities.",
+              "nextVersions": [
+                {
+                  "name": "2.31.4",
+                  "createdAt": "2026-07-21T10:03:21.742Z",
+                  "hasSecurityIssue": null,
+                  "hasSecurityFix": null,
+                  "securityIssueFixVersion": null,
+                  "hasBreakingChange": false,
+                  "documentationUrl": "https://docs.n8n.io/release-notes/#n8n2314?utm_source=n8n_app&utm_medium=instance_upgrade_releases",
+                  "nodes": [],
+                  "description": "Includes <strong>bug fixes</strong>"
+                }
+              ]
+            },
+            {
+              "title": "Security settings",
+              "description": "This n8n instance has the following security settings.",
+              "recommendation": "Consider adjusting the security settings for your n8n instance based on your needs. See: https://docs.n8n.io/hosting/configuration/environment-variables/",
+              "settings": {
+                "features": {
+                  "communityPackagesEnabled": true,
+                  "versionNotificationsEnabled": true,
+                  "templatesEnabled": true,
+                  "publicApiEnabled": true
+                },
+                "nodes": {
+                  "nodesExclude": "n8n-nodes-base.executeCommand, n8n-nodes-base.localFileTrigger, n8n-nodes-base.e2eTest, n8n-nodes-base.dynamicCredentialCheck",
+                  "nodesInclude": "none"
+                },
+                "telemetry": {
+                  "diagnosticsEnabled": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "durationMs": 140
+    },
+    {
+      "op": "insights.getSummary",
+      "status": 200,
+      "payload": {
+        "averageRunTime": {
+          "value": 0,
+          "unit": "millisecond",
+          "deviation": null
+        },
+        "failed": {
+          "value": 0,
+          "unit": "count",
+          "deviation": null
+        },
+        "failureRate": {
+          "value": 0,
+          "unit": "ratio",
+          "deviation": null
+        },
+        "timeSaved": {
+          "value": 0,
+          "unit": "minute",
+          "deviation": null
+        },
+        "total": {
+          "value": 0,
+          "unit": "count",
+          "deviation": null
+        }
+      },
+      "durationMs": 31
+    },
+    {
+      "op": "sourceControl.pull",
+      "status": 400,
+      "payload": {
+        "status": "Error",
+        "message": "Source Control is not connected to a repository"
+      },
+      "error": "Source Control is not connected to a repository",
+      "durationMs": 20
+    },
+    {
+      "op": "securityPolicy.get",
+      "status": 404,
+      "payload": {
+        "message": "not found"
+      },
+      "error": "not found",
+      "durationMs": 5
+    },
+    {
+      "op": "securityPolicy.update",
+      "status": 404,
+      "payload": {
+        "message": "not found"
+      },
+      "error": "not found",
+      "durationMs": 3
+    },
+    {
+      "op": "discover.get",
+      "status": 200,
+      "payload": {
+        "data": {
+          "scopes": [
+            "communityPackage:install",
+            "communityPackage:list",
+            "communityPackage:uninstall",
+            "communityPackage:update",
+            "credential:create",
+            "credential:delete",
+            "credential:list",
+            "credential:move",
+            "credential:read",
+            "credential:update",
+            "dataTable:create",
+            "dataTable:delete",
+            "dataTable:list",
+            "dataTable:read",
+            "dataTable:update",
+            "folder:create",
+            "folder:delete",
+            "folder:list",
+            "folder:read",
+            "folder:update",
+            "insights:read",
+            "project:create",
+            "project:delete",
+            "project:export",
+            "project:list",
+            "project:update",
+            "securityAudit:generate",
+            "sourceControl:pull",
+            "tag:create",
+            "tag:delete",
+            "tag:list",
+            "tag:read",
+            "tag:update",
+            "user:changeRole",
+            "user:create",
+            "user:delete",
+            "user:list",
+            "user:read",
+            "variable:create",
+            "variable:delete",
+            "variable:list",
+            "variable:update",
+            "workflow:create",
+            "workflow:delete",
+            "workflow:export",
+            "workflow:import",
+            "workflow:list",
+            "workflow:move",
+            "workflow:read",
+            "workflow:update",
+            "workflowTags:update",
+            "workflowTags:list",
+            "executionTags:update",
+            "executionTags:list",
+            "workflow:activate",
+            "workflow:deactivate",
+            "execution:delete",
+            "execution:read",
+            "execution:retry",
+            "execution:stop",
+            "execution:list",
+            "testRun:read",
+            "testRun:list",
+            "dataTableRow:create",
+            "dataTableRow:read",
+            "dataTableRow:update",
+            "dataTableRow:delete",
+            "dataTableRow:upsert",
+            "dataTableColumn:create",
+            "dataTableColumn:read",
+            "dataTableColumn:update",
+            "dataTableColumn:delete"
+          ],
+          "resources": {
+            "audit": {
+              "operations": ["generate"],
+              "endpoints": [
+                {
+                  "method": "POST",
+                  "path": "/api/v1/audit",
+                  "operationId": "generateAudit"
+                }
+              ]
+            },
+            "credential": {
+              "operations": ["list", "create", "read", "delete", "update", "move"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/credentials",
+                  "operationId": "getCredentials"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/credentials",
+                  "operationId": "createCredential"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/credentials/{id}",
+                  "operationId": "getCredential"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/credentials/{id}",
+                  "operationId": "deleteCredential"
+                },
+                {
+                  "method": "PATCH",
+                  "path": "/api/v1/credentials/{id}",
+                  "operationId": "updateCredential"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/credentials/{id}/test",
+                  "operationId": "testCredential"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/credentials/schema/{credentialTypeName}",
+                  "operationId": "getCredentialType"
+                },
+                {
+                  "method": "PUT",
+                  "path": "/api/v1/credentials/{id}/transfer",
+                  "operationId": "transferCredential"
+                }
+              ]
+            },
+            "execution": {
+              "operations": ["list", "read", "delete", "retry", "stop", "update"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/executions",
+                  "operationId": "getExecutions"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/executions/{id}",
+                  "operationId": "getExecution"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/executions/{id}",
+                  "operationId": "deleteExecution"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/executions/{id}/retry",
+                  "operationId": "retryExecution"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/executions/{id}/stop",
+                  "operationId": "stopExecution"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/executions/stop",
+                  "operationId": "stopManyExecutions"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/executions/{id}/tags",
+                  "operationId": "getExecutionTags"
+                },
+                {
+                  "method": "PUT",
+                  "path": "/api/v1/executions/{id}/tags",
+                  "operationId": "updateExecutionTags"
+                }
+              ]
+            },
+            "tags": {
+              "operations": ["list", "create", "read", "update", "delete"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/tags",
+                  "operationId": "getTags"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/tags",
+                  "operationId": "createTag"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/tags/{id}",
+                  "operationId": "getTag"
+                },
+                {
+                  "method": "PUT",
+                  "path": "/api/v1/tags/{id}",
+                  "operationId": "updateTag"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/tags/{id}",
+                  "operationId": "deleteTag"
+                }
+              ]
+            },
+            "workflow": {
+              "operations": ["list", "create", "read", "update", "delete", "activate", "deactivate", "move"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/workflows",
+                  "operationId": "getWorkflows"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/workflows",
+                  "operationId": "createWorkflow"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/workflows/{id}",
+                  "operationId": "getWorkflow"
+                },
+                {
+                  "method": "PUT",
+                  "path": "/api/v1/workflows/{id}",
+                  "operationId": "updateWorkflow"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/workflows/{id}",
+                  "operationId": "deleteWorkflow"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/workflows/{id}/{versionId}",
+                  "operationId": "getWorkflowVersion"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/workflows/{id}/activate",
+                  "operationId": "activateWorkflow"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/workflows/{id}/deactivate",
+                  "operationId": "deactivateWorkflow"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/workflows/{id}/archive",
+                  "operationId": "archiveWorkflow"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/workflows/{id}/unarchive",
+                  "operationId": "unarchiveWorkflow"
+                },
+                {
+                  "method": "PUT",
+                  "path": "/api/v1/workflows/{id}/transfer",
+                  "operationId": "transferWorkflow"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/workflows/{id}/tags",
+                  "operationId": "getWorkflowTags"
+                },
+                {
+                  "method": "PUT",
+                  "path": "/api/v1/workflows/{id}/tags",
+                  "operationId": "updateWorkflowTags"
+                }
+              ]
+            },
+            "evaluation": {
+              "operations": ["list", "read"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/workflows/{id}/test-runs",
+                  "operationId": "getTestRuns"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/workflows/{id}/test-runs/{runId}",
+                  "operationId": "getTestRun"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/workflows/{id}/test-runs/{runId}/test-cases",
+                  "operationId": "getTestCases"
+                }
+              ]
+            },
+            "user": {
+              "operations": ["list", "create", "read", "delete", "changeRole"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/users",
+                  "operationId": "getUsers"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/users",
+                  "operationId": "createUser"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/users/{id}",
+                  "operationId": "getUser"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/users/{id}",
+                  "operationId": "deleteUser"
+                },
+                {
+                  "method": "PATCH",
+                  "path": "/api/v1/users/{id}/role",
+                  "operationId": "changeRole"
+                }
+              ]
+            },
+            "sourcecontrol": {
+              "operations": ["pull"],
+              "endpoints": [
+                {
+                  "method": "POST",
+                  "path": "/api/v1/source-control/pull",
+                  "operationId": "pull"
+                }
+              ]
+            },
+            "variables": {
+              "operations": ["list", "create", "update", "delete"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/variables",
+                  "operationId": "getVariables"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/variables",
+                  "operationId": "createVariable"
+                },
+                {
+                  "method": "PUT",
+                  "path": "/api/v1/variables/{id}",
+                  "operationId": "updateVariable"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/variables/{id}",
+                  "operationId": "deleteVariable"
+                }
+              ]
+            },
+            "datatable": {
+              "operations": ["list", "create", "read", "delete", "update", "upsert"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/data-tables",
+                  "operationId": "listDataTables"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/data-tables",
+                  "operationId": "createDataTable"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/data-tables/{dataTableId}",
+                  "operationId": "getDataTable"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/data-tables/{dataTableId}",
+                  "operationId": "deleteDataTable"
+                },
+                {
+                  "method": "PATCH",
+                  "path": "/api/v1/data-tables/{dataTableId}",
+                  "operationId": "updateDataTable"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/data-tables/{dataTableId}/rows",
+                  "operationId": "getDataTableRows"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/data-tables/{dataTableId}/rows",
+                  "operationId": "insertDataTableRows"
+                },
+                {
+                  "method": "PATCH",
+                  "path": "/api/v1/data-tables/{dataTableId}/rows/update",
+                  "operationId": "updateDataTableRows"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/data-tables/{dataTableId}/rows/upsert",
+                  "operationId": "upsertDataTableRow"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/data-tables/{dataTableId}/rows/clear",
+                  "operationId": "clearDataTableRows"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/data-tables/{dataTableId}/rows/delete",
+                  "operationId": "deleteDataTableRows"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/data-tables/{dataTableId}/columns",
+                  "operationId": "listDataTableColumns"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/data-tables/{dataTableId}/columns",
+                  "operationId": "createDataTableColumn"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/data-tables/{dataTableId}/columns/{columnId}",
+                  "operationId": "deleteDataTableColumn"
+                },
+                {
+                  "method": "PATCH",
+                  "path": "/api/v1/data-tables/{dataTableId}/columns/{columnId}",
+                  "operationId": "updateDataTableColumn"
+                }
+              ]
+            },
+            "projects": {
+              "operations": ["list", "create", "update", "delete"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/projects",
+                  "operationId": "getProjects"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/projects",
+                  "operationId": "createProject"
+                },
+                {
+                  "method": "PUT",
+                  "path": "/api/v1/projects/{projectId}",
+                  "operationId": "updateProject"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/projects/{projectId}",
+                  "operationId": "deleteProject"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/projects/{projectId}/users",
+                  "operationId": "getProjectUsers"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/projects/{projectId}/users",
+                  "operationId": "addUsersToProject"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/projects/{projectId}/users/{userId}",
+                  "operationId": "deleteUserFromProject"
+                },
+                {
+                  "method": "PATCH",
+                  "path": "/api/v1/projects/{projectId}/users/{userId}",
+                  "operationId": "changeUserRoleInProject"
+                }
+              ]
+            },
+            "communitypackage": {
+              "operations": ["list", "install", "uninstall", "update"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/community-packages",
+                  "operationId": "getInstalledPackages"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/community-packages",
+                  "operationId": "installPackage"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/community-packages/{name}",
+                  "operationId": "uninstallPackage"
+                },
+                {
+                  "method": "PATCH",
+                  "path": "/api/v1/community-packages/{name}",
+                  "operationId": "updatePackage"
+                }
+              ]
+            },
+            "discover": {
+              "operations": [],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/discover",
+                  "operationId": "getDiscover"
+                }
+              ]
+            },
+            "insights": {
+              "operations": ["read"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/insights/summary",
+                  "operationId": "getInsightsSummary"
+                }
+              ]
+            },
+            "folders": {
+              "operations": ["list", "create", "read", "delete", "update"],
+              "endpoints": [
+                {
+                  "method": "GET",
+                  "path": "/api/v1/projects/{projectId}/folders",
+                  "operationId": "getFolders"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/v1/projects/{projectId}/folders",
+                  "operationId": "createFolder"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/v1/projects/{projectId}/folders/{folderId}",
+                  "operationId": "getFolder"
+                },
+                {
+                  "method": "DELETE",
+                  "path": "/api/v1/projects/{projectId}/folders/{folderId}",
+                  "operationId": "deleteFolder"
+                },
+                {
+                  "method": "PATCH",
+                  "path": "/api/v1/projects/{projectId}/folders/{folderId}",
+                  "operationId": "updateFolder"
+                }
+              ]
+            },
+            "n8npackage": {
+              "operations": ["import"],
+              "endpoints": [
+                {
+                  "method": "POST",
+                  "path": "/api/v1/n8n-packages/import",
+                  "operationId": "importPackage"
+                }
+              ]
+            }
+          },
+          "filters": {
+            "resource": {
+              "description": "Filter to a specific resource",
+              "values": [
+                "audit",
+                "credential",
+                "execution",
+                "tags",
+                "workflow",
+                "evaluation",
+                "user",
+                "sourcecontrol",
+                "variables",
+                "datatable",
+                "projects",
+                "communitypackage",
+                "discover",
+                "insights",
+                "folders",
+                "n8npackage"
+              ]
+            },
+            "operation": {
+              "description": "Filter to a specific operation",
+              "values": [
+                "generate",
+                "list",
+                "create",
+                "read",
+                "delete",
+                "update",
+                "move",
+                "retry",
+                "stop",
+                "activate",
+                "deactivate",
+                "changeRole",
+                "pull",
+                "upsert",
+                "install",
+                "uninstall",
+                "import"
+              ]
+            },
+            "include": {
+              "description": "Include additional data",
+              "values": ["schemas"]
+            }
+          },
+          "specUrl": "/api/v1/openapi.yml"
+        }
+      },
+      "durationMs": 46
+    },
+    {
+      "op": "n8nPackage.exportWorkflows",
+      "status": 400,
+      "payload": {
+        "message": "At least one workflowId, folderId, or projectId is required"
+      },
+      "error": "At least one workflowId, folderId, or projectId is required",
+      "durationMs": 21
+    }
+  ]
+}

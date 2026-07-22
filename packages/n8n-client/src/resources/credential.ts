@@ -1,5 +1,11 @@
 import CredentialClient from '../clients/credential.js';
-import type { Credential, CredentialResponse, CredentialTestResponse, CredentialUpdate, JsonObject } from '../types.js';
+import type {
+  Credential,
+  CredentialResponse,
+  CredentialSchema,
+  CredentialTestResponse,
+  CredentialUpdate,
+} from '../types.js';
 import BaseResource from './base.js';
 
 export default class CredentialResource extends BaseResource<Credential | CredentialResponse> {
@@ -49,7 +55,7 @@ export default class CredentialResource extends BaseResource<Credential | Creden
     await this.credentials.transfer(this.id, destinationProjectId);
   }
 
-  async getSchema(): Promise<JsonObject> {
+  async getSchema(): Promise<CredentialSchema> {
     return this.credentials.getSchema(this.type);
   }
 }

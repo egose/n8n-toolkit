@@ -3,10 +3,11 @@ import type { PaginatedResponse } from '../pagination.js';
 import type { Variable, VariableCreate, VariableListResponse, VariableListParams, VariableUpdate } from '../types.js';
 import BaseClient from './base.js';
 import VariableResource from '../resources/variable.js';
+import { normalizeVariableListResponse } from '../response-mappers.js';
 
 export default class VariableClient extends BaseClient {
   async list(params?: VariableListParams): Promise<VariableListResponse> {
-    return this.http.get<VariableListResponse>('/variables', params);
+    return normalizeVariableListResponse(await this.http.get<VariableListResponse>('/variables', params));
   }
 
   async get(id: string, params?: VariableListParams): Promise<Variable> {
@@ -45,10 +46,10 @@ export default class VariableClient extends BaseClient {
   }
 
   private async findVariable(id: string, params?: VariableListParams): Promise<Variable | undefined> {
-    let cursor = params?.cursor;
+    let cursor: string | null | undefined = params?.cursor;
 
     do {
-      const response = await this.list({ ...params, cursor });
+      const response = await this.list({ ...params, ...(cursor ? { cursor } : {}) });
       const variable = response.data.find((entry) => entry.id === id);
 
       if (variable) {

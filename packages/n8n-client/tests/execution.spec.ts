@@ -11,7 +11,7 @@ describe('Implementation Consistency: Execution', () => {
     const result = await handle.list({ limit: 10, status: 'success' });
 
     expect(http.get).toHaveBeenCalledWith('/executions', { limit: 10, status: 'success' });
-    expect(result).toEqual({ data: [], nextCursor: undefined });
+    expect(result).toEqual({ data: [], nextCursor: null });
   });
 
   test('get calls GET /executions/:id', async () => {

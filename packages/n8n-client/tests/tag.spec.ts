@@ -11,7 +11,7 @@ describe('Implementation Consistency: Tag', () => {
     const result = await handle.list({ limit: 10 });
 
     expect(http.get).toHaveBeenCalledWith('/tags', { limit: 10 });
-    expect(result).toEqual({ data: [], nextCursor: undefined });
+    expect(result).toEqual({ data: [], nextCursor: null });
   });
 
   test('get calls GET /tags/:id', async () => {

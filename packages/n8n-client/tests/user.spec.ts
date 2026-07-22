@@ -3,6 +3,14 @@ import UserClient from '../src/clients/user';
 import UserResource from '../src/resources/user';
 import { createMockHttpClient } from './test-utils';
 
+const normalizedUser = <T extends Record<string, unknown>>(user: T) => ({
+  firstName: null,
+  lastName: null,
+  role: null,
+  mfaEnabled: false,
+  ...user,
+});
+
 describe('Implementation Consistency: User', () => {
   test('list calls GET /users', async () => {
     const http = createMockHttpClient([{ body: { data: [], nextCursor: undefined } }]);
@@ -11,7 +19,7 @@ describe('Implementation Consistency: User', () => {
     const result = await handle.list({ limit: 10 });
 
     expect(http.get).toHaveBeenCalledWith('/users', { limit: 10 });
-    expect(result).toEqual({ data: [], nextCursor: undefined });
+    expect(result).toEqual({ data: [], nextCursor: null });
   });
 
   test('get calls GET /users/:id', async () => {
@@ -22,7 +30,7 @@ describe('Implementation Consistency: User', () => {
     const result = await handle.get('u-1');
 
     expect(http.get).toHaveBeenCalledWith('/users/u-1', undefined);
-    expect(result).toEqual(user);
+    expect(result).toEqual(normalizedUser(user));
   });
 
   test('getResource returns a bound user resource', async () => {
@@ -52,14 +60,16 @@ describe('Implementation Consistency: User', () => {
   });
 
   test('create calls POST /users', async () => {
-    const created = { user: { id: 'u-2', email: 'bob@example.com' } };
+    const created = [{ user: { id: 'u-2', email: 'bob@example.com' } }];
     const http = createMockHttpClient([{ body: created }]);
     const handle = new UserClient(http);
 
     const result = await handle.create([{ email: 'bob@example.com', role: 'global:member' }]);
 
     expect(http.post).toHaveBeenCalledWith('/users', [{ email: 'bob@example.com', role: 'global:member' }]);
-    expect(result).toEqual(created);
+    expect(result).toEqual([
+      { user: { id: 'u-2', email: 'bob@example.com', inviteAcceptUrl: null, emailSent: false, role: null }, error: '' },
+    ]);
   });
 
   test('delete calls DELETE /users/:id', async () => {
@@ -84,19 +94,26 @@ describe('Implementation Consistency: User', () => {
     const refreshed = {
       id: 'u-1',
       email: 'alice@example.com',
+      firstName: null,
+      lastName: null,
       isPending: false,
       role: 'global:admin',
       createdAt: '',
       updatedAt: '',
+      mfaEnabled: false,
     };
     const http = createMockHttpClient([{ body: undefined }, { body: refreshed }, { body: undefined }]);
     const handle = new UserClient(http);
     const resource = new UserResource(handle, {
       id: 'u-1',
       email: 'alice@example.com',
+      firstName: null,
+      lastName: null,
       isPending: false,
       createdAt: '',
       updatedAt: '',
+      role: null,
+      mfaEnabled: false,
     });
 
     await resource.changeRole('global:admin');

@@ -3,23 +3,28 @@ import type { HttpClient } from '../http-client.js';
 import type {
   Credential,
   CredentialCreate,
+  CredentialDetail,
   CredentialListResponse,
-  CredentialResponse,
+  CredentialSchema,
   CredentialTestResponse,
   CredentialUpdate,
-  JsonObject,
   PaginationParams,
 } from '../types.js';
 import BaseClient from './base.js';
 import CredentialResource from '../resources/credential.js';
+import {
+  normalizeCredentialDetail,
+  normalizeCredentialListResponse,
+  normalizeCredentialSchema,
+} from '../response-mappers.js';
 
 export default class CredentialClient extends BaseClient {
   async list(params?: PaginationParams): Promise<CredentialListResponse> {
-    return this.http.get<CredentialListResponse>('/credentials', params);
+    return normalizeCredentialListResponse(await this.http.get<CredentialListResponse>('/credentials', params));
   }
 
-  async get(id: string): Promise<CredentialResponse> {
-    return this.http.get<CredentialResponse>(`/credentials/${id}`);
+  async get(id: string): Promise<CredentialDetail> {
+    return normalizeCredentialDetail(await this.http.get<CredentialDetail>(`/credentials/${id}`));
   }
 
   async getResource(id: string): Promise<CredentialResource> {
@@ -35,16 +40,16 @@ export default class CredentialClient extends BaseClient {
     };
   }
 
-  async create(data: CredentialCreate): Promise<CredentialResponse> {
-    return this.http.post<CredentialResponse>('/credentials', data);
+  async create(data: CredentialCreate): Promise<CredentialDetail> {
+    return normalizeCredentialDetail(await this.http.post<CredentialDetail>('/credentials', data));
   }
 
   async createResource(data: CredentialCreate): Promise<CredentialResource> {
     return new CredentialResource(this, await this.create(data));
   }
 
-  async update(id: string, data: CredentialUpdate): Promise<CredentialResponse> {
-    return this.http.patch<CredentialResponse>(`/credentials/${id}`, data);
+  async update(id: string, data: CredentialUpdate): Promise<CredentialDetail> {
+    return normalizeCredentialDetail(await this.http.patch<CredentialDetail>(`/credentials/${id}`, data));
   }
 
   async updateResource(id: string, data: CredentialUpdate): Promise<CredentialResource> {
@@ -63,7 +68,9 @@ export default class CredentialClient extends BaseClient {
     await this.http.put<void>(`/credentials/${id}/transfer`, { destinationProjectId });
   }
 
-  async getSchema(credentialTypeName: string): Promise<JsonObject> {
-    return this.http.get<JsonObject>(`/credentials/schema/${credentialTypeName}`);
+  async getSchema(credentialTypeName: string): Promise<CredentialSchema> {
+    return normalizeCredentialSchema(
+      await this.http.get<CredentialSchema>(`/credentials/schema/${credentialTypeName}`),
+    );
   }
 }

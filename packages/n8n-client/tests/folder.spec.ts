@@ -3,6 +3,22 @@ import FolderClient from '../src/clients/folder';
 import FolderResource from '../src/resources/folder';
 import { createMockHttpClient } from './test-utils';
 
+const normalizedFolder = <T extends Record<string, unknown>>(folder: T) => ({
+  parentFolderId: null,
+  parentFolder: null,
+  homeProject: null,
+  tags: [],
+  workflowCount: null,
+  subFolderCount: null,
+  ...folder,
+});
+
+const normalizedFolderDetail = <T extends Record<string, unknown>>(folder: T) => ({
+  totalSubFolders: 0,
+  totalWorkflows: 0,
+  ...normalizedFolder(folder),
+});
+
 describe('Implementation Consistency: Folder', () => {
   test('list calls GET /projects/:projectId/folders', async () => {
     const http = createMockHttpClient([{ body: { count: 0, data: [] } }]);
@@ -22,7 +38,7 @@ describe('Implementation Consistency: Folder', () => {
     const result = await handle.get('f-1');
 
     expect(http.get).toHaveBeenCalledWith('/projects/proj-1/folders/f-1');
-    expect(result).toEqual(folder);
+    expect(result).toEqual(normalizedFolderDetail(folder));
   });
 
   test('getResource returns a bound folder resource', async () => {
@@ -33,7 +49,7 @@ describe('Implementation Consistency: Folder', () => {
     const result = await handle.getResource('f-1');
 
     expect(result).toBeInstanceOf(FolderResource);
-    expect(result.data).toEqual(folder);
+    expect(result.data).toEqual(normalizedFolderDetail(folder));
   });
 
   test('listResources wraps folder list items as resources', async () => {
@@ -55,7 +71,7 @@ describe('Implementation Consistency: Folder', () => {
     const result = await handle.create({ name: 'New Folder' });
 
     expect(http.post).toHaveBeenCalledWith('/projects/proj-1/folders', { name: 'New Folder' });
-    expect(result).toEqual(created);
+    expect(result).toEqual(normalizedFolder(created));
   });
 
   test('createResource wraps created folder as a resource', async () => {
@@ -66,11 +82,22 @@ describe('Implementation Consistency: Folder', () => {
     const result = await handle.createResource({ name: 'New Folder' });
 
     expect(result).toBeInstanceOf(FolderResource);
-    expect(result.data).toEqual(created);
+    expect(result.data).toEqual(normalizedFolder(created));
   });
 
   test('update calls PATCH /projects/:projectId/folders/:folderId', async () => {
-    const updated = { id: 'f-1', name: 'Updated Folder', createdAt: '', updatedAt: '' };
+    const updated = {
+      id: 'f-1',
+      name: 'Updated Folder',
+      parentFolderId: null,
+      parentFolder: null,
+      homeProject: null,
+      tags: [],
+      workflowCount: null,
+      subFolderCount: null,
+      createdAt: '',
+      updatedAt: '',
+    };
     const http = createMockHttpClient([{ body: updated }]);
     const handle = new FolderClient(http, 'proj-1');
 
@@ -81,7 +108,18 @@ describe('Implementation Consistency: Folder', () => {
   });
 
   test('updateResource wraps updated folder as a resource', async () => {
-    const updated = { id: 'f-1', name: 'Updated Folder', createdAt: '', updatedAt: '' };
+    const updated = {
+      id: 'f-1',
+      name: 'Updated Folder',
+      parentFolderId: null,
+      parentFolder: null,
+      homeProject: null,
+      tags: [],
+      workflowCount: null,
+      subFolderCount: null,
+      createdAt: '',
+      updatedAt: '',
+    };
     const http = createMockHttpClient([{ body: updated }]);
     const handle = new FolderClient(http, 'proj-1');
 
@@ -110,10 +148,32 @@ describe('Implementation Consistency: Folder', () => {
   });
 
   test('folder resource methods use bound folder id', async () => {
-    const updated = { id: 'f-1', name: 'Renamed', createdAt: '', updatedAt: '' };
+    const updated = {
+      id: 'f-1',
+      name: 'Renamed',
+      parentFolderId: null,
+      parentFolder: null,
+      homeProject: null,
+      tags: [],
+      workflowCount: null,
+      subFolderCount: null,
+      createdAt: '',
+      updatedAt: '',
+    };
     const http = createMockHttpClient([{ body: updated }, { body: undefined }]);
     const handle = new FolderClient(http, 'proj-1');
-    const resource = new FolderResource(handle, { id: 'f-1', name: 'Old', createdAt: '', updatedAt: '' });
+    const resource = new FolderResource(handle, {
+      id: 'f-1',
+      name: 'Old',
+      parentFolderId: null,
+      parentFolder: null,
+      homeProject: null,
+      tags: [],
+      workflowCount: null,
+      subFolderCount: null,
+      createdAt: '',
+      updatedAt: '',
+    });
 
     await resource.update({ name: 'Renamed' });
     await resource.delete('f-2');
@@ -123,10 +183,32 @@ describe('Implementation Consistency: Folder', () => {
   });
 
   test('folder resource patch merges partial changes with the current folder data', async () => {
-    const patched = { id: 'f-1', name: 'Old', parentFolderId: 'parent-1', createdAt: '', updatedAt: '' };
+    const patched = {
+      id: 'f-1',
+      name: 'Old',
+      parentFolderId: 'parent-1',
+      parentFolder: null,
+      homeProject: null,
+      tags: [],
+      workflowCount: null,
+      subFolderCount: null,
+      createdAt: '',
+      updatedAt: '',
+    };
     const http = createMockHttpClient([{ body: patched }]);
     const handle = new FolderClient(http, 'proj-1');
-    const resource = new FolderResource(handle, { id: 'f-1', name: 'Old', createdAt: '', updatedAt: '' });
+    const resource = new FolderResource(handle, {
+      id: 'f-1',
+      name: 'Old',
+      parentFolderId: null,
+      parentFolder: null,
+      homeProject: null,
+      tags: [],
+      workflowCount: null,
+      subFolderCount: null,
+      createdAt: '',
+      updatedAt: '',
+    });
 
     await resource.patch({ parentFolderId: 'parent-1' });
 

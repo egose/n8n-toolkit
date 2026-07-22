@@ -129,10 +129,10 @@ export default class WorkflowResource extends BaseResource<Workflow> {
   }
 
   private async hasExecutionInWorkflow(id: number): Promise<boolean> {
-    let cursor: string | undefined;
+    let cursor: string | null | undefined;
 
     do {
-      const response = await this.executionsClient.list({ workflowId: this.id, cursor });
+      const response = await this.executionsClient.list({ workflowId: this.id, ...(cursor ? { cursor } : {}) });
       if (response.data.some((execution) => execution.id === id)) {
         return true;
       }

@@ -11,7 +11,7 @@ describe('Implementation Consistency: Variable', () => {
     const result = await handle.list({ limit: 10 });
 
     expect(http.get).toHaveBeenCalledWith('/variables', { limit: 10 });
-    expect(result).toEqual({ data: [], nextCursor: undefined });
+    expect(result).toEqual({ data: [], nextCursor: null });
   });
 
   test('getResource finds a variable through list pagination', async () => {
@@ -84,11 +84,22 @@ describe('Implementation Consistency: Variable', () => {
   test('variable resource methods use bound variable id', async () => {
     const http = createMockHttpClient([
       { body: undefined },
-      { body: { data: [{ id: 'v-1', key: 'MY_API_KEY', value: 'newsecret' }], nextCursor: undefined } },
+      {
+        body: {
+          data: [{ id: 'v-1', key: 'MY_API_KEY', value: 'newsecret', type: 'string', project: null }],
+          nextCursor: null,
+        },
+      },
       { body: undefined },
     ]);
     const handle = new VariableClient(http);
-    const resource = new VariableResource(handle, { id: 'v-1', key: 'MY_API_KEY', value: 'secret123' });
+    const resource = new VariableResource(handle, {
+      id: 'v-1',
+      key: 'MY_API_KEY',
+      value: 'secret123',
+      type: 'string',
+      project: null,
+    });
 
     await resource.update({ key: 'MY_API_KEY', value: 'newsecret' });
     await resource.refresh();
@@ -101,7 +112,13 @@ describe('Implementation Consistency: Variable', () => {
   test('variable resource patch sends only the partial payload (handler accepts partial updates)', async () => {
     const http = createMockHttpClient([{ body: undefined }]);
     const handle = new VariableClient(http);
-    const resource = new VariableResource(handle, { id: 'v-1', key: 'MY_API_KEY', value: 'secret123' });
+    const resource = new VariableResource(handle, {
+      id: 'v-1',
+      key: 'MY_API_KEY',
+      value: 'secret123',
+      type: 'string',
+      project: null,
+    });
 
     await resource.patch({ value: 'newsecret' });
 

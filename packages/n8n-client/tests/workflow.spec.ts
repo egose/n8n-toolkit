@@ -5,6 +5,23 @@ import ExecutionResource from '../src/resources/execution';
 import WorkflowResource from '../src/resources/workflow';
 import { createMockHttpClient } from './test-utils';
 
+const normalizedWorkflow = <T extends Record<string, unknown>>(workflow: T) => ({
+  description: null,
+  settings: {},
+  staticData: null,
+  pinData: null,
+  meta: null,
+  nodeGroups: [],
+  activeVersionId: null,
+  versionCounter: null,
+  sourceWorkflowId: null,
+  tags: [],
+  shared: [],
+  parentFolder: null,
+  activeVersion: null,
+  ...workflow,
+});
+
 describe('Implementation Consistency: Workflow', () => {
   test('list calls GET /workflows with query params', async () => {
     const http = createMockHttpClient([{ body: { data: [], nextCursor: undefined } }]);
@@ -13,7 +30,7 @@ describe('Implementation Consistency: Workflow', () => {
     const result = await handle.list({ limit: 10, active: true });
 
     expect(http.get).toHaveBeenCalledWith('/workflows', { limit: 10, active: true });
-    expect(result).toEqual({ data: [], nextCursor: undefined });
+    expect(result).toEqual({ data: [], nextCursor: null });
   });
 
   test('get calls GET /workflows/:id', async () => {
@@ -24,7 +41,7 @@ describe('Implementation Consistency: Workflow', () => {
     const result = await handle.get('wf-1');
 
     expect(http.get).toHaveBeenCalledWith('/workflows/wf-1', undefined);
-    expect(result).toEqual(workflow);
+    expect(result).toEqual(normalizedWorkflow(workflow));
   });
 
   test('getResource returns a bound workflow resource', async () => {
@@ -36,7 +53,7 @@ describe('Implementation Consistency: Workflow', () => {
 
     expect(http.get).toHaveBeenCalledWith('/workflows/wf-1', undefined);
     expect(result).toBeInstanceOf(WorkflowResource);
-    expect(result.data).toEqual(workflow);
+    expect(result.data).toEqual(normalizedWorkflow(workflow));
   });
 
   test('listResources wraps list response items as workflow resources', async () => {
@@ -71,7 +88,7 @@ describe('Implementation Consistency: Workflow', () => {
     const result = await handle.create(payload);
 
     expect(http.post).toHaveBeenCalledWith('/workflows', payload);
-    expect(result).toEqual(created);
+    expect(result).toEqual(normalizedWorkflow(created));
   });
 
   test('createResource wraps created workflow as a resource', async () => {
@@ -82,7 +99,7 @@ describe('Implementation Consistency: Workflow', () => {
     const result = await handle.createResource({ name: 'New Workflow', nodes: [], connections: {}, settings: {} });
 
     expect(result).toBeInstanceOf(WorkflowResource);
-    expect(result.data).toEqual(created);
+    expect(result.data).toEqual(normalizedWorkflow(created));
   });
 
   test('update calls PUT /workflows/:id', async () => {
@@ -94,7 +111,7 @@ describe('Implementation Consistency: Workflow', () => {
     const result = await handle.update('wf-1', payload);
 
     expect(http.put).toHaveBeenCalledWith('/workflows/wf-1', payload);
-    expect(result).toEqual(updated);
+    expect(result).toEqual(normalizedWorkflow(updated));
   });
 
   test('updateResource wraps updated workflow as a resource', async () => {
@@ -105,7 +122,7 @@ describe('Implementation Consistency: Workflow', () => {
     const result = await handle.updateResource('wf-1', { name: 'Updated', nodes: [], connections: {}, settings: {} });
 
     expect(result).toBeInstanceOf(WorkflowResource);
-    expect(result.data).toEqual(updated);
+    expect(result.data).toEqual(normalizedWorkflow(updated));
   });
 
   test('delete calls DELETE /workflows/:id', async () => {
@@ -116,7 +133,7 @@ describe('Implementation Consistency: Workflow', () => {
     const result = await handle.delete('wf-1');
 
     expect(http.delete).toHaveBeenCalledWith('/workflows/wf-1');
-    expect(result).toEqual(deleted);
+    expect(result).toEqual(normalizedWorkflow(deleted));
   });
 
   test('activate calls POST /workflows/:id/activate', async () => {
@@ -127,7 +144,7 @@ describe('Implementation Consistency: Workflow', () => {
     const result = await handle.activate('wf-1');
 
     expect(http.post).toHaveBeenCalledWith('/workflows/wf-1/activate', undefined);
-    expect(result).toEqual(activated);
+    expect(result).toEqual(normalizedWorkflow(activated));
   });
 
   test('deactivate calls POST /workflows/:id/deactivate', async () => {
@@ -138,7 +155,7 @@ describe('Implementation Consistency: Workflow', () => {
     const result = await handle.deactivate('wf-1');
 
     expect(http.post).toHaveBeenCalledWith('/workflows/wf-1/deactivate');
-    expect(result).toEqual(deactivated);
+    expect(result).toEqual(normalizedWorkflow(deactivated));
   });
 
   test('archive calls POST /workflows/:id/archive', async () => {
@@ -149,7 +166,7 @@ describe('Implementation Consistency: Workflow', () => {
     const result = await handle.archive('wf-1');
 
     expect(http.post).toHaveBeenCalledWith('/workflows/wf-1/archive');
-    expect(result).toEqual(archived);
+    expect(result).toEqual(normalizedWorkflow(archived));
   });
 
   test('transfer calls PUT /workflows/:id/transfer', async () => {
@@ -204,7 +221,7 @@ describe('Implementation Consistency: Workflow', () => {
     const resource = new WorkflowResource(handle, new ExecutionClient(http), workflow as never);
 
     await resource.update({ name: 'Updated', nodes: [], connections: {}, settings: {} });
-    expect(resource.data).toEqual(updated);
+    expect(resource.data).toEqual(normalizedWorkflow(updated));
 
     await resource.activate();
     expect(resource.active).toBe(true);
@@ -227,6 +244,17 @@ describe('Implementation Consistency: Workflow', () => {
       nodes: [],
       connections: {},
       settings: { executionOrder: 'v1' },
+      staticData: null,
+      pinData: null,
+      meta: null,
+      nodeGroups: [],
+      activeVersionId: null,
+      versionCounter: null,
+      sourceWorkflowId: null,
+      tags: [],
+      shared: [],
+      parentFolder: null,
+      activeVersion: null,
     };
     const http = createMockHttpClient([{ body: patched }]);
     const handle = new WorkflowClient(http);
@@ -243,6 +271,17 @@ describe('Implementation Consistency: Workflow', () => {
       nodes: [],
       connections: {},
       settings: { executionOrder: 'v1' },
+      staticData: null,
+      pinData: null,
+      meta: null,
+      nodeGroups: [],
+      activeVersionId: null,
+      versionCounter: null,
+      sourceWorkflowId: null,
+      tags: [],
+      shared: [],
+      parentFolder: null,
+      activeVersion: null,
     });
 
     await resource.patch({ name: 'Patched' });
@@ -253,8 +292,8 @@ describe('Implementation Consistency: Workflow', () => {
       nodes: [],
       connections: {},
       settings: { executionOrder: 'v1' },
-      staticData: undefined,
-      pinData: undefined,
+      staticData: null,
+      pinData: null,
     });
     expect(resource.name).toBe('Patched');
   });

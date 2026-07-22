@@ -18,14 +18,21 @@ import type {
 } from '../types.js';
 import BaseClient from './base.js';
 import WorkflowResource from '../resources/workflow.js';
+import {
+  normalizeTag,
+  normalizeTestCaseExecutionListResponse,
+  normalizeTestRunListResponse,
+  normalizeWorkflow,
+  normalizeWorkflowListResponse,
+} from '../response-mappers.js';
 
 export default class WorkflowClient extends BaseClient {
   async list(params?: WorkflowListParams): Promise<WorkflowListResponse> {
-    return this.http.get<WorkflowListResponse>('/workflows', params);
+    return normalizeWorkflowListResponse(await this.http.get<WorkflowListResponse>('/workflows', params));
   }
 
   async get(id: string, params?: WorkflowGetParams): Promise<Workflow> {
-    return this.http.get<Workflow>(`/workflows/${id}`, params);
+    return normalizeWorkflow(await this.http.get<Workflow>(`/workflows/${id}`, params));
   }
 
   async getResource(id: string, params?: WorkflowGetParams): Promise<WorkflowResource> {
@@ -42,7 +49,7 @@ export default class WorkflowClient extends BaseClient {
   }
 
   async create(data: WorkflowCreate): Promise<Workflow> {
-    return this.http.post<Workflow>('/workflows', data);
+    return normalizeWorkflow(await this.http.post<Workflow>('/workflows', data));
   }
 
   async createResource(data: WorkflowCreate): Promise<WorkflowResource> {
@@ -50,7 +57,7 @@ export default class WorkflowClient extends BaseClient {
   }
 
   async update(id: string, data: WorkflowUpdate): Promise<Workflow> {
-    return this.http.put<Workflow>(`/workflows/${id}`, data);
+    return normalizeWorkflow(await this.http.put<Workflow>(`/workflows/${id}`, data));
   }
 
   async updateResource(id: string, data: WorkflowUpdate): Promise<WorkflowResource> {
@@ -58,23 +65,23 @@ export default class WorkflowClient extends BaseClient {
   }
 
   async delete(id: string): Promise<Workflow> {
-    return this.http.delete<Workflow>(`/workflows/${id}`);
+    return normalizeWorkflow(await this.http.delete<Workflow>(`/workflows/${id}`));
   }
 
   async activate(id: string, data?: WorkflowActivateRequest): Promise<Workflow> {
-    return this.http.post<Workflow>(`/workflows/${id}/activate`, data);
+    return normalizeWorkflow(await this.http.post<Workflow>(`/workflows/${id}/activate`, data));
   }
 
   async deactivate(id: string): Promise<Workflow> {
-    return this.http.post<Workflow>(`/workflows/${id}/deactivate`);
+    return normalizeWorkflow(await this.http.post<Workflow>(`/workflows/${id}/deactivate`));
   }
 
   async archive(id: string): Promise<Workflow> {
-    return this.http.post<Workflow>(`/workflows/${id}/archive`);
+    return normalizeWorkflow(await this.http.post<Workflow>(`/workflows/${id}/archive`));
   }
 
   async unarchive(id: string): Promise<Workflow> {
-    return this.http.post<Workflow>(`/workflows/${id}/unarchive`);
+    return normalizeWorkflow(await this.http.post<Workflow>(`/workflows/${id}/unarchive`));
   }
 
   async transfer(id: string, destinationProjectId: string): Promise<void> {
@@ -82,11 +89,11 @@ export default class WorkflowClient extends BaseClient {
   }
 
   async getTags(id: string): Promise<Tag[]> {
-    return this.http.get<Tag[]>(`/workflows/${id}/tags`);
+    return ((await this.http.get<Tag[]>(`/workflows/${id}/tags`)) ?? []).map(normalizeTag);
   }
 
   async updateTags(id: string, tags: TagId[]): Promise<Tag[]> {
-    return this.http.put<Tag[]>(`/workflows/${id}/tags`, tags);
+    return ((await this.http.put<Tag[]>(`/workflows/${id}/tags`, tags)) ?? []).map(normalizeTag);
   }
 
   async getVersion(id: string, versionId: string): Promise<WorkflowVersion> {
@@ -94,7 +101,7 @@ export default class WorkflowClient extends BaseClient {
   }
 
   async listTestRuns(id: string, params?: TestRunListParams): Promise<TestRunListResponse> {
-    return this.http.get<TestRunListResponse>(`/workflows/${id}/test-runs`, params);
+    return normalizeTestRunListResponse(await this.http.get<TestRunListResponse>(`/workflows/${id}/test-runs`, params));
   }
 
   async getTestRun(id: string, runId: string): Promise<TestRunSummary> {
@@ -102,6 +109,8 @@ export default class WorkflowClient extends BaseClient {
   }
 
   async listTestCases(id: string, runId: string, params?: PaginationParams): Promise<TestCaseExecutionListResponse> {
-    return this.http.get<TestCaseExecutionListResponse>(`/workflows/${id}/test-runs/${runId}/test-cases`, params);
+    return normalizeTestCaseExecutionListResponse(
+      await this.http.get<TestCaseExecutionListResponse>(`/workflows/${id}/test-runs/${runId}/test-cases`, params),
+    );
   }
 }

@@ -6,5 +6,5 @@ export interface PaginationParams {
 
 export interface PaginatedResponse<T> {
   data: T[];
-  nextCursor?: string;
+  nextCursor?: string | null;
 }

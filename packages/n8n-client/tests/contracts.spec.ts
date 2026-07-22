@@ -46,6 +46,7 @@ import type {
   CredentialCreate,
   CredentialListResponse,
   CredentialResponse,
+  CredentialSchema,
   CredentialTestResponse,
   CredentialUpdate,
   DataTable,
@@ -78,7 +79,6 @@ import type {
   InsightsSummary,
   InsightsSummaryParams,
   InstallCommunityPackageRequest,
-  JsonObject,
   PaginationParams,
   Project,
   ProjectCreate,
@@ -261,7 +261,7 @@ describe('Public API contracts', () => {
 
     expectTypeOf(handle.list({} satisfies PaginationParams)).toEqualTypeOf<Promise<CredentialListResponse>>();
     expectTypeOf<ReturnType<CredentialClient['listResources']>>().toEqualTypeOf<
-      Promise<{ data: CredentialResource[]; nextCursor?: string }>
+      Promise<{ data: CredentialResource[]; nextCursor?: string | null }>
     >();
     expectTypeOf(handle.get('cred-1')).toEqualTypeOf<Promise<CredentialResponse>>();
     expectTypeOf<ReturnType<CredentialClient['getResource']>>().toEqualTypeOf<Promise<CredentialResource>>();
@@ -272,7 +272,7 @@ describe('Public API contracts', () => {
     expectTypeOf(handle.delete('cred-1')).toEqualTypeOf<Promise<Credential>>();
     expectTypeOf(handle.test('cred-1')).toEqualTypeOf<Promise<CredentialTestResponse>>();
     expectTypeOf(handle.transfer('cred-1', 'proj-1')).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.getSchema('slackApi')).toEqualTypeOf<Promise<JsonObject>>();
+    expectTypeOf(handle.getSchema('slackApi')).toEqualTypeOf<Promise<CredentialSchema>>();
   });
 
   test('ProjectClient method signatures stay stable', () => {
@@ -280,7 +280,7 @@ describe('Public API contracts', () => {
 
     expectTypeOf(handle.list({} satisfies PaginationParams)).toEqualTypeOf<Promise<ProjectListResponse>>();
     expectTypeOf<ReturnType<ProjectClient['listResources']>>().toEqualTypeOf<
-      Promise<{ data: ProjectResource[]; nextCursor?: string }>
+      Promise<{ data: ProjectResource[]; nextCursor?: string | null }>
     >();
     expectTypeOf<ReturnType<ProjectClient['getResource']>>().toEqualTypeOf<Promise<ProjectResource>>();
     expectTypeOf(handle.create({ name: 'Project' } satisfies ProjectCreate)).toEqualTypeOf<Promise<Project>>();
@@ -304,7 +304,7 @@ describe('Public API contracts', () => {
 
     expectTypeOf(handle.list({} satisfies DataTableListParams)).toEqualTypeOf<Promise<DataTableListResponse>>();
     expectTypeOf<ReturnType<DataTableClient['listResources']>>().toEqualTypeOf<
-      Promise<{ data: DataTableResource[]; nextCursor?: string }>
+      Promise<{ data: DataTableResource[]; nextCursor?: string | null }>
     >();
     expectTypeOf(handle.get('dt-1')).toEqualTypeOf<Promise<DataTable>>();
     expectTypeOf<ReturnType<DataTableClient['getResource']>>().toEqualTypeOf<Promise<DataTableResource>>();
@@ -358,7 +358,7 @@ describe('Public API contracts', () => {
 
     expectTypeOf(handle.list({} satisfies FolderListParams)).toEqualTypeOf<Promise<FolderListResponse>>();
     expectTypeOf<ReturnType<FolderClient['listResources']>>().toEqualTypeOf<
-      Promise<{ data: FolderResource[]; nextCursor?: string }>
+      Promise<{ data: FolderResource[]; nextCursor?: string | null }>
     >();
     expectTypeOf(handle.get('folder-1')).toEqualTypeOf<Promise<FolderDetail>>();
     expectTypeOf<ReturnType<FolderClient['getResource']>>().toEqualTypeOf<Promise<FolderResource>>();
@@ -374,7 +374,7 @@ describe('Public API contracts', () => {
 
     expectTypeOf(handle.list({} satisfies PaginationParams)).toEqualTypeOf<Promise<TagListResponse>>();
     expectTypeOf<ReturnType<TagClient['listResources']>>().toEqualTypeOf<
-      Promise<{ data: TagResource[]; nextCursor?: string }>
+      Promise<{ data: TagResource[]; nextCursor?: string | null }>
     >();
     expectTypeOf(handle.get('tag-1')).toEqualTypeOf<Promise<Tag>>();
     expectTypeOf<ReturnType<TagClient['getResource']>>().toEqualTypeOf<Promise<TagResource>>();
@@ -390,7 +390,7 @@ describe('Public API contracts', () => {
 
     expectTypeOf(handle.list({} satisfies UserListParams)).toEqualTypeOf<Promise<UserListResponse>>();
     expectTypeOf<ReturnType<UserClient['listResources']>>().toEqualTypeOf<
-      Promise<{ data: UserResource[]; nextCursor?: string }>
+      Promise<{ data: UserResource[]; nextCursor?: string | null }>
     >();
     expectTypeOf(handle.get('user-1', {} satisfies UserGetParams)).toEqualTypeOf<Promise<User>>();
     expectTypeOf<ReturnType<UserClient['getResource']>>().toEqualTypeOf<Promise<UserResource>>();
@@ -406,7 +406,7 @@ describe('Public API contracts', () => {
 
     expectTypeOf(handle.list({} satisfies VariableListParams)).toEqualTypeOf<Promise<VariableListResponse>>();
     expectTypeOf<ReturnType<VariableClient['listResources']>>().toEqualTypeOf<
-      Promise<{ data: VariableResource[]; nextCursor?: string }>
+      Promise<{ data: VariableResource[]; nextCursor?: string | null }>
     >();
     expectTypeOf<ReturnType<VariableClient['get']>>().toEqualTypeOf<Promise<Variable>>();
     expectTypeOf<ReturnType<VariableClient['getResource']>>().toEqualTypeOf<Promise<VariableResource>>();
@@ -516,6 +516,7 @@ describe('Public API contracts', () => {
     const workflow = new WorkflowResource(workflows, executions, {
       id: 'wf-1',
       name: 'Workflow',
+      description: null,
       active: false,
       createdAt: '',
       updatedAt: '',
@@ -524,6 +525,18 @@ describe('Public API contracts', () => {
       triggerCount: 0,
       nodes: [],
       connections: {},
+      settings: {},
+      staticData: null,
+      pinData: null,
+      meta: null,
+      nodeGroups: [],
+      activeVersionId: null,
+      versionCounter: null,
+      sourceWorkflowId: null,
+      tags: [],
+      shared: [],
+      parentFolder: null,
+      activeVersion: null,
     });
 
     expectTypeOf(project.workflows()).toEqualTypeOf<ProjectWorkflowResourceCollection>();
@@ -617,17 +630,34 @@ describe('Public API contracts', () => {
       isManaged: false,
       isGlobal: true,
       isResolvable: true,
+      resolvableAllowFallback: false,
+      resolverId: null,
       createdAt: '',
       updatedAt: '',
     });
-    const folder = new FolderResource(folders, { id: 'folder-1', name: 'Folder', createdAt: '', updatedAt: '' });
+    const folder = new FolderResource(folders, {
+      id: 'folder-1',
+      name: 'Folder',
+      parentFolderId: null,
+      parentFolder: null,
+      homeProject: null,
+      tags: [],
+      workflowCount: null,
+      subFolderCount: null,
+      createdAt: '',
+      updatedAt: '',
+    });
     const tag = new TagResource(tags, { id: 'tag-1', name: 'Tag', createdAt: '', updatedAt: '' });
     const user = new UserResource(users, {
       id: 'user-1',
       email: 'user@example.com',
+      firstName: null,
+      lastName: null,
       isPending: false,
       createdAt: '',
       updatedAt: '',
+      role: null,
+      mfaEnabled: false,
     });
 
     expectTypeOf(credential.update({ name: 'Renamed' })).toEqualTypeOf<Promise<CredentialResource>>();
@@ -652,7 +682,13 @@ describe('Public API contracts', () => {
       workflowId: 1,
       status: 'new',
     });
-    const variable = new VariableResource(variables, { id: 'var-1', key: 'KEY', value: 'VALUE' });
+    const variable = new VariableResource(variables, {
+      id: 'var-1',
+      key: 'KEY',
+      value: 'VALUE',
+      type: 'string',
+      project: null,
+    });
     const dataTable = new DataTableResource(dataTables, {
       id: 'dt-1',
       name: 'Table',
@@ -690,6 +726,7 @@ describe('Public API contracts', () => {
     const workflow = new WorkflowResource(new WorkflowClient(createMockHttpClient()), executions, {
       id: 'wf-1',
       name: 'Workflow',
+      description: null,
       active: false,
       createdAt: '',
       updatedAt: '',
@@ -698,6 +735,18 @@ describe('Public API contracts', () => {
       triggerCount: 0,
       nodes: [],
       connections: {},
+      settings: {},
+      staticData: null,
+      pinData: null,
+      meta: null,
+      nodeGroups: [],
+      activeVersionId: null,
+      versionCounter: null,
+      sourceWorkflowId: null,
+      tags: [],
+      shared: [],
+      parentFolder: null,
+      activeVersion: null,
     });
 
     expectTypeOf(workflow.toObject()).toEqualTypeOf<Workflow>();
