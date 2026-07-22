@@ -10,14 +10,15 @@ import type {
 } from '../types.js';
 import BaseClient from './base.js';
 import UserResource from '../resources/user.js';
+import { normalizeUser, normalizeUserCreateResponse, normalizeUserListResponse } from '../response-mappers.js';
 
 export default class UserClient extends BaseClient {
   async list(params?: UserListParams): Promise<UserListResponse> {
-    return this.http.get<UserListResponse>('/users', params);
+    return normalizeUserListResponse(await this.http.get<UserListResponse>('/users', params));
   }
 
   async get(id: string, params?: UserGetParams): Promise<User> {
-    return this.http.get<User>(`/users/${id}`, params);
+    return normalizeUser(await this.http.get<User>(`/users/${id}`, params));
   }
 
   async getResource(id: string, params?: UserGetParams): Promise<UserResource> {
@@ -36,7 +37,7 @@ export default class UserClient extends BaseClient {
   }
 
   async create(data: UserCreate[]): Promise<UserCreateResponse> {
-    return this.http.post<UserCreateResponse>('/users', data);
+    return normalizeUserCreateResponse(await this.http.post<UserCreateResponse>('/users', data));
   }
 
   async delete(id: string): Promise<void> {

@@ -345,13 +345,13 @@ export default class ProjectResource extends BaseResource<Project | ProjectListI
   }
 
   private async hasResourceInProject<T>(options: {
-    listPage: (cursor?: string) => Promise<{ data: T[]; nextCursor?: string }>;
+    listPage: (cursor?: string) => Promise<{ data: T[]; nextCursor: string | null }>;
     matches: (resource: T) => boolean;
   }): Promise<boolean> {
-    let cursor: string | undefined;
+    let cursor: string | null | undefined;
 
     do {
-      const response = await options.listPage(cursor);
+      const response = await options.listPage(cursor ?? undefined);
       if (response.data.some(options.matches)) {
         return true;
       }

@@ -10,6 +10,7 @@ import type {
 } from '../types.js';
 import BaseClient from './base.js';
 import FolderResource from '../resources/folder.js';
+import { normalizeFolder, normalizeFolderDetail, normalizeFolderListResponse } from '../response-mappers.js';
 
 export default class FolderClient extends BaseClient {
   private readonly projectId: string;
@@ -20,11 +21,13 @@ export default class FolderClient extends BaseClient {
   }
 
   async list(params?: FolderListParams): Promise<FolderListResponse> {
-    return this.http.get<FolderListResponse>(`/projects/${this.projectId}/folders`, params);
+    return normalizeFolderListResponse(
+      await this.http.get<FolderListResponse>(`/projects/${this.projectId}/folders`, params),
+    );
   }
 
   async get(folderId: string): Promise<FolderDetail> {
-    return this.http.get<FolderDetail>(`/projects/${this.projectId}/folders/${folderId}`);
+    return normalizeFolderDetail(await this.http.get<FolderDetail>(`/projects/${this.projectId}/folders/${folderId}`));
   }
 
   async getResource(folderId: string): Promise<FolderResource> {
@@ -41,7 +44,7 @@ export default class FolderClient extends BaseClient {
   }
 
   async create(data: FolderCreate): Promise<Folder> {
-    return this.http.post<Folder>(`/projects/${this.projectId}/folders`, data);
+    return normalizeFolder(await this.http.post<Folder>(`/projects/${this.projectId}/folders`, data));
   }
 
   async createResource(data: FolderCreate): Promise<FolderResource> {
@@ -49,7 +52,7 @@ export default class FolderClient extends BaseClient {
   }
 
   async update(folderId: string, data: FolderUpdate): Promise<Folder> {
-    return this.http.patch<Folder>(`/projects/${this.projectId}/folders/${folderId}`, data);
+    return normalizeFolder(await this.http.patch<Folder>(`/projects/${this.projectId}/folders/${folderId}`, data));
   }
 
   async updateResource(folderId: string, data: FolderUpdate): Promise<FolderResource> {

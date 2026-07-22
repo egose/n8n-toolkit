@@ -68,7 +68,7 @@ export interface Workflow {
   /** Display name of the workflow. */
   name: string;
   /** Optional description. */
-  description?: string;
+  description: string | null;
   /** Whether the workflow is currently active (has active triggers). */
   active: boolean;
   /** ISO 8601 timestamp of creation. */
@@ -86,19 +86,29 @@ export interface Workflow {
   /** Node connection graph — maps source nodes to their output connections. */
   connections: WorkflowConnections;
   /** Workflow-level settings. */
-  settings?: WorkflowSettings;
+  settings: WorkflowSettings;
   /** Static data persisted between executions. */
-  staticData?: string | JsonObject | null;
+  staticData: string | JsonObject | null;
   /** Pinned input data keyed by node name. */
-  pinData?: WorkflowPinData | null;
+  pinData: WorkflowPinData | null;
   /** Workflow metadata (template IDs, onboarding state). */
-  meta?: WorkflowMeta | null;
+  meta: WorkflowMeta | null;
+  /** Grouping metadata for workflow nodes on the canvas. */
+  nodeGroups: JsonObject[];
+  /** Active version identifier when workflow versioning is enabled. */
+  activeVersionId: string | null;
+  /** Monotonic workflow save counter. */
+  versionCounter: number | null;
+  /** Source workflow when created from another workflow or template. */
+  sourceWorkflowId: string | null;
   /** Tags attached to the workflow. */
-  tags?: Tag[];
+  tags: Tag[];
   /** Projects this workflow is shared with. */
-  shared?: SharedWorkflow[];
+  shared: SharedWorkflow[];
+  /** Parent folder when the workflow is placed in one. */
+  parentFolder: Folder | null;
   /** Active version details, if versioning is enabled. */
-  activeVersion?: ActiveVersion | null;
+  activeVersion: ActiveVersion | null;
 }
 
 export interface ActiveVersion {
@@ -334,16 +344,12 @@ export interface SharedWorkflow {
   role: string;
   workflowId: string;
   projectId: string;
-  project?: SharedWorkflowProject;
+  project: SharedWorkflowProject | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface SharedWorkflowProject {
-  id: string;
-  name: string;
-  type: string;
-}
+export type SharedWorkflowProject = ProjectSummary;
 
 export interface WorkflowVersion {
   versionId: string;
@@ -359,7 +365,7 @@ export interface WorkflowVersion {
 
 export interface WorkflowListResponse {
   data: Workflow[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 export interface WorkflowListParams extends PaginationParams {
@@ -390,7 +396,7 @@ export interface TestRunSummary {
 
 export interface TestRunListResponse {
   data: TestRunSummary[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 export interface TestRunListParams extends PaginationParams {
@@ -485,7 +491,7 @@ export interface Execution {
 
 export interface ExecutionListResponse {
   data: Execution[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 export interface StopManyExecutionsRequest {
@@ -583,21 +589,42 @@ export interface CredentialUpdate {
   isPartialData?: boolean;
 }
 
-export interface CredentialResponse {
+export interface CredentialDetail {
   id: string;
   name: string;
   type: string;
   isManaged: boolean;
   isGlobal: boolean;
   isResolvable: boolean;
-  resolvableAllowFallback?: boolean;
-  resolverId?: string;
+  resolvableAllowFallback: boolean;
+  resolverId: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface CredentialListItem extends CredentialResponse {
+export type CredentialResponse = CredentialDetail;
+
+export interface CredentialSummary {
+  id: string;
+  name: string;
+  type: string;
+  createdAt: string;
+  updatedAt: string;
   shared: CredentialSharedItem[];
+}
+
+export type CredentialListItem = CredentialSummary;
+
+export interface CredentialSchemaProperty {
+  type: string;
+  enum?: string[];
+}
+
+export interface CredentialSchema {
+  additionalProperties: boolean;
+  type: string;
+  properties: Record<string, CredentialSchemaProperty>;
+  required: string[];
 }
 
 export interface CredentialSharedItem {
@@ -615,7 +642,7 @@ export interface CredentialTestResponse {
 
 export interface CredentialListResponse {
   data: CredentialListItem[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 // ─── Tag ─────────────────────────────────────────────────────────────────────
@@ -623,8 +650,8 @@ export interface CredentialListResponse {
 export interface Tag {
   id: string;
   name: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface TagId {
@@ -633,7 +660,7 @@ export interface TagId {
 
 export interface TagListResponse {
   data: Tag[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 export interface TagMutation {
@@ -645,13 +672,13 @@ export interface TagMutation {
 export interface User {
   id: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string | null;
+  lastName: string | null;
   isPending: boolean;
   createdAt: string;
   updatedAt: string;
-  role?: string;
-  mfaEnabled?: boolean;
+  role: string | null;
+  mfaEnabled: boolean;
 }
 
 export interface UserCreate {
@@ -659,14 +686,24 @@ export interface UserCreate {
   role?: string;
 }
 
-export interface UserCreateResponse {
-  user: { id: string; email: string; inviteAcceptUrl?: string; emailSent?: boolean };
-  error?: string;
+export interface UserInvite {
+  id: string;
+  email: string;
+  inviteAcceptUrl: string | null;
+  emailSent: boolean;
+  role: string | null;
 }
+
+export interface UserCreateResult {
+  user: UserInvite;
+  error: string;
+}
+
+export type UserCreateResponse = UserCreateResult[];
 
 export interface UserListResponse {
   data: User[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 export interface UserListParams extends PaginationParams {
@@ -700,9 +737,9 @@ export interface Variable {
   /** Variable value as stored by n8n. */
   value: string;
   /** Optional variable type metadata from the API. */
-  type?: string;
+  type: string | null;
   /** Owning project, when included by the API response. */
-  project?: ProjectListItem;
+  project: ProjectSummary | null;
 }
 
 /** Payload for creating or replacing a variable. */
@@ -737,7 +774,7 @@ export interface VariableUpdate {
 /** Cursor-paginated variable list response. */
 export interface VariableListResponse {
   data: Variable[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 /** Filters for listing variables. */
@@ -769,8 +806,8 @@ export interface ProjectRelation {
   role: string;
 }
 
-/** Project item returned by `GET /projects`. */
-export interface ProjectListItem {
+/** Project summary returned by `GET /projects`. */
+export interface ProjectSummary {
   /** Unique project identifier. */
   id: string;
   /** Display name. */
@@ -791,8 +828,10 @@ export interface ProjectListItem {
   updatedAt: string;
 }
 
+export type ProjectListItem = ProjectSummary;
+
 /** Full project payload returned by create/enriched project endpoints. */
-export interface Project extends ProjectListItem {
+export interface Project extends ProjectSummary {
   /** Current caller role on this project. */
   role: string;
   /** Effective scopes for the current caller on this project. */
@@ -803,8 +842,8 @@ export interface Project extends ProjectListItem {
 export interface ProjectMember {
   id: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string | null;
+  lastName: string | null;
   createdAt: string;
   updatedAt: string;
   role: string;
@@ -813,13 +852,13 @@ export interface ProjectMember {
 /** Cursor-paginated project list response. */
 export interface ProjectListResponse {
   data: ProjectListItem[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 /** Cursor-paginated project member list response. */
 export interface ProjectMemberListResponse {
   data: ProjectMember[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 /**
@@ -898,17 +937,19 @@ export interface DataTable {
 export interface DataTableColumn {
   id: string;
   name: string;
-  dataTableId: string;
+  dataTableId: string | null;
   /** Column type returned by the current public API. */
   type: 'string' | 'number' | 'boolean' | 'date';
   index: number;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 /** Single row in a data table. Additional fields are dynamic column values. */
 export interface DataTableRow {
   id: number;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string | null;
+  updatedAt: string | null;
   [key: string]: JsonValue | undefined;
 }
 
@@ -1059,13 +1100,13 @@ export interface DeleteRowsDataParams extends DeleteRowsParams {
 
 export interface DataTableListResponse {
   data: DataTable[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 /** Cursor-paginated data table row list response. */
 export interface DataTableRowListResponse {
   data: DataTableRow[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 // ─── Folder ──────────────────────────────────────────────────────────────────
@@ -1075,9 +1116,26 @@ export interface Folder {
   id: string;
   name: string;
   /** Parent folder ID when nested. */
-  parentFolderId?: string;
+  parentFolderId: string | null;
+  /** Parent folder details when included by the API. */
+  parentFolder: Folder | null;
+  /** Owning project summary when included by list endpoints. */
+  homeProject: FolderHomeProject | null;
+  /** Tags attached to this folder. */
+  tags: Tag[];
+  /** Workflow count returned by list endpoints. */
+  workflowCount: number | null;
+  /** Sub-folder count returned by list endpoints. */
+  subFolderCount: number | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FolderHomeProject {
+  id: string;
+  name: string;
+  type: 'personal' | 'team';
+  icon: ProjectIcon | null;
 }
 
 /** Payload for creating a folder. */
@@ -1100,8 +1158,8 @@ export interface FolderListResponse {
 
 /** Extended folder response with aggregate counts. */
 export interface FolderDetail extends Folder {
-  totalSubFolders?: number;
-  totalWorkflows?: number;
+  totalSubFolders: number;
+  totalWorkflows: number;
 }
 
 /** Filters for listing folders inside a project. */
@@ -1164,6 +1222,8 @@ export interface AuditRiskSection {
   description: string;
   recommendation: string;
   location?: AuditRiskLocation[];
+  nextVersions?: AuditVersion[];
+  settings?: JsonObject;
 }
 
 export interface AuditRiskReport {
@@ -1171,7 +1231,19 @@ export interface AuditRiskReport {
   sections: AuditRiskSection[];
 }
 
-export type AuditRisk = 'credentials' | 'database' | 'filesystem' | 'nodes' | 'execution';
+export type AuditRisk = 'credentials' | 'database' | 'filesystem' | 'nodes' | 'execution' | 'instance';
+
+export interface AuditVersion {
+  name: string;
+  createdAt: string;
+  hasSecurityIssue: boolean | null;
+  hasSecurityFix: boolean | null;
+  securityIssueFixVersion: string | null;
+  hasBreakingChange: boolean;
+  documentationUrl: string;
+  nodes: JsonArray;
+  description: string;
+}
 
 export interface AuditCredentialLocation {
   kind: 'credential';

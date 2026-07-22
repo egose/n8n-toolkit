@@ -12,10 +12,11 @@ import type {
 } from '../types.js';
 import BaseClient from './base.js';
 import ExecutionResource from '../resources/execution.js';
+import { normalizeExecutionListResponse, normalizeTag } from '../response-mappers.js';
 
 export default class ExecutionClient extends BaseClient {
   async list(params?: ExecutionListParams): Promise<ExecutionListResponse> {
-    return this.http.get<ExecutionListResponse>('/executions', params);
+    return normalizeExecutionListResponse(await this.http.get<ExecutionListResponse>('/executions', params));
   }
 
   async get(id: number, params?: ExecutionGetParams): Promise<Execution> {
@@ -58,10 +59,10 @@ export default class ExecutionClient extends BaseClient {
   }
 
   async getTags(id: number): Promise<Tag[]> {
-    return this.http.get<Tag[]>(`/executions/${id}/tags`);
+    return ((await this.http.get<Tag[]>(`/executions/${id}/tags`)) ?? []).map(normalizeTag);
   }
 
   async updateTags(id: number, tags: TagId[]): Promise<Tag[]> {
-    return this.http.put<Tag[]>(`/executions/${id}/tags`, tags);
+    return ((await this.http.put<Tag[]>(`/executions/${id}/tags`, tags)) ?? []).map(normalizeTag);
   }
 }

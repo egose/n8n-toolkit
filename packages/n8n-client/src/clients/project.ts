@@ -3,7 +3,7 @@ import type { PaginatedResponse } from '../pagination.js';
 import type {
   Project,
   ProjectCreate,
-  ProjectListItem,
+  ProjectSummary,
   ProjectListResponse,
   ProjectMemberListResponse,
   PaginationParams,
@@ -18,10 +18,15 @@ import FolderClient from './folder.js';
 import VariableClient from './variable.js';
 import WorkflowClient from './workflow.js';
 import ProjectResource from '../resources/project.js';
+import {
+  normalizeProject,
+  normalizeProjectListResponse,
+  normalizeProjectMemberListResponse,
+} from '../response-mappers.js';
 
 export default class ProjectClient extends BaseClient {
   async list(params?: PaginationParams): Promise<ProjectListResponse> {
-    return this.http.get<ProjectListResponse>('/projects', params);
+    return normalizeProjectListResponse(await this.http.get<ProjectListResponse>('/projects', params));
   }
 
   async getResource(id: string): Promise<ProjectResource> {
@@ -44,7 +49,7 @@ export default class ProjectClient extends BaseClient {
   }
 
   async create(data: ProjectCreate): Promise<Project> {
-    return this.http.post<Project>('/projects', data);
+    return normalizeProject(await this.http.post<Project>('/projects', data));
   }
 
   async createResource(data: ProjectCreate): Promise<ProjectResource> {
@@ -70,7 +75,9 @@ export default class ProjectClient extends BaseClient {
   }
 
   async listMembers(projectId: string, params?: PaginationParams): Promise<ProjectMemberListResponse> {
-    return this.http.get<ProjectMemberListResponse>(`/projects/${projectId}/users`, params);
+    return normalizeProjectMemberListResponse(
+      await this.http.get<ProjectMemberListResponse>(`/projects/${projectId}/users`, params),
+    );
   }
 
   async addMembers(projectId: string, relations: ProjectMemberRelation[]): Promise<void> {
@@ -86,7 +93,7 @@ export default class ProjectClient extends BaseClient {
     await this.http.patch<void>(`/projects/${projectId}/users/${userId}`, data);
   }
 
-  private bindResource(project: Project | ProjectListItem): ProjectResource {
+  private bindResource(project: Project | ProjectSummary): ProjectResource {
     return new ProjectResource(
       this,
       new WorkflowClient(this.http),
@@ -98,8 +105,8 @@ export default class ProjectClient extends BaseClient {
     );
   }
 
-  private async findProject(id: string): Promise<ProjectListItem | undefined> {
-    let cursor: string | undefined;
+  private async findProject(id: string): Promise<ProjectSummary | undefined> {
+    let cursor: string | null | undefined;
 
     do {
       const response = await this.list(cursor ? { cursor } : undefined);

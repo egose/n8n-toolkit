@@ -28,14 +28,21 @@ import type {
 } from '../types.js';
 import BaseClient from './base.js';
 import DataTableResource from '../resources/data-table.js';
+import {
+  normalizeDataTable,
+  normalizeDataTableColumn,
+  normalizeDataTableListResponse,
+  normalizeDataTableRow,
+  normalizeDataTableRowListResponse,
+} from '../response-mappers.js';
 
 export default class DataTableClient extends BaseClient {
   async list(params?: DataTableListParams): Promise<DataTableListResponse> {
-    return this.http.get<DataTableListResponse>('/data-tables', params);
+    return normalizeDataTableListResponse(await this.http.get<DataTableListResponse>('/data-tables', params));
   }
 
   async get(id: string): Promise<DataTable> {
-    return this.http.get<DataTable>(`/data-tables/${id}`);
+    return normalizeDataTable(await this.http.get<DataTable>(`/data-tables/${id}`));
   }
 
   async getResource(id: string): Promise<DataTableResource> {
@@ -52,7 +59,7 @@ export default class DataTableClient extends BaseClient {
   }
 
   async create(data: CreateDataTableRequest): Promise<DataTable> {
-    return this.http.post<DataTable>('/data-tables', data);
+    return normalizeDataTable(await this.http.post<DataTable>('/data-tables', data));
   }
 
   async createResource(data: CreateDataTableRequest): Promise<DataTableResource> {
@@ -60,7 +67,7 @@ export default class DataTableClient extends BaseClient {
   }
 
   async update(id: string, data: UpdateDataTableRequest): Promise<DataTable> {
-    return this.http.patch<DataTable>(`/data-tables/${id}`, data);
+    return normalizeDataTable(await this.http.patch<DataTable>(`/data-tables/${id}`, data));
   }
 
   async updateResource(id: string, data: UpdateDataTableRequest): Promise<DataTableResource> {
@@ -72,7 +79,9 @@ export default class DataTableClient extends BaseClient {
   }
 
   async listRows(dataTableId: string, params?: DataTableRowListParams): Promise<DataTableRowListResponse> {
-    return this.http.get<DataTableRowListResponse>(`/data-tables/${dataTableId}/rows`, params);
+    return normalizeDataTableRowListResponse(
+      await this.http.get<DataTableRowListResponse>(`/data-tables/${dataTableId}/rows`, params),
+    );
   }
 
   async insertRows(dataTableId: string, data: InsertRowsCountRequest): Promise<{ count: number }>;
@@ -82,19 +91,27 @@ export default class DataTableClient extends BaseClient {
     dataTableId: string,
     data: InsertRowsRequest,
   ): Promise<{ count: number } | number[] | DataTableRow[]> {
-    return this.http.post<{ count: number } | number[] | DataTableRow[]>(`/data-tables/${dataTableId}/rows`, data);
+    const response = await this.http.post<{ count: number } | number[] | DataTableRow[]>(
+      `/data-tables/${dataTableId}/rows`,
+      data,
+    );
+    return Array.isArray(response) && response.every((row) => typeof row === 'object')
+      ? response.map((row) => normalizeDataTableRow(row as DataTableRow))
+      : response;
   }
 
   async updateRows(dataTableId: string, data: UpdateRowsBooleanRequest): Promise<boolean>;
   async updateRows(dataTableId: string, data: UpdateRowsDataRequest): Promise<DataTableRow[]>;
   async updateRows(dataTableId: string, data: UpdateRowsRequest): Promise<boolean | DataTableRow[]> {
-    return this.http.patch<boolean | DataTableRow[]>(`/data-tables/${dataTableId}/rows/update`, data);
+    const response = await this.http.patch<boolean | DataTableRow[]>(`/data-tables/${dataTableId}/rows/update`, data);
+    return Array.isArray(response) ? response.map(normalizeDataTableRow) : response;
   }
 
   async upsertRow(dataTableId: string, data: UpsertRowBooleanRequest): Promise<boolean>;
   async upsertRow(dataTableId: string, data: UpsertRowDataRequest): Promise<DataTableRow>;
   async upsertRow(dataTableId: string, data: UpsertRowRequest): Promise<boolean | DataTableRow> {
-    return this.http.post<boolean | DataTableRow>(`/data-tables/${dataTableId}/rows/upsert`, data);
+    const response = await this.http.post<boolean | DataTableRow>(`/data-tables/${dataTableId}/rows/upsert`, data);
+    return typeof response === 'boolean' ? response : normalizeDataTableRow(response);
   }
 
   async clearRows(dataTableId: string): Promise<ClearRowsResponse> {
@@ -104,15 +121,21 @@ export default class DataTableClient extends BaseClient {
   async deleteRows(dataTableId: string, params: DeleteRowsBooleanParams): Promise<boolean>;
   async deleteRows(dataTableId: string, params: DeleteRowsDataParams): Promise<DataTableRow[]>;
   async deleteRows(dataTableId: string, params: DeleteRowsParams): Promise<boolean | DataTableRow[]> {
-    return this.http.delete<boolean | DataTableRow[]>(`/data-tables/${dataTableId}/rows/delete`, params);
+    const response = await this.http.delete<boolean | DataTableRow[]>(
+      `/data-tables/${dataTableId}/rows/delete`,
+      params,
+    );
+    return Array.isArray(response) ? response.map(normalizeDataTableRow) : response;
   }
 
   async listColumns(dataTableId: string): Promise<DataTableColumn[]> {
-    return this.http.get<DataTableColumn[]>(`/data-tables/${dataTableId}/columns`);
+    return ((await this.http.get<DataTableColumn[]>(`/data-tables/${dataTableId}/columns`)) ?? []).map(
+      normalizeDataTableColumn,
+    );
   }
 
   async createColumn(dataTableId: string, data: CreateColumnRequest): Promise<DataTableColumn> {
-    return this.http.post<DataTableColumn>(`/data-tables/${dataTableId}/columns`, data);
+    return normalizeDataTableColumn(await this.http.post<DataTableColumn>(`/data-tables/${dataTableId}/columns`, data));
   }
 
   async deleteColumn(dataTableId: string, columnId: string): Promise<void> {
@@ -120,6 +143,8 @@ export default class DataTableClient extends BaseClient {
   }
 
   async updateColumn(dataTableId: string, columnId: string, data: UpdateColumnRequest): Promise<DataTableColumn> {
-    return this.http.patch<DataTableColumn>(`/data-tables/${dataTableId}/columns/${columnId}`, data);
+    return normalizeDataTableColumn(
+      await this.http.patch<DataTableColumn>(`/data-tables/${dataTableId}/columns/${columnId}`, data),
+    );
   }
 }
