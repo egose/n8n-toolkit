@@ -1,0 +1,135 @@
+# -----------------------------------------------------------------------------
+# Single-instance n8n sandbox for the @egose/n8n-client API sweep script.
+#
+#   n8n → http://localhost:${N8N_APISPEC_PORT:-5690}
+#
+# Brings up postgres + a single n8n instance built from the official n8nio/n8n
+# image (no @egose/n8n-sync hooks) plus a one-shot provisioner that:
+#   1. Waits for n8n readiness.
+#   2. Optionally activates an Enterprise license with the user-supplied
+#      N8N_LICENSE_ACTIVATION_KEY (skipped if the env var is empty).
+#   3. Sets up the owner account (POST /rest/owner/setup).
+#   4. Creates a personal API key with the owner scope set and writes it to
+#      sandbox/secrets/apispec-key.json.
+#
+# Usage:
+#   docker compose -f sandbox/docker-compose.apispec.yml up --build --wait
+#
+# Required env (prompted by run-api-sweep.ts if missing):
+#   N8N_LICENSE_ACTIVATION_KEY   Enterprise license activation key (optional —
+#                                when omitted, license-gated endpoints will
+#                                return 403 and the sweep records that).
+# -----------------------------------------------------------------------------
+
+volumes:
+  n8tool_apispec_postgres_storage:
+  n8tool_apispec_n8n_storage:
+
+networks:
+  n8tool_apispec:
+    driver: bridge
+
+x-n8n-env: &n8n-env
+  DB_TYPE: postgresdb
+  DB_POSTGRESDB_HOST: postgres
+  DB_POSTGRESDB_USER: ${POSTGRES_USER:-postgres}
+  DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-n8n}
+  N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-super-secret-key}
+  N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET:-even-more-secret}
+  N8N_BASE_URL: ${N8N_BASE_URL:-http://localhost:5690}
+  N8N_PORT: '5678'
+  NODE_ENV: production
+  N8N_PROTOCOL: http
+  N8N_TRUST_PROXY: 'true'
+  N8N_PROXY_HOPS: '1'
+  N8N_PUBLIC_API_DISABLED: 'false'
+  LOG_LEVEL: debug
+  # Make the log output more deterministic for sweep debugging.
+  N8N_DIAGNOSTICS_ENABLED: 'false'
+  N8N_PERSONALIZATION_ENABLED: 'false'
+  # Disable the externalQueue/worker — we exercise the REST API only.
+  N8N_DISABLE_PRODUCTION_MAIN_PROCESS: 'false'
+
+services:
+  postgres:
+    platform: linux/amd64
+    restart: no
+    networks: [n8tool_apispec]
+    container_name: n8tool_apispec_postgres
+    image: postgres:18.4-alpine3.22
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-n8n}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+    - ${POSTGRES_APISPEC_PORT:-5434}:5432
+    volumes:
+    - n8tool_apispec_postgres_storage:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    platform: linux/amd64
+    restart: no
+    networks: [n8tool_apispec]
+    container_name: n8tool_apispec_n8n
+    image: n8nio/n8n:${N8N_APISPEC_VERSION:-latest}
+    environment:
+      <<: *n8n-env
+      # Forward the license activation key to the provisioner's env so it can
+      # call POST /rest/license/activate. Kept on the n8n service for parity
+      # even though n8n itself reads it from its keystore, not the env.
+      N8N_LICENSE_ACTIVATION_KEY: ${N8N_LICENSE_ACTIVATION_KEY:-}
+    ports:
+    - ${N8N_APISPEC_PORT:-5690}:5678
+    volumes:
+    - n8tool_apispec_n8n_storage:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, wget -qO- http://localhost:5678/healthz || exit 1]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Provisioner — one-shot container that:
+  #   1. Waits for n8n readiness.
+  #   2. Activates an Enterprise license (if N8N_LICENSE_ACTIVATION_KEY is set
+  #      and non-empty).
+  #   3. Sets up the owner account (POST /rest/owner/setup), falling back to
+  #      POST /rest/login if the owner already exists.
+  #   4. Creates a personal API key with the full owner scope set and writes
+  #      it to /secrets/apispec-key.json for the sweep script to consume.
+  # ---------------------------------------------------------------------------
+  provisioner:
+    platform: linux/amd64
+    restart: no
+    networks: [n8tool_apispec]
+    container_name: n8tool_apispec_provisioner
+    image: node:22-alpine
+    environment:
+      N8N_URL: http://n8n:5678
+      N8N_PUBLISHED_URL: http://localhost:${N8N_APISPEC_PORT:-5690}
+      N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET:-even-more-secret}
+      # Forwarded from the compose env so the provisioner can activate it.
+      N8N_LICENSE_ACTIVATION_KEY: ${N8N_LICENSE_ACTIVATION_KEY:-}
+      OWNER_EMAIL: ${OWNER_EMAIL:-owner@example.com}
+      OWNER_FIRST_NAME: ${OWNER_FIRST_NAME:-Owner}
+      OWNER_LAST_NAME: ${OWNER_LAST_NAME:-User}
+      OWNER_PASSWORD: ${OWNER_PASSWORD:-OwnerPassword123!}
+      API_KEY_LABEL: ${API_KEY_LABEL:-api-sweep}
+    volumes:
+    - ./provisioner:/app:ro
+    - ./secrets:/secrets
+    depends_on:
+      n8n:
+        condition: service_healthy
+    entrypoint: [node, /app/apispec-provision.js, /secrets/apispec-key.json]
