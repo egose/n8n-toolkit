@@ -51,6 +51,25 @@ export interface ICredentialsDb {
   updatedAt?: Date;
 }
 
+/**
+ * Minimal copy of the most relevant fields from n8n's `IRun`
+ * (n8n-workflow) passed to the `workflow.postExecute` external hook. We only
+ * rely on the scalar lifecycle columns here — the per-step `data` blob is
+ * intentionally excluded to keep sync payloads small.
+ */
+export interface IRunPayload {
+  /** @deprecated on n8n's side; mirrored for parity. Use `status` instead. */
+  finished?: boolean;
+  mode: string;
+  status: string;
+  startedAt: Date;
+  stoppedAt?: Date;
+  waitTill?: Date | null;
+}
+
+/** Minimal `IWorkflowBase`-shaped snapshot that the postExecute hook carries. */
+export type WorkflowSnapshot = Pick<IWorkflowBase, 'id' | 'name' | 'nodes' | 'connections' | 'active' | 'isArchived'>;
+
 /** Minimal shape of n8n's AbstractServer as passed to the `n8n.ready` hook. */
 export interface N8nServer {
   app: Express;
@@ -105,6 +124,29 @@ export interface SyncCredentialDto {
   updatedAt?: string;
 }
 
+/**
+ * JSON-serializable execution summary. Mirrors the minimal column set of
+ * n8n's `execution_entity` table (plus the source `workflowId`) needed to
+ * upsert an execution row on a target instance. Large per-step run data is
+ * deliberately not included.
+ */
+export interface SyncExecutionDto {
+  id: string;
+  workflowId: string | null;
+  status: string;
+  mode: string;
+  /** @deprecated on n8n's side; mirrored for parity with `status`. */
+  finished: boolean;
+  startedAt?: string;
+  stoppedAt?: string;
+  createdAt?: string;
+  retryOf?: string | null;
+  retrySuccessId?: string | null;
+  workflowVersionId?: string | null;
+  /** ID of the workflow version this execution ran, defaulted from the snapshot. */
+  workflowSnapshot?: Pick<SyncWorkflowDto, 'id' | 'name' | 'nodes' | 'connections'>;
+}
+
 interface SyncEventBase {
   /** ISO timestamp of when the publisher emitted the event. */
   at: string;
@@ -118,6 +160,7 @@ export type SyncEvent =
   | (SyncEventBase & { type: 'workflow.upsert'; workflow: SyncWorkflowDto })
   | (SyncEventBase & { type: 'workflow.activate'; workflow: SyncWorkflowDto })
   | (SyncEventBase & { type: 'workflow.delete'; workflowId: string })
-  | (SyncEventBase & { type: 'workflow.archive'; workflowId: string; archived: boolean });
+  | (SyncEventBase & { type: 'workflow.archive'; workflowId: string; archived: boolean })
+  | (SyncEventBase & { type: 'execution.upsert'; execution: SyncExecutionDto });
 
 export type SyncEventType = SyncEvent['type'];

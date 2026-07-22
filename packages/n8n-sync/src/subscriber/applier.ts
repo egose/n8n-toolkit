@@ -1,5 +1,5 @@
 import type { Logger } from '../shared/logger';
-import type { SyncCredentialDto, SyncEvent, SyncWorkflowDto } from '../shared/types';
+import type { SyncCredentialDto, SyncEvent, SyncExecutionDto, SyncWorkflowDto } from '../shared/types';
 import type { N8nSyncRepositories } from './n8n-runtime';
 
 export interface ApplierOptions {
@@ -25,13 +25,24 @@ function toDate(value: string | Date | undefined): Date | undefined {
 /**
  * Last-write-wins guard: deliveries can arrive out of order (a retrying slow
  * event alongside a newer one), and retries re-deliver the same event. An
- * incoming upsert is stale when the stored row's updatedAt is at or beyond
+ * incoming upsert is stale when the stored row's timestamp is at or beyond
  * the incoming one.
+ *
+ * For workflows/credentials the invariant column is `updatedAt`; for
+ * executions it is `stoppedAt` (the moment the run transitioned to a
+ * terminal state). Callers pick the field matching the entity via
+ * `timestampField` — defaults to `updatedAt` for back-compat.
  */
-function isStaleEvent(existing: unknown, incomingUpdatedAt: Date | undefined): boolean {
-  if (!incomingUpdatedAt) return false;
-  const existingUpdatedAt = toDate((existing as { updatedAt?: Date | string } | null)?.updatedAt);
-  return existingUpdatedAt !== undefined && existingUpdatedAt.getTime() >= incomingUpdatedAt.getTime();
+function isStaleEvent(
+  existing: unknown,
+  incomingTimestamp: Date | undefined,
+  timestampField: 'updatedAt' | 'stoppedAt' = 'updatedAt',
+): boolean {
+  if (!incomingTimestamp) return false;
+  const existingTimestamp = toDate(
+    (existing as { updatedAt?: Date | string; stoppedAt?: Date | string } | null)?.[timestampField],
+  );
+  return existingTimestamp !== undefined && existingTimestamp.getTime() >= incomingTimestamp.getTime();
 }
 
 /**
@@ -220,6 +231,75 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
     log.debug('Credential deleted', { credentialId });
   }
 
+  /**
+   * Idempotently upsert an execution row on the target. Preserves the source
+   * execution id. `startedAt`/`createdAt` are immutable in n8n's own
+   * `updateExistingExecution`, so we mirror that for the update branch and
+   * only write mutable columns (status, finished, stoppedAt, waitTill,
+   * mode, retryOf, retrySuccessId, workflowVersionId).
+   *
+   * Staleness guard: an incoming execution is skipped when the stored row has
+   * a `stoppedAt` at or beyond the incoming one (matches the
+   * last-write-wins-on-stop semantics). In-flight executions may have no
+   * `stoppedAt`; in that case the guard is skipped and the update proceeds.
+   */
+  async function upsertExecution(execution: SyncExecutionDto): Promise<void> {
+    if (!repos.execution) {
+      log.warn('Received execution event but executions are not enabled on this subscriber', {
+        executionId: execution.id,
+      });
+      return;
+    }
+
+    const updatedAt = toDate(execution.stoppedAt);
+    const fields: Record<string, unknown> = {
+      status: execution.status,
+      finished: execution.finished,
+      mode: execution.mode,
+      workflowId: execution.workflowId ?? null,
+      retryOf: execution.retryOf ?? null,
+      retrySuccessId: execution.retrySuccessId ?? null,
+      workflowVersionId: execution.workflowVersionId ?? null,
+    };
+    if (updatedAt) fields.stoppedAt = updatedAt;
+    if (execution.startedAt) {
+      const startedAt = toDate(execution.startedAt);
+      if (startedAt) fields.startedAt = startedAt;
+    } else {
+      // n8n's own update path forbids changing startedAt; only set it on insert.
+      fields.startedAt = null;
+    }
+
+    const existing = await repos.execution.findOneBy({ id: execution.id });
+
+    if (existing) {
+      if (isStaleEvent(existing, updatedAt, 'stoppedAt')) {
+        log.debug('Skipping stale execution upsert', { executionId: execution.id });
+        return;
+      }
+      // `startedAt` and `createdAt` are immutable post-insert — drop them on update.
+      const { startedAt: _startedAt, createdAt: _createdAt, ...updateFields } = fields;
+      void _startedAt;
+      void _createdAt;
+      await repos.execution.update({ id: execution.id }, updateFields);
+      log.debug('Execution updated', { executionId: execution.id });
+      return;
+    }
+
+    const createdAt = toDate(execution.createdAt ?? execution.startedAt);
+    await repos.execution.save({
+      id: execution.id,
+      ...fields,
+      storedAt: 'db',
+      deduplicationKey: null,
+      waitTill: null,
+      tracingContext: null,
+      usedPrivateCredentials: false,
+      ...(createdAt ? { createdAt } : {}),
+    });
+    log.debug('Execution created', { executionId: execution.id });
+  }
+
   return async function applySyncEvent(event: SyncEvent): Promise<void> {
     switch (event.type) {
       case 'workflow.upsert':
@@ -237,6 +317,9 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
         break;
       case 'credentials.delete':
         await deleteCredential(event.credentialId);
+        break;
+      case 'execution.upsert':
+        await upsertExecution(event.execution);
         break;
     }
   };

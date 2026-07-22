@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createPublisherHooks } from '../src/publisher/hooks';
-import type { ICredentialsDb, IWorkflowBase, SyncEvent } from '../src/shared/types';
+import type { ICredentialsDb, IRunPayload, IWorkflowBase, SyncEvent } from '../src/shared/types';
 
 const NOW = new Date('2026-03-04T05:06:07.000Z');
 
-function makeDeps() {
+function makeDeps(entities?: { workflows?: boolean; credentials?: boolean; executions?: boolean }) {
   const emit = vi.fn().mockResolvedValue(undefined);
-  const hooks = createPublisherHooks({ emit, sourceId: 'src-1', now: () => NOW });
+  const hooks = createPublisherHooks({
+    emit,
+    sourceId: 'src-1',
+    now: () => NOW,
+    ...(entities ? { entities } : {}),
+  });
   return { emit, hooks };
 }
 
@@ -47,6 +52,31 @@ describe('createPublisherHooks', () => {
       'afterUnarchive',
       'afterUpdate',
     ]);
+    // executions are off by default; postExecute must not be wired
+    expect(hooks.workflow.postExecute).toBeUndefined();
+  });
+
+  it('wires workflow.postExecute only when entities.executions is true', () => {
+    const { hooks } = makeDeps({ executions: true });
+    expect(Array.isArray(hooks.workflow.postExecute)).toBe(true);
+  });
+
+  it('omits the workflow resource entirely when both workflows and executions are disabled', () => {
+    const { hooks } = makeDeps({ workflows: false, executions: false });
+    expect(hooks.workflow).toBeUndefined();
+  });
+
+  it('omits the credentials resource when credentials is disabled', () => {
+    const { hooks } = makeDeps({ credentials: false });
+    expect(hooks.credentials).toBeUndefined();
+  });
+
+  it('wires only workflow.postExecute when workflows is disabled but executions is enabled', () => {
+    const { hooks } = makeDeps({ workflows: false, executions: true });
+    expect(hooks.workflow).toBeDefined();
+    expect(hooks.workflow.postExecute).toBeDefined();
+    expect(hooks.workflow.afterCreate).toBeUndefined();
+    expect(hooks.workflow.activate).toBeUndefined();
   });
 
   it('stamps every event with at/sourceId', async () => {
@@ -152,5 +182,47 @@ describe('createPublisherHooks', () => {
     emit.mockClear();
     await hooks.workflow.afterUnarchive[0]('wf-1' as never);
     expect(emittedEvent(emit)).toMatchObject({ type: 'workflow.archive', workflowId: 'wf-1', archived: false });
+  });
+
+  describe('workflow.postExecute', () => {
+    it('emits an execution.upsert event from the postExecute hook and is fire-and-forget', async () => {
+      const { emit, hooks } = makeDeps({ executions: true });
+      const run: IRunPayload = {
+        finished: true,
+        mode: 'manual',
+        status: 'success',
+        startedAt: new Date('2026-05-01T10:00:00.000Z'),
+        stoppedAt: new Date('2026-05-01T10:00:05.000Z'),
+      };
+
+      // awaiting the hook should not block on emit (fire-and-forget)
+      await hooks.workflow.postExecute[0](run as never, workflow as never, 'exec-1' as never);
+
+      // the promise was voided; allow the microtask to flush
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'execution.upsert',
+        at: NOW.toISOString(),
+        sourceId: 'src-1',
+        execution: {
+          id: 'exec-1',
+          workflowId: 'wf-1',
+          status: 'success',
+          mode: 'manual',
+          finished: true,
+          startedAt: '2026-05-01T10:00:00.000Z',
+          stoppedAt: '2026-05-01T10:00:05.000Z',
+        },
+      });
+    });
+
+    it('ignores a missing execution id without emitting', async () => {
+      const { emit, hooks } = makeDeps({ executions: true });
+      await hooks.workflow.postExecute[0](undefined as never, workflow as never, '' as never);
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(emit).not.toHaveBeenCalled();
+    });
   });
 });

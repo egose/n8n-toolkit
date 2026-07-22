@@ -5,6 +5,13 @@ import { parseSyncEvent } from '../src/shared/validate';
 const base = { at: '2026-01-01T00:00:00.000Z', sourceId: 'src-1' };
 const workflow = { id: 'wf-1', name: 'W', nodes: [], connections: {}, active: false, isArchived: false };
 const credential = { id: 'c-1', name: 'C', type: 'httpBasicAuth', data: 'encrypted' };
+const execution = {
+  id: 'exec-1',
+  workflowId: 'wf-1',
+  status: 'success',
+  mode: 'manual',
+  finished: true,
+};
 
 describe('parseSyncEvent', () => {
   it.each([
@@ -14,6 +21,7 @@ describe('parseSyncEvent', () => {
     [{ ...base, type: 'workflow.archive', workflowId: 'wf-1', archived: true }],
     [{ ...base, type: 'credentials.upsert', credential }],
     [{ ...base, type: 'credentials.delete', credentialId: 'c-1' }],
+    [{ ...base, type: 'execution.upsert', execution }],
   ])('accepts valid event %j', (event) => {
     expect(parseSyncEvent(event)).toEqual(event);
   });
@@ -27,6 +35,18 @@ describe('parseSyncEvent', () => {
     ['credential without data', { ...base, type: 'credentials.upsert', credential: { id: 'c', name: 'n', type: 't' } }],
     ['archive without flag', { ...base, type: 'workflow.archive', workflowId: 'wf-1' }],
     ['delete without id', { ...base, type: 'workflow.delete' }],
+    [
+      'execution without status',
+      { ...base, type: 'execution.upsert', execution: { id: 'e', mode: 'm', finished: true } },
+    ],
+    [
+      'execution without finished',
+      { ...base, type: 'execution.upsert', execution: { id: 'e', status: 'success', mode: 'm' } },
+    ],
+    [
+      'execution with non-boolean finished',
+      { ...base, type: 'execution.upsert', execution: { id: 'e', status: 'success', mode: 'm', finished: 'yes' } },
+    ],
   ])('rejects %s', (_label, payload) => {
     expect(parseSyncEvent(payload)).toBeNull();
   });

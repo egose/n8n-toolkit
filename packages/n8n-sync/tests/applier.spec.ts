@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '../src/shared/logger';
-import type { SyncCredentialDto, SyncWorkflowDto } from '../src/shared/types';
+import type { SyncCredentialDto, SyncExecutionDto, SyncWorkflowDto } from '../src/shared/types';
 import { createApplier } from '../src/subscriber/applier';
 import type { N8nSyncRepositories } from '../src/subscriber/n8n-runtime';
 
@@ -13,7 +13,35 @@ const log: Logger = {
   child: vi.fn(),
 };
 
-function makeRepos(existing: { workflow?: unknown; credential?: unknown } = {}) {
+function makeRepos(existing: { workflow?: unknown; credential?: unknown; execution?: unknown } = {}) {
+  const mocks = {
+    workflow: {
+      findOneBy: vi.fn().mockResolvedValue(existing.workflow ?? null),
+      save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+    },
+    credentials: {
+      findOneBy: vi.fn().mockResolvedValue(existing.credential ?? null),
+      save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+    },
+    sharedWorkflow: { save: vi.fn().mockResolvedValue(undefined) },
+    sharedCredentials: { save: vi.fn().mockResolvedValue(undefined) },
+    user: { findOne: vi.fn().mockResolvedValue(null) },
+    project: { getPersonalProjectForUser: vi.fn().mockResolvedValue(null) },
+    execution: {
+      findOneBy: vi.fn().mockResolvedValue(existing.execution ?? null),
+      save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+    },
+  };
+  return mocks as unknown as N8nSyncRepositories & { [K in keyof typeof mocks]: (typeof mocks)[K] };
+}
+
+function makeReposWithoutExecution(existing: { workflow?: unknown; credential?: unknown } = {}) {
   const mocks = {
     workflow: {
       findOneBy: vi.fn().mockResolvedValue(existing.workflow ?? null),
@@ -56,6 +84,17 @@ const credential: SyncCredentialDto = {
   data: 'encrypted-blob',
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-02T00:00:00.000Z',
+};
+
+const execution: SyncExecutionDto = {
+  id: 'exec-1',
+  workflowId: 'wf-1',
+  status: 'success',
+  mode: 'manual',
+  finished: true,
+  startedAt: '2026-05-01T10:00:00.000Z',
+  stoppedAt: '2026-05-01T10:00:05.000Z',
+  createdAt: '2026-05-01T10:00:00.000Z',
 };
 
 describe('createApplier', () => {
@@ -322,6 +361,97 @@ describe('createApplier', () => {
         projectId: 'proj-1',
         role: 'workflow:owner',
       });
+    });
+  });
+
+  describe('execution.upsert', () => {
+    it('creates a missing execution row when executions is enabled and the event is closed', async () => {
+      const repos = makeRepos();
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'execution.upsert', at: '', sourceId: 's', execution });
+
+      expect(repos.execution.save).toHaveBeenCalledTimes(1);
+      const entity = repos.execution.save.mock.calls[0][0] as Record<string, unknown>;
+      expect(entity.id).toBe('exec-1');
+      expect(entity.workflowId).toBe('wf-1');
+      expect(entity.status).toBe('success');
+      expect(entity.finished).toBe(true);
+      expect(entity.mode).toBe('manual');
+      expect(entity.startedAt).toEqual(new Date('2026-05-01T10:00:00.000Z'));
+      expect(entity.stoppedAt).toEqual(new Date('2026-05-01T10:00:05.000Z'));
+      expect(entity.createdAt).toEqual(new Date('2026-05-01T10:00:00.000Z'));
+      expect(entity.retryOf).toBeNull();
+      expect(entity.workflowVersionId).toBeNull();
+      expect(entity.storedAt).toBe('db');
+      expect(repos.execution.update).not.toHaveBeenCalled();
+    });
+
+    it('updates an existing execution row without touching startedAt / createdAt', async () => {
+      const repos = makeRepos({
+        execution: { id: 'exec-1', stoppedAt: new Date('2026-04-01T00:00:00.000Z') },
+      });
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'execution.upsert', at: '', sourceId: 's', execution });
+
+      // update path must be taken (save skipped)
+      expect(repos.execution.save).not.toHaveBeenCalled();
+      expect(repos.execution.update).toHaveBeenCalledTimes(1);
+      const [criteria, fields] = repos.execution.update.mock.calls[0] as [{ id: string }, Record<string, unknown>];
+      expect(criteria).toEqual({ id: 'exec-1' });
+      expect(fields.startedAt).toBeUndefined();
+      expect(fields.createdAt).toBeUndefined();
+      expect(fields.status).toBe('success');
+      expect(fields.finished).toBe(true);
+      expect(fields.stoppedAt).toEqual(new Date('2026-05-01T10:00:05.000Z'));
+    });
+
+    it('skips the update when the stored execution is newer than the incoming event (stoppedAt >=)', async () => {
+      const repos = makeRepos({
+        execution: { id: 'exec-1', stoppedAt: new Date('2026-06-01T00:00:00.000Z') },
+      });
+      const apply = createApplier(repos, { log });
+
+      // execution.stoppedAt is 2026-05-01 — older than the stored row
+      await apply({ type: 'execution.upsert', at: '', sourceId: 's', execution });
+
+      expect(repos.execution.update).not.toHaveBeenCalled();
+    });
+
+    it('skips the update when the stored execution has the same stoppedAt (idempotent re-delivery)', async () => {
+      const repos = makeRepos({
+        execution: { id: 'exec-1', stoppedAt: new Date('2026-05-01T10:00:05.000Z') },
+      });
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'execution.upsert', at: '', sourceId: 's', execution });
+
+      expect(repos.execution.update).not.toHaveBeenCalled();
+    });
+
+    it('logs and drops execution events when executions is not enabled on the subscriber', async () => {
+      const repos = makeReposWithoutExecution();
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'execution.upsert', at: '', sourceId: 's', execution });
+
+      // The execution repo is absent (undefined), so no save/update must be invoked.
+      expect(log.warn).toHaveBeenCalledWith(
+        expect.stringContaining('executions are not enabled'),
+        expect.objectContaining({ executionId: 'exec-1' }),
+      );
+    });
+
+    it('applies when the stored stoppedAt is older than the incoming one', async () => {
+      const repos = makeRepos({
+        execution: { id: 'exec-1', stoppedAt: new Date('2026-05-01T10:00:04.000Z') },
+      });
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'execution.upsert', at: '', sourceId: 's', execution });
+
+      expect(repos.execution.update).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -1,5 +1,12 @@
-import { mapCredential, mapWorkflow } from '../shared/mappers';
-import type { ICredentialsDb, IExternalHooksFileData, IWorkflowBase, SyncEvent } from '../shared/types';
+import { mapCredential, mapExecution, mapWorkflow } from '../shared/mappers';
+import type {
+  ICredentialsDb,
+  IExternalHooksFileData,
+  IRunPayload,
+  IWorkflowBase,
+  SyncEvent,
+  WorkflowSnapshot,
+} from '../shared/types';
 
 type PublisherHookThis = {
   dbCollections?: {
@@ -22,6 +29,18 @@ export interface PublisherDeps {
   sourceId: string;
   /** Injectable clock for tests. */
   now?: () => Date;
+  /**
+   * Per-entity gates. When a gate is `false`, the corresponding hook is not
+   * wired at all (returns no handler) so n8n pays zero overhead for it.
+   * Defaults to enabling the legacy entities (workflows + credentials) and
+   * disabling executions — the high-volume `workflow.postExecute` hook is
+   * opt-in.
+   */
+  entities?: {
+    workflows?: boolean;
+    credentials?: boolean;
+    executions?: boolean;
+  };
 }
 
 /**
@@ -31,6 +50,7 @@ export interface PublisherDeps {
  *   credentials.create / credentials.update / credentials.delete
  *   workflow.afterCreate / workflow.afterUpdate / workflow.afterDelete
  *   workflow.activate / workflow.afterArchive / workflow.afterUnarchive
+ *   workflow.postExecute (per-execution; opt-in via `entities.executions`)
  *
  * Note: n8n fires no external hook on workflow deactivation, and
  * `workflow.activate` fires before the activation is committed.
@@ -39,6 +59,12 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
   const timestamp = (): string => (deps.now ? deps.now() : new Date()).toISOString();
   const envelope = <T extends Omit<SyncEvent, 'at' | 'sourceId'>>(event: T): T & Pick<SyncEvent, 'at' | 'sourceId'> =>
     ({ ...event, at: timestamp(), sourceId: deps.sourceId }) as T & Pick<SyncEvent, 'at' | 'sourceId'>;
+
+  const entities = {
+    workflows: deps.entities?.workflows ?? true,
+    credentials: deps.entities?.credentials ?? true,
+    executions: deps.entities?.executions ?? false,
+  };
 
   async function resolveWorkflow(
     this: PublisherHookThis,
@@ -106,64 +132,100 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
   };
 
   return {
-    credentials: {
-      create: [
-        async function (this: PublisherHookThis, encryptedData: Partial<ICredentialsDb>) {
-          if (typeof encryptedData.id === 'string' && encryptedData.data !== undefined) {
-            await emitCredentialUpsert.call(this, encryptedData);
-            return;
-          }
-          void emitCredentialUpsert.call(this, encryptedData);
-        },
-      ],
-      update: [
-        async function (this: PublisherHookThis, newCredentialData: Partial<ICredentialsDb>) {
-          await emitCredentialUpsert.call(this, newCredentialData);
-        },
-      ],
-      delete: [
-        async function (credentialId: string) {
-          await deps.emit(envelope({ type: 'credentials.delete', credentialId }));
-        },
-      ],
-    },
-    workflow: {
-      afterCreate: [
-        async function (this: PublisherHookThis, createdWorkflow: IWorkflowBase | string) {
-          const workflow = await resolveWorkflow.call(this, createdWorkflow);
-          if (!workflow) return;
-          await emitWorkflowUpsert(workflow);
-        },
-      ],
-      afterUpdate: [
-        async function (this: PublisherHookThis, updatedWorkflow: IWorkflowBase | string) {
-          const workflow = await resolveWorkflow.call(this, updatedWorkflow);
-          if (!workflow) return;
-          await emitWorkflowUpsert(workflow);
-        },
-      ],
-      activate: [
-        async function (this: PublisherHookThis, updatedWorkflow: IWorkflowBase | string) {
-          const workflow = await resolveWorkflow.call(this, updatedWorkflow);
-          if (!workflow) return;
-          await deps.emit(envelope({ type: 'workflow.activate', workflow: mapWorkflow(workflow) }));
-        },
-      ],
-      afterDelete: [
-        async function (workflowId: string) {
-          await deps.emit(envelope({ type: 'workflow.delete', workflowId }));
-        },
-      ],
-      afterArchive: [
-        async function (workflowId: string) {
-          await deps.emit(envelope({ type: 'workflow.archive', workflowId, archived: true }));
-        },
-      ],
-      afterUnarchive: [
-        async function (workflowId: string) {
-          await deps.emit(envelope({ type: 'workflow.archive', workflowId, archived: false }));
-        },
-      ],
-    },
+    ...(entities.credentials
+      ? {
+          credentials: {
+            create: [
+              async function (this: PublisherHookThis, encryptedData: Partial<ICredentialsDb>) {
+                if (typeof encryptedData.id === 'string' && encryptedData.data !== undefined) {
+                  await emitCredentialUpsert.call(this, encryptedData);
+                  return;
+                }
+                void emitCredentialUpsert.call(this, encryptedData);
+              },
+            ],
+            update: [
+              async function (this: PublisherHookThis, newCredentialData: Partial<ICredentialsDb>) {
+                await emitCredentialUpsert.call(this, newCredentialData);
+              },
+            ],
+            delete: [
+              async function (credentialId: string) {
+                await deps.emit(envelope({ type: 'credentials.delete', credentialId }));
+              },
+            ],
+          },
+        }
+      : {}),
+    ...(entities.workflows || entities.executions
+      ? {
+          workflow: {
+            ...(entities.workflows
+              ? {
+                  afterCreate: [
+                    async function (this: PublisherHookThis, createdWorkflow: IWorkflowBase | string) {
+                      const workflow = await resolveWorkflow.call(this, createdWorkflow);
+                      if (!workflow) return;
+                      await emitWorkflowUpsert(workflow);
+                    },
+                  ],
+                  afterUpdate: [
+                    async function (this: PublisherHookThis, updatedWorkflow: IWorkflowBase | string) {
+                      const workflow = await resolveWorkflow.call(this, updatedWorkflow);
+                      if (!workflow) return;
+                      await emitWorkflowUpsert(workflow);
+                    },
+                  ],
+                  activate: [
+                    async function (this: PublisherHookThis, updatedWorkflow: IWorkflowBase | string) {
+                      const workflow = await resolveWorkflow.call(this, updatedWorkflow);
+                      if (!workflow) return;
+                      await deps.emit(envelope({ type: 'workflow.activate', workflow: mapWorkflow(workflow) }));
+                    },
+                  ],
+                  afterDelete: [
+                    async function (workflowId: string) {
+                      await deps.emit(envelope({ type: 'workflow.delete', workflowId }));
+                    },
+                  ],
+                  afterArchive: [
+                    async function (workflowId: string) {
+                      await deps.emit(envelope({ type: 'workflow.archive', workflowId, archived: true }));
+                    },
+                  ],
+                  afterUnarchive: [
+                    async function (workflowId: string) {
+                      await deps.emit(envelope({ type: 'workflow.archive', workflowId, archived: false }));
+                    },
+                  ],
+                }
+              : {}),
+            ...(entities.executions
+              ? {
+                  postExecute: [
+                    /**
+                     * n8n signature: `[fullRunData: IRun | undefined, workflowData: IWorkflowBase, executionId: string]`.
+                     * Fire-and-forget: this hook fires per execution and must
+                     * not block n8n, so we void the emit and let the
+                     * publisher's serialized queue handle delivery.
+                     */
+                    async function (
+                      fullRunData: IRunPayload | undefined,
+                      workflowData: WorkflowSnapshot | IWorkflowBase | undefined,
+                      executionId: string,
+                    ) {
+                      if (typeof executionId !== 'string' || !executionId) return;
+                      const event = envelope({
+                        type: 'execution.upsert',
+                        execution: mapExecution(executionId, fullRunData, workflowData),
+                      });
+                      void deps.emit(event);
+                    },
+                  ],
+                }
+              : {}),
+          },
+        }
+      : {}),
   };
 }

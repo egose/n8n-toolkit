@@ -2,6 +2,7 @@ import { hostname } from 'node:os';
 
 import {
   SYNC_AUTH_MODE,
+  SYNC_ENTITIES,
   SYNC_EVENTS_PATH,
   SYNC_MAX_RETRIES,
   SYNC_SHARED_SECRET,
@@ -50,13 +51,20 @@ function createHookConfig() {
     }
   };
 
+  const entities = {
+    workflows: SYNC_ENTITIES.has('workflows'),
+    credentials: SYNC_ENTITIES.has('credentials'),
+    executions: SYNC_ENTITIES.has('executions'),
+  };
+
   log.info('n8n-sync publisher hooks registered', {
     sourceId,
     authMode: SYNC_AUTH_MODE,
     targets: senders.length ? SYNC_SUBSCRIBER_URLS : '(disabled)',
+    entities,
   });
 
-  return createPublisherHooks({ emit, sourceId });
+  return createPublisherHooks({ emit, sourceId, entities });
 }
 
 /** n8n external-hooks entry: CommonJS export for the hook runtime. */

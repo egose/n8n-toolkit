@@ -1,4 +1,4 @@
-import type { SyncCredentialDto, SyncEvent, SyncWorkflowDto } from './types';
+import type { SyncCredentialDto, SyncExecutionDto, SyncEvent, SyncWorkflowDto } from './types';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -24,6 +24,18 @@ function isValidCredentialDto(value: unknown): value is SyncCredentialDto {
   );
 }
 
+/** Minimal structural check for the sync execution payload. */
+function isValidExecutionDto(value: unknown): value is SyncExecutionDto {
+  if (!isRecord(value)) return false;
+  // `workflowId` is nullable; we accept absent or null as "no workflow assignment".
+  return (
+    typeof value.id === 'string' &&
+    typeof value.status === 'string' &&
+    typeof value.mode === 'string' &&
+    typeof value.finished === 'boolean'
+  );
+}
+
 /**
  * Validate an untrusted request payload as a SyncEvent.
  * Returns the typed event, or null when the payload is malformed.
@@ -46,6 +58,8 @@ export function parseSyncEvent(payload: unknown): SyncEvent | null {
       return typeof payload.workflowId === 'string' && typeof payload.archived === 'boolean'
         ? (payload as unknown as SyncEvent)
         : null;
+    case 'execution.upsert':
+      return isValidExecutionDto(payload.execution) ? (payload as unknown as SyncEvent) : null;
     default:
       return null;
   }

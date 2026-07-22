@@ -45,6 +45,18 @@ export interface ProjectRepositoryLike {
   getPersonalProjectForUser(userId: string): Promise<{ id: string } | null>;
 }
 
+/**
+ * Minimal subset of n8n's `ExecutionRepository` (writes the
+ * `execution_entity` table). The applier uses the inherited TypeORM methods
+ * (`findOneBy`, `save`, `update`, `delete`) for idempotent upserts.
+ */
+export interface ExecutionRepositoryLike {
+  findOneBy(where: { id: string }): Promise<unknown | null>;
+  save(entity: Record<string, unknown>): Promise<unknown>;
+  update(criteria: unknown, partial: Record<string, unknown>): Promise<unknown>;
+  delete(id: string): Promise<unknown>;
+}
+
 export interface N8nSyncRepositories {
   workflow: WorkflowRepositoryLike;
   credentials: CredentialsRepositoryLike;
@@ -52,6 +64,12 @@ export interface N8nSyncRepositories {
   sharedCredentials: SharedCredentialsRepositoryLike;
   user: UserRepositoryLike;
   project: ProjectRepositoryLike;
+  /**
+   * Only present when executions are enabled on the subscriber
+   * (`SYNC_ENTITIES` includes "executions"). When absent, the applier drops
+   * `execution.*` events.
+   */
+  execution?: ExecutionRepositoryLike;
 }
 
 type N8nContainer = {
@@ -65,6 +83,7 @@ type N8nDbModule = {
   SharedCredentialsRepository: unknown;
   UserRepository: unknown;
   ProjectRepository: unknown;
+  ExecutionRepository?: unknown;
 };
 
 /**
@@ -74,8 +93,14 @@ type N8nDbModule = {
  *
  * Module locations default to the official n8n docker image layout and can be
  * overridden with the N8N_DI_PATH / N8N_DB_PATH environment variables.
+ *
+ * `execution` is only resolved when `includeExecutions` is true (the caller
+ * gates this on `SYNC_ENTITIES`); the resolver tolerates the symbol being
+ * absent from the loaded `@n8n/db` module without throwing.
+ *
+ * @param includeExecutions when true, also resolve `ExecutionRepository`.
  */
-export function buildN8nSyncRepositories(): N8nSyncRepositories {
+export function buildN8nSyncRepositories(options: { includeExecutions?: boolean } = {}): N8nSyncRepositories {
   const { Container } = require(N8N_DI_PATH) as { Container: N8nContainer };
   const {
     WorkflowRepository,
@@ -84,9 +109,10 @@ export function buildN8nSyncRepositories(): N8nSyncRepositories {
     SharedCredentialsRepository,
     UserRepository,
     ProjectRepository,
+    ExecutionRepository,
   } = require(N8N_DB_PATH) as N8nDbModule;
 
-  return {
+  const repos: N8nSyncRepositories = {
     workflow: Container.get<WorkflowRepositoryLike>(WorkflowRepository),
     credentials: Container.get<CredentialsRepositoryLike>(CredentialsRepository),
     sharedWorkflow: Container.get<SharedWorkflowRepositoryLike>(SharedWorkflowRepository),
@@ -94,4 +120,10 @@ export function buildN8nSyncRepositories(): N8nSyncRepositories {
     user: Container.get<UserRepositoryLike>(UserRepository),
     project: Container.get<ProjectRepositoryLike>(ProjectRepository),
   };
+
+  if (options.includeExecutions && ExecutionRepository) {
+    repos.execution = Container.get<ExecutionRepositoryLike>(ExecutionRepository);
+  }
+
+  return repos;
 }

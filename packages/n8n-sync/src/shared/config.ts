@@ -20,6 +20,36 @@ function urlListFromEnv(raw: string | undefined): string[] {
   return [...new Set(urls)];
 }
 
+/** Normalize a comma-separated entity list to an unordered Set. */
+function stringSetFromEnv(raw: string | undefined): Set<string> {
+  const values = (raw ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return new Set(values);
+}
+
+/** Keys imported by both sides to gate per-entity behavior. */
+export type SyncEntity = 'workflows' | 'credentials' | 'executions';
+
+const ENTITY_NAMES: readonly SyncEntity[] = ['workflows', 'credentials', 'executions'];
+
+/**
+ * Comma-separated whitelist of entity kinds to sync. Unknown names are
+ * ignored. Defaults to workflows + credentials, so executions are opt-in.
+ *
+ * `SYNC_ENTITIES.has(name)` is the canonical gate both sides use to decide
+ * whether a publisher hook/apply path is wired for a given entity.
+ */
+export const SYNC_ENTITIES: ReadonlySet<SyncEntity> = (() => {
+  const raw = stringSetFromEnv(process.env.SYNC_ENTITIES);
+  const filtered = new Set<SyncEntity>();
+  for (const name of ENTITY_NAMES) {
+    if (raw.has(name)) filtered.add(name);
+  }
+  return filtered.size > 0 ? filtered : new Set<SyncEntity>(['workflows', 'credentials']);
+})();
+
 // Shared
 export const LOG_LEVEL = (process.env.LOG_LEVEL ?? 'info').toLowerCase();
 export const SYNC_SHARED_SECRET = process.env.SYNC_SHARED_SECRET ?? '';
