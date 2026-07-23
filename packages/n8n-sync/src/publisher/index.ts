@@ -1,14 +1,17 @@
 import { hostname } from 'node:os';
 
 import {
+  SYNC_ACTIVE_TAG,
   SYNC_AUTH_MODE,
   SYNC_ENTITIES,
   SYNC_EVENTS_PATH,
+  SYNC_FILTER_BY_TAG,
   SYNC_MAX_RETRIES,
   SYNC_SHARED_SECRET,
   SYNC_SOURCE_ID,
   SYNC_SUBSCRIBER_URLS,
   SYNC_TIMEOUT_MS,
+  SYNC_WORKFLOW_TAG,
 } from '../shared/config';
 import { createLogger } from '../shared/logger';
 import type { SyncEvent } from '../shared/types';
@@ -57,14 +60,21 @@ function createHookConfig() {
     executions: SYNC_ENTITIES.has('executions'),
   };
 
+  const tagFilter = {
+    filterByTag: SYNC_FILTER_BY_TAG,
+    syncWorkflowTag: SYNC_WORKFLOW_TAG,
+    activeTag: SYNC_ACTIVE_TAG,
+  };
+
   log.info('n8n-sync publisher hooks registered', {
     sourceId,
     authMode: SYNC_AUTH_MODE,
     targets: senders.length ? SYNC_SUBSCRIBER_URLS : '(disabled)',
     entities,
+    ...tagFilter,
   });
 
-  return createPublisherHooks({ emit, sourceId, entities });
+  return createPublisherHooks({ emit, sourceId, entities, ...tagFilter });
 }
 
 /** n8n external-hooks entry: CommonJS export for the hook runtime. */

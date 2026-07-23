@@ -22,6 +22,17 @@ describe('parseSyncEvent', () => {
     [{ ...base, type: 'credentials.upsert', credential }],
     [{ ...base, type: 'credentials.delete', credentialId: 'c-1' }],
     [{ ...base, type: 'execution.upsert', execution }],
+    [
+      {
+        ...base,
+        type: 'workflow.upsert',
+        workflow: {
+          ...workflow,
+          tags: [{ id: 't1', name: 'sync' }],
+          meta: { active_real: true },
+        },
+      },
+    ],
   ])('accepts valid event %j', (event) => {
     expect(parseSyncEvent(event)).toEqual(event);
   });

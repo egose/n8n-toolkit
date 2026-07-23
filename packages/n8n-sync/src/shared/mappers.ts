@@ -2,6 +2,7 @@ import type {
   ICredentialsDb,
   IRunPayload,
   IWorkflowBase,
+  IWorkflowTag,
   SyncCredentialDto,
   SyncExecutionDto,
   SyncWorkflowDto,
@@ -15,24 +16,59 @@ function toIsoString(value: unknown): string | undefined {
 }
 
 /** Map an n8n `IWorkflowBase` hook payload to its JSON-serializable DTO. */
-export function mapWorkflow(workflow: IWorkflowBase): SyncWorkflowDto {
+export function mapWorkflow(
+  workflow: IWorkflowBase,
+  options: {
+    /**
+     * Tags attached to the workflow on the source. When omitted, the DTO
+     * carries no `tags` field. When `[]` is passed, an empty array is sent
+     * (explicit "no tags" — used when filter is enabled and the workflow's
+     * tags were resolved).
+     */
+    tags?: IWorkflowTag[];
+    /**
+     * When `true`, the top-level `active` field is replaced with
+     * `rewriteActiveTo` and the source's real `active` value is preserved
+     * under `meta.active_real`. Used by the publisher when
+     * `SYNC_FILTER_BY_TAG` is enabled and the `active` tag is/isn't present.
+     */
+    rewriteActive?: boolean;
+    /** Value to write into the top-level `active` field when `rewriteActive` is true. */
+    rewriteActiveTo?: boolean;
+  } = {},
+): SyncWorkflowDto {
   const createdAt = toIsoString(workflow.createdAt);
   const updatedAt = toIsoString(workflow.updatedAt);
+
+  let meta: Record<string, unknown> | undefined =
+    workflow.meta !== undefined ? (workflow.meta as Record<string, unknown>) : undefined;
+  let active = workflow.active ?? false;
+
+  if (options.rewriteActive) {
+    const rewritten = options.rewriteActiveTo ?? false;
+    // Always preserve the source's real active value under meta.active_real
+    // so the subscriber (or operator) can inspect it. Ensure meta exists even
+    // when the source had no meta.
+    if (meta === undefined) meta = {};
+    meta['active_real'] = active;
+    active = rewritten;
+  }
 
   return {
     id: workflow.id,
     name: workflow.name,
     ...(workflow.description !== undefined ? { description: workflow.description } : {}),
-    active: workflow.active ?? false,
+    active,
     isArchived: workflow.isArchived ?? false,
     nodes: workflow.nodes ?? [],
     connections: workflow.connections ?? {},
     ...(workflow.settings !== undefined ? { settings: workflow.settings } : {}),
     ...(workflow.staticData !== undefined ? { staticData: workflow.staticData } : {}),
     ...(workflow.pinData !== undefined ? { pinData: workflow.pinData } : {}),
-    ...(workflow.meta !== undefined ? { meta: workflow.meta } : {}),
+    ...(meta !== undefined ? { meta } : {}),
     ...(workflow.versionId !== undefined ? { versionId: workflow.versionId } : {}),
     ...(workflow.activeVersionId !== undefined ? { activeVersionId: workflow.activeVersionId } : {}),
+    ...(options.tags !== undefined ? { tags: options.tags } : {}),
     ...(createdAt ? { createdAt } : {}),
     ...(updatedAt ? { updatedAt } : {}),
   };

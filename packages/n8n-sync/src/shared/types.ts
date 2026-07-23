@@ -28,9 +28,15 @@ export interface IWorkflowBase {
   settings?: unknown;
   staticData?: unknown;
   pinData?: unknown;
+  meta?: unknown;
   versionId?: string;
   activeVersionId?: string | null;
-  meta?: unknown;
+}
+
+/** Minimal shape of n8n's `TagEntity` as surfaced via `WorkflowEntity.tags`. */
+export interface IWorkflowTag {
+  id: string;
+  name: string;
 }
 
 /** Minimal copy of `ICredentialsDb` from @n8n/db. */
@@ -100,9 +106,18 @@ export interface SyncWorkflowDto {
   settings?: unknown;
   staticData?: unknown;
   pinData?: unknown;
-  meta?: unknown;
+  /**
+   * Workflow metadata. When {@link SYNC_FILTER_BY_TAG} is enabled and the
+   * workflow carries the `active` tag, the publisher preserves the source's
+   * real `active` value here under `active_real` before rewriting the
+   * top-level `active` field to `true`. The subscriber writes both columns
+   * through; `active_real` is informational on the target.
+   */
+  meta?: Record<string, unknown>;
   versionId?: string;
   activeVersionId?: string | null;
+  /** Tags attached to the workflow on the source. */
+  tags?: IWorkflowTag[];
   createdAt?: string;
   updatedAt?: string;
 }

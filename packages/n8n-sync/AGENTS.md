@@ -74,12 +74,35 @@ All `process.env.SYNC_ENTITIES` access lives in `src/shared/config.ts` as a `Rea
 - **StartedAt / createdAt are immutable post-insert** on `execution_entity` — the applier mirrors n8n's own `updateExistingExecution` semantics and drops them from update payloads.
 - **HMAC verification needs exact raw bytes** — `readJsonBody` resolves in order: `req.rawBody` (n8n sets this globally) → own stream read → `JSON.stringify(req.body)` fallback. Do not verify against a re-serialized body when rawBody is available.
 - **Auth modes do not cross-accept** — a token-mode subscriber rejects hmac-signed requests and vice versa. Both sides must use the same `SYNC_AUTH_MODE`.
+- **Tag-based filtering on the source only** — `SYNC_FILTER_BY_TAG` rewrites the publisher's `active` field and may emit `workflow.delete` in place of `workflow.upsert`; the subscriber never sees or honors tag fields. Preserve this asymmetry when modifying either side.
+
+## Tag-based filtering (`SYNC_FILTER_BY_TAG`)
+
+Source-side opt-in: only the publisher inspects tags, the subscriber remains tag-agnostic.
+
+Three env vars live in `src/shared/config.ts`:
+
+| Env var              | Default  | Purpose                                                                                                              |
+| -------------------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
+| `SYNC_FILTER_BY_TAG` | `false`  | Master switch. When false (default), all workflows/credentials pass through unchanged with no tag inspection.        |
+| `SYNC_WORKFLOW_TAG`  | `sync`   | Name of the tag a workflow must carry to be eligible for syncing.                                                    |
+| `SYNC_ACTIVE_TAG`    | `active` | When the sync tag is present, presence of this tag rewrites the DTO `active` to `true`; absence rewrites to `false`. |
+
+Behavior when `SYNC_FILTER_BY_TAG=true`:
+
+- **Sync tag missing** → the publisher emits `workflow.delete` for that workflowId (so the target removes it) instead of `workflow.upsert`/`workflow.activate`. This applies to `workflow.afterCreate`, `workflow.afterUpdate`, and `workflow.activate` hooks.
+- **Sync tag present, `active` tag missing** → DTO `active` is rewritten to `false`; the real source value is preserved in `meta.active_real`.
+- **Sync tag present, `active` tag present** → DTO `active` is rewritten to `true`; the real source value is preserved in `meta.active_real`.
+- **Execution events (`workflow.postExecute`)** are also gated by the sync tag — events for workflows that lack the sync tag are dropped (no `workflow.delete` is emitted for executions, the event is simply suppressed).
+- **Tag resolution** — the publisher prefers inline `workflowData.tags` from the hook payload; when n8n passes only a workflow id, it falls back to `dbCollections.Workflow.findOne({ where: { id }, relations: ['tags'] })`.
+
+When `SYNC_FILTER_BY_TAG=false` (default): workflows pass through unmodified, the `tags` field is omitted from the DTO, no `meta.active_real` is set, and no tag resolution queries run.
 
 ## Running Tests
 
 ```bash
 pnpm build       # tsup → dist/publisher.cjs + dist/subscriber.cjs
-pnpm test        # vitest unit tests (9 files, 120 tests)
+pnpm test        # vitest unit tests (9 files, 140 tests)
 npx tsc --noEmit -p tsconfig.json         # typecheck src
 npx tsc --noEmit -p tsconfig.tests.json   # typecheck src + tests
 ```
@@ -91,6 +114,9 @@ node -e "const h=require('./dist/publisher.cjs'); console.log(Object.keys(h))"
 # → [ 'credentials', 'workflow' ]                   (default SYNC_ENTITIES)
 # SYNC_ENTITIES=workflows,credentials,executions → [ 'credentials', 'workflow' ]
 # SYNC_ENTITIES=executions                       → [ 'workflow' ]           (only postExecute wired under workflow)
+SYNC_FILTER_BY_TAG=true SYNC_WORKFLOW_TAG=sync SYNC_ACTIVE_TAG=active \
+  node -e "const h=require('./dist/publisher.cjs'); console.log(Object.keys(h))"
+# → [ 'credentials', 'workflow' ]  (filterByTag/syncWorkflowTag/activeTag surfaced in the startup log line)
 ```
 
 ## File Structure
@@ -98,18 +124,18 @@ node -e "const h=require('./dist/publisher.cjs'); console.log(Object.keys(h))"
 ```
 src/
   shared/
-    config.ts     — all env vars (SYNC_*, N8N_*_PATH, LOG_LEVEL) + SYNC_ENTITIES ReadonlySet gate
-    types.ts      — local n8n payload types (IWorkflowBase/ICredentialsDb/IRunPayload) + SyncEvent envelope union + SyncExecutionDto
+    config.ts     — all env vars (SYNC_*, N8N_*_PATH, LOG_LEVEL) + SYNC_ENTITIES ReadonlySet gate + SYNC_FILTER_BY_TAG / SYNC_WORKFLOW_TAG / SYNC_ACTIVE_TAG
+    types.ts      — local n8n payload types (IWorkflowBase/ICredentialsDb/IRunPayload + IWorkflowTag) + SyncEvent envelope union + SyncExecutionDto
     logger.ts     — zero-dep structured JSON logger
-    mappers.ts    — IWorkflowBase/ICredentialsDb/IRun → JSON DTOs (Date → ISO)
+    mappers.ts    — IWorkflowBase/ICredentialsDb/IRun → JSON DTOs (Date → ISO); mapWorkflow accepts { tags?, rewriteActive?, rewriteActiveTo? }
     http.ts       — fetch POST with backoff retry, timeout, per-attempt auth headers
     body.ts       — zero-dep request-body reader preserving raw bytes (rawBody → stream → re-serialize)
     auth.ts       — HMAC sign/verify + bearer token check + SyncAuthMode dispatcher
     validate.ts   — parseSyncEvent payload guard
   publisher/
-    hooks.ts      — createPublisherHooks(deps, entities) → IExternalHooksFileData (gates per-resource on SYNC_ENTITIES)
+    hooks.ts      — createPublisherHooks(deps) → IExternalHooksFileData (gates per-resource on SYNC_ENTITIES; respects SYNC_FILTER_BY_TAG)
     sender.ts     — createEventSender: per-target serialized delivery queue (fire-and-forget + drain)
-    index.ts      — wires one sender per SYNC_SUBSCRIBER_URLS entry, fan-out emit; export =
+    index.ts      — wires one sender per SYNC_SUBSCRIBER_URLS entry, fan-out emit; reads filterByTag/syncWorkflowTag/activeTag from config; export =
   subscriber/
     hooks.ts      — createSubscriberHooks(deps) → n8n.ready
     n8n-runtime.ts— lazy require of @n8n/di + @n8n/db repositories (ExecutionRepository resolved only when SYNC_ENTITIES includes executions)

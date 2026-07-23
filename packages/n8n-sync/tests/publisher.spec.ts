@@ -1,17 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createPublisherHooks } from '../src/publisher/hooks';
-import type { ICredentialsDb, IRunPayload, IWorkflowBase, SyncEvent } from '../src/shared/types';
+import type { ICredentialsDb, IRunPayload, IWorkflowBase, IWorkflowTag, SyncEvent } from '../src/shared/types';
 
 const NOW = new Date('2026-03-04T05:06:07.000Z');
 
-function makeDeps(entities?: { workflows?: boolean; credentials?: boolean; executions?: boolean }) {
+function makeDeps(
+  overrides: {
+    entities?: { workflows?: boolean; credentials?: boolean; executions?: boolean };
+    filterByTag?: boolean;
+    syncWorkflowTag?: string;
+    activeTag?: string;
+  } = {},
+) {
   const emit = vi.fn().mockResolvedValue(undefined);
   const hooks = createPublisherHooks({
     emit,
     sourceId: 'src-1',
     now: () => NOW,
-    ...(entities ? { entities } : {}),
+    ...(overrides.entities ? { entities: overrides.entities } : {}),
+    ...(overrides.filterByTag !== undefined ? { filterByTag: overrides.filterByTag } : {}),
+    ...(overrides.syncWorkflowTag !== undefined ? { syncWorkflowTag: overrides.syncWorkflowTag } : {}),
+    ...(overrides.activeTag !== undefined ? { activeTag: overrides.activeTag } : {}),
   });
   return { emit, hooks };
 }
@@ -57,22 +67,22 @@ describe('createPublisherHooks', () => {
   });
 
   it('wires workflow.postExecute only when entities.executions is true', () => {
-    const { hooks } = makeDeps({ executions: true });
+    const { hooks } = makeDeps({ entities: { executions: true } });
     expect(Array.isArray(hooks.workflow.postExecute)).toBe(true);
   });
 
   it('omits the workflow resource entirely when both workflows and executions are disabled', () => {
-    const { hooks } = makeDeps({ workflows: false, executions: false });
+    const { hooks } = makeDeps({ entities: { workflows: false, executions: false } });
     expect(hooks.workflow).toBeUndefined();
   });
 
   it('omits the credentials resource when credentials is disabled', () => {
-    const { hooks } = makeDeps({ credentials: false });
+    const { hooks } = makeDeps({ entities: { credentials: false } });
     expect(hooks.credentials).toBeUndefined();
   });
 
   it('wires only workflow.postExecute when workflows is disabled but executions is enabled', () => {
-    const { hooks } = makeDeps({ workflows: false, executions: true });
+    const { hooks } = makeDeps({ entities: { workflows: false, executions: true } });
     expect(hooks.workflow).toBeDefined();
     expect(hooks.workflow.postExecute).toBeDefined();
     expect(hooks.workflow.afterCreate).toBeUndefined();
@@ -186,7 +196,7 @@ describe('createPublisherHooks', () => {
 
   describe('workflow.postExecute', () => {
     it('emits an execution.upsert event from the postExecute hook and is fire-and-forget', async () => {
-      const { emit, hooks } = makeDeps({ executions: true });
+      const { emit, hooks } = makeDeps({ entities: { executions: true } });
       const run: IRunPayload = {
         finished: true,
         mode: 'manual',
@@ -219,10 +229,219 @@ describe('createPublisherHooks', () => {
     });
 
     it('ignores a missing execution id without emitting', async () => {
-      const { emit, hooks } = makeDeps({ executions: true });
+      const { emit, hooks } = makeDeps({ entities: { executions: true } });
       await hooks.workflow.postExecute[0](undefined as never, workflow as never, '' as never);
       await new Promise((resolve) => setImmediate(resolve));
       expect(emit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('workflow tag filtering (filterByTag=true)', () => {
+    const syncTag: IWorkflowTag = { id: 't1', name: 'sync' };
+    const activeTag: IWorkflowTag = { id: 't2', name: 'active' };
+    const workflowWithSync: IWorkflowBase & { tags?: IWorkflowTag[] } = {
+      ...workflow,
+      id: 'wf-sync',
+      active: true,
+      tags: [syncTag],
+    };
+    const workflowWithSyncAndActive: IWorkflowBase & { tags?: IWorkflowTag[] } = {
+      ...workflow,
+      id: 'wf-active',
+      active: true,
+      tags: [syncTag, activeTag],
+    };
+    const workflowWithoutSync: IWorkflowBase & { tags?: IWorkflowTag[] } = {
+      ...workflow,
+      id: 'wf-no-sync',
+      active: true,
+      tags: [activeTag],
+    };
+
+    it('publishes a workflow.upsert with no rewriting when filterByTag is disabled (default)', async () => {
+      const { emit, hooks } = makeDeps();
+      await hooks.workflow.afterCreate[0]({ ...workflowWithSync } as never);
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'workflow.upsert',
+        workflow: { id: 'wf-sync', active: true },
+      });
+      // No tags, no active_real rewriting on the DTO when filter is off
+      expect((emittedEvent(emit) as { workflow: Record<string, unknown> }).workflow.tags).toBeUndefined();
+      expect((emittedEvent(emit) as { workflow: { meta?: unknown } }).workflow.meta).toBeUndefined();
+    });
+
+    it('emits a workflow.upsert (with tags + meta.active_real=real active) when sync tag is present but active tag missing', async () => {
+      const { emit, hooks } = makeDeps({ filterByTag: true });
+      await hooks.workflow.afterCreate[0]({ ...workflowWithSync } as never);
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'workflow.upsert',
+        workflow: {
+          id: 'wf-sync',
+          active: false, // active tag missing → rewritten to false
+          tags: [{ id: 't1', name: 'sync' }],
+          meta: { active_real: true },
+        },
+      });
+    });
+
+    it('keeps active=true when both sync and active tags are present (preserves real active in meta)', async () => {
+      const { emit, hooks } = makeDeps({ filterByTag: true });
+      await hooks.workflow.afterUpdate[0]({ ...workflowWithSyncAndActive } as never);
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'workflow.upsert',
+        workflow: {
+          id: 'wf-active',
+          active: true,
+          tags: [
+            { id: 't1', name: 'sync' },
+            { id: 't2', name: 'active' },
+          ],
+          meta: { active_real: true },
+        },
+      });
+    });
+
+    it('preserves the source real active=false when both tags present but source is inactive', async () => {
+      const { emit, hooks } = makeDeps({ filterByTag: true });
+      const inactiveSource: IWorkflowBase & { tags?: IWorkflowTag[] } = {
+        ...workflowWithSyncAndActive,
+        active: false,
+      };
+      await hooks.workflow.afterCreate[0](inactiveSource as never);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'workflow.upsert',
+        workflow: { id: 'wf-active', active: true, meta: { active_real: false } },
+      });
+    });
+
+    it('emits workflow.delete when sync tag is missing (and skips the upsert)', async () => {
+      const { emit, hooks } = makeDeps({ filterByTag: true });
+      await hooks.workflow.afterUpdate[0]({ ...workflowWithoutSync } as never);
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'workflow.delete',
+        workflowId: 'wf-no-sync',
+      });
+    });
+
+    it('applies the same drop-to-delete logic to workflow.activate', async () => {
+      const { emit, hooks } = makeDeps({ filterByTag: true });
+      await hooks.workflow.activate[0]({ ...workflowWithSync } as never);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'workflow.activate',
+        workflow: { id: 'wf-sync', active: false, meta: { active_real: true } },
+      });
+
+      emit.mockClear();
+      await hooks.workflow.activate[0]({ ...workflowWithoutSync } as never);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'workflow.delete',
+        workflowId: 'wf-no-sync',
+      });
+    });
+
+    it('respects a custom syncWorkflowTag and activeTag name', async () => {
+      const { emit, hooks } = makeDeps({
+        filterByTag: true,
+        syncWorkflowTag: 'replicate',
+        activeTag: 'on',
+      });
+      const wf: IWorkflowBase & { tags?: IWorkflowTag[] } = {
+        ...workflow,
+        id: 'wf-custom',
+        active: false,
+        tags: [
+          { id: 'a', name: 'replicate' },
+          { id: 'b', name: 'on' },
+        ],
+      };
+      await hooks.workflow.afterCreate[0](wf as never);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'workflow.upsert',
+        workflow: { id: 'wf-custom', active: true, meta: { active_real: false } },
+      });
+    });
+
+    it('resolves tags via dbCollections.Workflow.findOne({ relations: ["tags"] }) when the hook passes only an id', async () => {
+      const { emit, hooks } = makeDeps({ filterByTag: true });
+      const findOne = vi.fn().mockResolvedValue({ ...workflowWithSyncAndActive });
+
+      await hooks.workflow.afterCreate[0].call({ dbCollections: { Workflow: { findOne } } }, 'wf-active' as never);
+
+      expect(findOne).toHaveBeenCalledWith({ where: { id: 'wf-active' }, relations: ['tags'] });
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'workflow.upsert',
+        workflow: { id: 'wf-active', active: true, tags: [syncTag, activeTag] },
+      });
+    });
+
+    it('when the workflow id lookup misses, does not emit a delete (because we cannot confirm the workflow exists)', async () => {
+      const { emit, hooks } = makeDeps({ filterByTag: true });
+      const findOne = vi.fn().mockResolvedValue(null);
+      await hooks.workflow.afterCreate[0].call({ dbCollections: { Workflow: { findOne } } }, 'wf-ghost' as never);
+      expect(emit).not.toHaveBeenCalled();
+    });
+
+    it('workflow.postExecute drops the execution when the workflow lacks the sync tag', async () => {
+      const { emit, hooks } = makeDeps({ entities: { executions: true }, filterByTag: true });
+      // workflowData carries tags inline — no DB lookup needed
+      const wf: IWorkflowBase & { tags?: IWorkflowTag[] } = {
+        ...workflow,
+        id: 'wf-no-sync-exec',
+        tags: [{ id: 'x', name: 'other' }],
+      };
+      await hooks.workflow.postExecute[0](
+        { status: 'success', mode: 'manual', startedAt: new Date('2026-05-01T00:00:00Z'), finished: true } as never,
+        wf as never,
+        'exec-x' as never,
+      );
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(emit).not.toHaveBeenCalled();
+    });
+
+    it('workflow.postExecute emits when the workflow has the sync tag (tags inline on workflowData)', async () => {
+      const { emit, hooks } = makeDeps({ entities: { executions: true }, filterByTag: true });
+      const wf: IWorkflowBase & { tags?: IWorkflowTag[] } = {
+        ...workflow,
+        id: 'wf-sync-exec',
+        tags: [syncTag],
+      };
+      await hooks.workflow.postExecute[0](
+        { status: 'success', mode: 'manual', startedAt: new Date('2026-05-01T00:00:00Z'), finished: true } as never,
+        wf as never,
+        'exec-y' as never,
+      );
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'execution.upsert',
+        execution: { id: 'exec-y', workflowId: 'wf-sync-exec', status: 'success' },
+      });
+    });
+
+    it('workflow.postExecute resolves tags from dbCollections.Workflow when workflowData carries no tags', async () => {
+      const { emit, hooks } = makeDeps({ entities: { executions: true }, filterByTag: true });
+      const findOne = vi.fn().mockResolvedValue({ ...workflowWithSync });
+      // workflowData carries id only, no tags array
+      const wf = { id: 'wf-sync' } as IWorkflowBase;
+
+      await hooks.workflow.postExecute[0].call(
+        { dbCollections: { Workflow: { findOne } } },
+        { status: 'success', mode: 'manual', startedAt: new Date('2026-05-01T00:00:00Z'), finished: true } as never,
+        wf as never,
+        'exec-z' as never,
+      );
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(findOne).toHaveBeenCalledWith({ where: { id: 'wf-sync' }, relations: ['tags'] });
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'execution.upsert',
+        execution: { id: 'exec-z', workflowId: 'wf-sync' },
+      });
     });
   });
 });
