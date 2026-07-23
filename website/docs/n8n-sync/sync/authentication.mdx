@@ -1,0 +1,63 @@
+---
+sidebar_label: Authentication
+sidebar_position: 2
+---
+
+# Authentication
+
+The publisher and subscriber must agree on the same auth mode. `SYNC_AUTH_MODE` (`hmac` or `token`) is read by both bundles from `src/shared/config.ts`, and the modes do **not** cross-accept: a token-mode subscriber rejects HMAC-signed requests and vice-versa.
+
+| Mode             | Headers                                | Notes                                                                                                                                                                                                            |
+| ---------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hmac` (default) | `x-sync-timestamp`, `x-sync-signature` | Per-request HMAC-SHA256 of `<timestamp>.<rawBody>` keyed with the shared secret. Replay-protected: the subscriber rejects timestamps outside a 5-minute tolerance. Every retry re-signs with a fresh timestamp. |
+| `token`          | `x-sync-token`                         | Static shared-secret bearer token. Simpler; use only over TLS.                                                                                                                                                   |
+
+## HMAC mode (recommended)
+
+The signature is `HMAC_SHA256(sharedSecret, "<timestamp>.<rawBody>")`, hex-encoded.
+
+- **`<timestamp>`** is a Unix-millisecond integer sent in `x-sync-timestamp`.
+- **`<rawBody>`** is the exact bytes sent on the wire. The publisher uses the JSON it serialized; the subscriber reads from n8n's global `rawBodyReader` (`req.rawBody`) when available, falling back to a zero-dep stream read, and finally to `JSON.stringify(req.body)`.
+- **Replay protection** — the subscriber rejects a request when the timestamp is older than `SYNC_SIGNATURE_TOLERANCE_MS` (default `300000` ms = 5 minutes) or in the future beyond a small skew. Because the timestamp is part of the signed message, replaying an old signed payload at a later time fails the freshness check.
+- **Re-signing on retry** — every delivery attempt (including retries inside `sendSyncEvent`) generates a fresh `<timestamp>.<rawBody>` pair and re-signs it. A retried request never reuses a previous signature.
+
+```bash
+# publisher
+export SYNC_AUTH_MODE=hmac
+export SYNC_SHARED_SECRET=<32+-char-random-string>
+
+# subscriber — must be identical
+export SYNC_AUTH_MODE=hmac
+export SYNC_SHARED_SECRET=<32+-char-random-string>
+```
+
+### Why raw bytes matter
+
+A JSON body that round-trips through `JSON.parse(req.body)` and `JSON.stringify(...)` is **not** byte-identical to the original in general (key reordering, whitespace). HMAC over a re-serialized body would mismatch the publisher's signature. The subscriber therefore verifies against `req.rawBody` as set by n8n's global middleware. See `src/shared/body.ts` and `src/shared/auth.ts` for the implementation.
+
+## Token mode
+
+Static shared-secret bearer. There is no signing, no replay protection, no timestamp. Use it only when the publisher → subscriber hop is over mTLS or another protected transport.
+
+```bash
+# publisher
+export SYNC_AUTH_MODE=token
+export SYNC_SHARED_SECRET=<any-shared-string>
+
+# subscriber — must be identical
+export SYNC_AUTH_MODE=token
+export SYNC_SHARED_SECRET=<any-shared-string>
+```
+
+The subscriber compares `x-sync-token` against the shared secret using a constant-time equality to avoid timing side-channels.
+
+## Gotchas
+
+- **Modes do not cross-accept.** A token-mode subscriber rejects hmac-signed requests, and an hmac-mode subscriber rejects token-bearing requests. Both sides must agree on `SYNC_AUTH_MODE`.
+- **`SYNC_SHARED_SECRET` is required** in both modes — it is the HMAC key in hmac mode and the bearer token in token mode.
+- **The subscriber still reads raw bytes in token mode.** The same body reader powers both paths; this is harmless in token mode and required for hmac mode.
+
+## Reference
+
+- [Architecture](/n8n-sync/sync/architecture/) — where authentication sits in the request pipeline.
+- [Environment variables](/n8n-sync/sync/environment/) — `SYNC_AUTH_MODE`, `SYNC_SHARED_SECRET`, `SYNC_SIGNATURE_TOLERANCE_MS`.

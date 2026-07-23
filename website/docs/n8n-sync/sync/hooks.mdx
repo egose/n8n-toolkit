@@ -1,0 +1,55 @@
+---
+sidebar_label: Wired Hooks
+sidebar_position: 1
+---
+
+# Wired Hooks
+
+`n8n-sync` only fires on a deliberately small set of n8n external hooks. Each maps to one `SyncEvent` on the wire.
+
+| Source hook                                             | Event                | Entity       |
+| ------------------------------------------------------- | -------------------- | ------------ |
+| `credentials.create` / `credentials.update`              | `credentials.upsert` | credentials  |
+| `credentials.delete`                                    | `credentials.delete` | credentials  |
+| `workflow.afterCreate` / `workflow.afterUpdate`          | `workflow.upsert`    | workflows    |
+| `workflow.activate`                                     | `workflow.activate`  | workflows    |
+| `workflow.afterDelete`                                  | `workflow.delete`    | workflows    |
+| `workflow.afterArchive` / `workflow.afterUnarchive`      | `workflow.archive`   | workflows    |
+| `workflow.postExecute` ★                                | `execution.upsert`   | executions ★ |
+
+★ `workflow.postExecute` is **opt-in** — see the [`SYNC_ENTITIES` setting](/n8n-sync/sync/environment/) below.
+
+## Hook selection rationale
+
+The goal is to mirror lifecycle state without duplicating traffic. The publisher selects hooks with these rules:
+
+- **`after*` over `pre*`** — pre-hooks like `workflow.create` / `workflow.update` / `workflow.delete` fire before commit, before the new state is durable. The subscriber would have nothing better than a guess about what actually got written. The corresponding `after*` hooks fire once the DB write has succeeded, and the payload reflects the committed row.
+- **`postExecute` only when `executions` is in `SYNC_ENTITIES`** — `workflow.preExecute` fires for every single run with no execution-summary counterpart on the subscriber, so wiring it would create a fan-out storm with nothing useful to apply. `workflow.postExecute` fires once the run reaches a terminal state and carries the scalar lifecycle columns, making it the right hook for execution sync.
+- **No `workflow.activate` deactivate path** — n8n emits an internal-only event on deactivation and no external hook. There is nothing to sync from. The target converges state on the next update or activate event. See [Limitations](/n8n-sync/sync/limitations/) for the full set of n8n-platform quirks.
+
+## Publisher never throws
+
+Every hook handler is wrapped so the publisher **never throws**. A rejecting hook propagates up to n8n — for example it can cancel a workflow activation. Sync failures are logged and swallowed; enqueue failures are logged and dropped.
+
+## `SYNC_ENTITIES` gating
+
+When an entity is **not** in `SYNC_ENTITIES`, the corresponding hook handler is **not wired at all** — the key is absent from the returned hook map, so n8n pays zero fan-out overhead.
+
+| `SYNC_ENTITIES` value            | Wired publisher hooks                                                         |
+| -------------------------------- | ----------------------------------------------------------------------------- |
+| `workflows,credentials` (default) | All workflow hooks except `postExecute`, plus all credentials hooks.         |
+| `workflows,credentials,executions` | Above, plus `workflow.postExecute`. The subscriber resolves `ExecutionRepository`. |
+| `workflows`                       | Workflow hooks only; credentials hooks are absent.                          |
+| `credentials`                     | Credentials hooks only; workflow hooks are entirely absent.                  |
+| `executions`                      | Only `workflow.postExecute` (wired under the `workflow` key).               |
+
+Unknown names are dropped. Empty `SYNC_ENTITIES` falls back to the default (`workflows,credentials`).
+
+## Filtering by tag
+
+The publisher can also restrict propagation by inspecting n8n workflow tags. See [Tag-based Filtering](/n8n-sync/sync/tag-filtering/) — the subscriber side is tag-agnostic.
+
+## Reference
+
+- [Environment variables](/n8n-sync/sync/environment/) — every `SYNC_*` setting, including `SYNC_ENTITIES`.
+- [Architecture](/n8n-sync/sync/architecture/) — the publisher / subscriber pipeline that consumes these hooks.

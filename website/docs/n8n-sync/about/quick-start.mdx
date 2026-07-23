@@ -1,0 +1,75 @@
+---
+sidebar_label: Quick Start
+sidebar_position: 1
+---
+
+# Quick Start
+
+`n8n-sync` is a deployment-style package: you build two CommonJS hook bundles, copy them to your n8n instances, and point n8n at the right file with `EXTERNAL_HOOK_FILES`. There is no `npm install` step at runtime — the bundles are fully self-contained.
+
+## 1. Build the bundles
+
+From the monorepo root:
+
+```bash
+pnpm --filter @egose/n8n-sync build
+```
+
+This produces `packages/n8n-sync/dist/publisher.cjs` and `packages/n8n-sync/dist/subscriber.cjs` via `tsup`. Each bundle is a single self-contained CJS file with no runtime dependencies.
+
+## 2. Copy the bundles to your instances
+
+```bash
+# on the source instance
+scp packages/n8n-sync/dist/publisher.cjs  source-host:/opt/n8n-sync/publisher.cjs
+
+# on each target instance
+scp packages/n8n-sync/dist/subscriber.cjs target-host:/opt/n8n-sync/subscriber.cjs
+```
+
+The exact path is up to you — `n8n-sync` does not care where the bundles live as long as `EXTERNAL_HOOK_FILES` points at them.
+
+## 3. Configure the source instance (publisher)
+
+```bash
+export EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs
+export SYNC_SUBSCRIBER_URLS=https://n8n-target-a.example.com,https://n8n-target-b.example.com
+export SYNC_SHARED_SECRET=<shared-secret>
+# optional:
+export SYNC_AUTH_MODE=hmac     # default; or "token" for static bearer
+export SYNC_SOURCE_ID=$(hostname)
+```
+
+Restart n8n on the source. From this point on, every workflow/credential lifecycle hook fans an event out to every subscriber over HTTPS.
+
+## 4. Configure each target instance (subscriber)
+
+```bash
+export EXTERNAL_HOOK_FILES=/opt/n8n-sync/subscriber.cjs
+export SYNC_SHARED_SECRET=<shared-secret>
+# optional:
+export SYNC_AUTH_MODE=hmac    # must match the publisher
+export SYNC_TARGET_PROJECT_ID=<project-id>   # link synced entities to this project
+```
+
+Restart n8n on the target. On startup the subscriber logs:
+
+```
+info: n8n-sync subscriber routes active. {"module":"subscriber"}
+```
+
+and serves an unauthenticated health probe at `GET /rest/sync/v1/health`.
+
+## 5. Verify
+
+Create or update a workflow on the source. Within seconds the same workflow should appear on the target under the same id.
+
+- The publisher writes structured JSON logs (`SYNC_SOURCE_ID`, target URL, event id, attempt count) for every delivery.
+- The subscriber writes structured logs for every applied event (upsert / delete / archive, with the source id and target project assignment).
+- Set `LOG_LEVEL=debug` on either side to see hook payloads, raw-body bytes, and HMAC computations.
+
+## Next steps
+
+- [Architecture](/n8n-sync/sync/architecture/) — how events flow and how the subscriber applies them.
+- [Authentication](/n8n-sync/sync/authentication/) — when to use HMAC vs. bearer token.
+- [Environment Variables](/n8n-sync/sync/environment/) — every tunable knob.

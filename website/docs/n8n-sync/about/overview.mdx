@@ -1,0 +1,49 @@
+---
+sidebar_label: Overview
+sidebar_position: 0
+---
+
+# Overview
+
+`@egose/n8n-sync` syncs credentials and workflows between n8n instances using [n8n external hooks](https://docs.n8n.io/deploy/host-n8n/configure-n8n/external-hooks/). It builds two self-contained CommonJS hook bundles that you deploy alongside n8n and point at via `EXTERNAL_HOOK_FILES`.
+
+| Bundle                | Role                                                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `dist/publisher.cjs`  | Runs on the **source** instance. Lifecycle hooks POST sync events to one or more subscribers over HTTPS.                     |
+| `dist/subscriber.cjs` | Runs on each **target** instance. Mounts an endpoint on n8n's own server and applies events via n8n's internal repositories. |
+
+## How it works
+
+```
+┌──────────────┐   credentials.create/update/delete      ┌──────────────┐
+│  source n8n  │   workflow.afterCreate/afterUpdate/…    │  target n8n  │
+│              │ ──────────────────────────────────────► │   (1..n)     │
+│ publisher.cjs│   POST /rest/sync/v1/events             │subscriber.cjs│
+│              │   HMAC-signed or bearer-token auth      │              │
+└──────────────┘                                         └──────────────┘
+```
+
+- **Fan-out**: the publisher delivers every event to every URL in `SYNC_SUBSCRIBER_URLS`. Each target has its own **serialized delivery queue** — events reach a given target in hook order, and a slow or unreachable target never delays the others.
+- **Fire-and-forget hooks**: deliveries run in the background and failures are retried (1s, 2s, 4s, capped at 10s) then logged, so a sync outage cannot break n8n operations. The publisher never throws.
+- The subscriber applies events **idempotently with source IDs preserved**, using the target instance's own TypeORM repositories (resolved from n8n's DI container at runtime).
+- Credential `data` is passed through **encrypted** — all instances must share the same `N8N_ENCRYPTION_KEY` so targets can decrypt secrets at runtime.
+
+## Synced entities
+
+By default `n8n-sync` keeps workflows and credentials mirrored across instances. Execution sync is opt-in because it is high-volume.
+
+| Entity       | Wired by default | Opt-in env                                          |
+| ------------ | ---------------- | --------------------------------------------------- |
+| Workflows    | yes              | `SYNC_ENTITIES` (remove `workflows` to disable)     |
+| Credentials  | yes              | `SYNC_ENTITIES` (remove `credentials` to disable)   |
+| Executions ★ | no               | `SYNC_ENTITIES=...,executions`                       |
+
+★ `workflow.postExecute` fires per execution (high volume) and the publisher handler is fire-and-forget so it never blocks n8n. Only scalar lifecycle columns are mirrored; per-step run data is dropped.
+
+## Where to go next
+
+- [Quick Start](/n8n-sync/about/quick-start/) — build the bundles and wire up source + target in under a minute.
+- [Architecture](/n8n-sync/sync/architecture/) — publisher fan-out, subscriber mounted routes, and the `SyncEvent` wire format.
+- [Wired Hooks](/n8n-sync/sync/hooks/) — the full list of n8n hooks that trigger sync events.
+- [Environment Variables](/n8n-sync/sync/environment/) — every `SYNC_*` and `N8N_*` knob.
+- [Limitations](/n8n-sync/sync/limitations/) — what sync cannot and does not try to do.

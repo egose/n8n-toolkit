@@ -1,0 +1,113 @@
+---
+sidebar_label: Architecture
+sidebar_position: 0
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Architecture
+
+`n8n-sync` is two hook bundles wired into n8n's external-hooks system. There is no server process of its own and no shared database; the publisher pushes events over HTTP and the subscriber applies them through n8n's own repositories.
+
+```
+publisher/index.ts  ── export = createPublisherHooks({ emit })
+                      emit = fan out to one createEventSender per SYNC_SUBSCRIBER_URLS entry
+                      each sender = serialized in-memory queue → sendSyncEvent
+                      (fetch POST + retry + HMAC/bearer auth, never throws)
+subscriber/index.ts ── export = createSubscriberHooks({ ready })
+                      ready: buildN8nSyncRepositories() → createApplier()
+                             → createSyncRouteHandler() → mountSyncRoutes()
+```
+
+## Publisher side
+
+- **Entry file** (`publisher/index.ts`) ends with `export = createPublisherHooks(...)`. n8n loads hook files via `require()` and expects the hook map directly (`IExternalHooksFileData`).
+- **`emit`** is a fan-out function that enqueues one event per target URL into one `createEventSender` per entry in `SYNC_SUBSCRIBER_URLS`.
+- **`createEventSender`** (`publisher/sender.ts`) maintains a per-target **serialized in-memory queue**. Events for a given target are delivered one at a time in hook order; a slow target never delays others. Hooks themselves only enqueue (fire-and-forget) so n8n stays responsive.
+- **`sendSyncEvent`** (`shared/http.ts`) performs a `fetch` POST with timeout and exponential-backoff retry (1s, 2s, 4s, capped at 10s). Every attempt re-signs the request (HMAC mode) so a retried request gets a fresh timestamp.
+
+### Wired hooks → events
+
+| n8n hook                                             | Event                |
+| ---------------------------------------------------- | -------------------- |
+| `credentials.create` / `credentials.update`          | `credentials.upsert` |
+| `credentials.delete`                                 | `credentials.delete` |
+| `workflow.afterCreate` / `workflow.afterUpdate`      | `workflow.upsert`    |
+| `workflow.activate`                                  | `workflow.activate`  |
+| `workflow.afterDelete`                               | `workflow.delete`    |
+| `workflow.afterArchive` / `workflow.afterUnarchive`  | `workflow.archive`   |
+| `workflow.postExecute` ★                             | `execution.upsert`   |
+
+★ `workflow.postExecute` is opt-in via `SYNC_ENTITIES`. See [Wired Hooks](/n8n-sync/sync/hooks/).
+
+Deliberately **not** wired: `workflow.preExecute` (fires per execution with no execution-summary counterpart on the subscriber), `workflow.create/update/delete` pre-hooks (redundant with the after-hooks).
+
+### `SYNC_ENTITIES` gating
+
+All `SYNC_ENTITIES` access lives in `src/shared/config.ts` as a `ReadonlySet<'workflows' | 'credentials' | 'executions'>`. Unknown names are dropped; when the env var is empty it defaults to `workflows,credentials` (executions are off).
+
+When an entity is disabled, the corresponding hook handler is **not wired at all** — the key is absent from the returned hook map. n8n pays zero fan-out overhead for it. For example, with the default value the publisher emits no execution events; `workflow.postExecute` is re-registered only when `executions` is in `SYNC_ENTITIES`.
+
+## Subscriber side
+
+The subscriber mounts `POST /rest/sync/v1/events` (+ `GET …/health`) on n8n's own server inside the `n8n.ready` hook, and applies events via n8n's internal repositories.
+
+- **`n8n.ready`** is the only hook the subscriber wires. It resolves n8n's DI `Container` and from it pulls the `WorkflowRepository`, `CredentialsRepository`, `ProjectRepository`, `UserRepository`, and — only when `executions` is in `SYNC_ENTITIES` — `ExecutionRepository`. Resolving DI earlier crashes; nothing in the bundle touches the container before `ready` fires.
+- **`createApplier(repos, opts)`** (`subscriber/applier.ts`) is the heart of the subscriber. It is idempotent and last-write-wins on a monotonic timestamp.
+- **`createSyncRouteHandler`** + **`mountSyncRoutes`** (`subscriber/routes.ts`) wire the HTTP entry point. The flow per request is: authenticate → validate → apply → 204 No Content.
+
+### Wire format
+
+The wire payload is the `SyncEvent` discriminated union in `src/shared/types.ts`. Inbound payloads are validated with `parseSyncEvent` (`src/shared/validate.ts`); anything that does not match the contract is rejected with a 400 before any repository write happens.
+
+### Idempotency and ordering
+
+Upserts are **last-write-wins on a monotonic timestamp** (`isStaleEvent` in `applier.ts`):
+
+| Entity      | Invariant column | Note                                                                |
+| ----------- | ----------------- | ------------------------------------------------------------------- |
+| Workflows   | `updatedAt`       | Stored row is skipped when its `updatedAt` ≥ incoming.             |
+| Credentials | `updatedAt`       | Same guard.                                                          |
+| Executions  | `stoppedAt`       | In-flight executions (`stoppedAt: null`) skip the guard so a later delivery can still converge state. |
+
+This guards out-of-order delivery and makes retry re-deliveries no-ops. Deletes and archives are applied unconditionally; a delete for an unknown id is a no-op.
+
+## Conventions
+
+- All `process.env` access lives in `src/shared/config.ts` — nowhere else in the bundle.
+- n8n payload types (`IWorkflowBase`, `ICredentialsDb`, `N8nServer`) are local minimal copies in `src/shared/types.ts`. The package must stay free of n8n dependencies.
+- The logger is the zero-dep structured JSON logger in `src/shared/logger.ts` (`createLogger(module)`).
+- The subscriber uses n8n's global `rawBodyReader` middleware, reading request bodies from `req.rawBody` when available, with a zero-dep stream read and a `JSON.stringify` body fallback. HMAC verification uses the exact raw bytes — never a re-serialized body when rawBody is available.
+
+## Before and after
+
+<Tabs>
+  <TabItem value="before" label="Manual script (signal)">
+    ```ts
+    // polling script on the target, runs every minute
+    const workflows = await fetch('https://source.example.com/api/v1/workflows', {
+      headers: { 'X-N8N-API-KEY': process.env.SOURCE_API_KEY },
+    }).then(r => r.json());
+
+    for (const wf of workflows.data) {
+      const existing = await localDb.workflow.findOne({ where: { id: wf.id } });
+      if (!existing || new Date(wf.updatedAt) > new Date(existing.updatedAt)) {
+        await localDb.workflow.save(wf);
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem value="after" label="With n8n-sync">
+    ```bash
+    # source instance
+    export EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs
+    export SYNC_SUBSCRIBER_URLS=https://target.example.com
+    export SYNC_SHARED_SECRET=<secret>
+
+    # target instance
+    export EXTERNAL_HOOK_FILES=/opt/n8n-sync/subscriber.cjs
+    export SYNC_SHARED_SECRET=<secret>
+    ```
+  </TabItem>
+</Tabs>

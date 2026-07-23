@@ -1,0 +1,53 @@
+---
+sidebar_label: Tag-based Filtering
+sidebar_position: 4
+---
+
+# Tag-based Filtering
+
+Source-side opt-in: only the **publisher** inspects tags, the subscriber remains tag-agnostic.
+
+Three env vars live in `src/shared/config.ts`:
+
+| Env var              | Default  | Purpose                                                                                                              |
+| -------------------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
+| `SYNC_FILTER_BY_TAG` | `false`  | Master switch. When false (default), all workflows/credentials pass through unchanged with no tag inspection.        |
+| `SYNC_WORKFLOW_TAG`  | `sync`   | Name of the tag a workflow must carry to be eligible for syncing.                                                    |
+| `SYNC_ACTIVE_TAG`    | `active` | When the sync tag is present, presence of this tag rewrites the DTO `active` to `true`; absence rewrites to `false`. |
+
+## Behavior when `SYNC_FILTER_BY_TAG=true`
+
+- **Sync tag missing** → the publisher emits `workflow.delete` for that workflowId (so the target removes it) instead of `workflow.upsert`/`workflow.activate`. This applies to `workflow.afterCreate`, `workflow.afterUpdate`, and `workflow.activate` hooks.
+- **Sync tag present, `active` tag missing** → DTO `active` is rewritten to `false`; the real source value is preserved in `meta.active_real`.
+- **Sync tag present, `active` tag present** → DTO `active` is rewritten to `true`; the real source value is preserved in `meta.active_real`.
+- **Execution events** (`workflow.postExecute`) are also gated by the sync tag — events for workflows that lack the sync tag are dropped (no `workflow.delete` is emitted for executions, the event is simply suppressed).
+- **Tag resolution** — the publisher prefers inline `workflowData.tags` from the hook payload; when n8n passes only a workflow id, it falls back to `dbCollections.Workflow.findOne({ where: { id }, relations: ['tags'] })`.
+
+## When `SYNC_FILTER_BY_TAG=false` (default)
+
+Workflows pass through unmodified, the `tags` field is omitted from the DTO, no `meta.active_real` is set, and no tag-resolution queries run. There is no overhead.
+
+## Asymmetry
+
+Tag filtering is a **publisher-side rewrite**, not a field that crosses the wire. The subscriber never sees or honors tag fields — it sees the post-rewrite DTO. Tagging a workflow on the source does not propagate the tag itself to the target. Preserve this asymmetry when modifying either side.
+
+## Example setup
+
+```bash
+# publisher
+export SYNC_FILTER_BY_TAG=true
+export SYNC_WORKFLOW_TAG=sync
+export SYNC_ACTIVE_TAG=active
+```
+
+With this configuration:
+
+1. A workflow tagged `sync` and `active` → synced as active on the target.
+2. A workflow tagged `sync` but not `active` → synced as inactive on the target. The DTO carries `meta.active_real` so the real source value is recoverable.
+3. A workflow without the `sync` tag → a `workflow.delete` event is sent for that id on the target (no-op if the workflow does not exist there yet).
+
+## Reference
+
+- [Architecture](/n8n-sync/sync/architecture/) — the publisher pipeline that consumes tags.
+- [Environment variables](/n8n-sync/sync/environment/) — `SYNC_FILTER_BY_TAG`, `SYNC_WORKFLOW_TAG`, `SYNC_ACTIVE_TAG`.
+- [Wired Hooks](/n8n-sync/sync/hooks/) — the hooks at which tag resolution runs.
