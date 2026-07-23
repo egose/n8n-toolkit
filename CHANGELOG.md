@@ -1,3 +1,17 @@
+## [0.11.0](https://github.com/egose/n8n-toolkit/compare/v0.10.0...v0.11.0) (2026-07-23)
+
+### Features
+
+* add security policy client docs and update resource counts ([1d22341](https://github.com/egose/n8n-toolkit/commit/1d22341799ca5d5dfcea78033d9a49aff3c1ba52))
+* **n8n-sync:** add execution sync support with entity gating ([7a34055](https://github.com/egose/n8n-toolkit/commit/7a34055228a69a2d2b5f818d8579876729b19057))
+* **n8n-sync:** add tag-based workflow filtering to publisher ([df09a7a](https://github.com/egose/n8n-toolkit/commit/df09a7afedda58b1371457056e1f3d1d791cf101))
+* **website:** update site navigation and homepage for the new documentation layout ([7f2a745](https://github.com/egose/n8n-toolkit/commit/7f2a745075692ea879aa3b59bc34be00773d716a))
+
+### Documentation
+
+* expand package and workflow api guides ([19f2315](https://github.com/egose/n8n-toolkit/commit/19f2315ecc20aa1768022002241fb6f902e18e21))
+* **website:** reorganize website docs into product-specific sections ([378685c](https://github.com/egose/n8n-toolkit/commit/378685c057ec562319c9b3b541891675e864ff6b))
+
 ## [0.10.0](https://github.com/egose/n8n-toolkit/compare/v0.9.0...v0.10.0) (2026-07-22)
 
 ### Features
