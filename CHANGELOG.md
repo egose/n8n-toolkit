@@ -1,3 +1,10 @@
+## [0.12.0](https://github.com/egose/n8n-toolkit/compare/v0.11.0...v0.12.0) (2026-07-28)
+
+### Features
+
+* improve sync event delivery and route validation ([797768b](https://github.com/egose/n8n-toolkit/commit/797768bbae9cc36d3db98306e8182a99dbaa1547))
+* reuse client instances and harden request handling ([b21b31e](https://github.com/egose/n8n-toolkit/commit/b21b31e09bffdeffd71a6b9b761db4305e623bef))
+
 ## [0.11.0](https://github.com/egose/n8n-toolkit/compare/v0.10.0...v0.11.0) (2026-07-23)
 
 ### Features
