@@ -37,6 +37,22 @@ import SecurityPolicyClient from './clients/security-policy.js';
  */
 export default class N8nClient {
   readonly #http: HttpClient;
+  readonly #workflows: WorkflowClient;
+  readonly #executions: ExecutionClient;
+  readonly #credentials: CredentialClient;
+  readonly #tags: TagClient;
+  readonly #users: UserClient;
+  readonly #variables: VariableClient;
+  readonly #projects: ProjectClient;
+  readonly #dataTables: DataTableClient;
+  readonly #communityPackages: CommunityPackageClient;
+  readonly #audit: AuditClient;
+  readonly #insights: InsightsClient;
+  readonly #sourceControl: SourceControlClient;
+  readonly #securityPolicy: SecurityPolicyClient;
+  readonly #discover: DiscoverClient;
+  readonly #n8nPackage: N8nPackageClient;
+  readonly #folders = new Map<string, FolderClient>();
 
   /**
    * Create a new client instance.
@@ -46,6 +62,21 @@ export default class N8nClient {
    */
   constructor(config: N8nClientConfig) {
     this.#http = new HttpClient(config);
+    this.#workflows = new WorkflowClient(this.#http);
+    this.#executions = new ExecutionClient(this.#http);
+    this.#credentials = new CredentialClient(this.#http);
+    this.#tags = new TagClient(this.#http);
+    this.#users = new UserClient(this.#http);
+    this.#variables = new VariableClient(this.#http);
+    this.#projects = new ProjectClient(this.#http);
+    this.#dataTables = new DataTableClient(this.#http);
+    this.#communityPackages = new CommunityPackageClient(this.#http);
+    this.#audit = new AuditClient(this.#http);
+    this.#insights = new InsightsClient(this.#http);
+    this.#sourceControl = new SourceControlClient(this.#http);
+    this.#securityPolicy = new SecurityPolicyClient(this.#http);
+    this.#discover = new DiscoverClient(this.#http);
+    this.#n8nPackage = new N8nPackageClient(this.#http);
   }
 
   /**
@@ -86,42 +117,42 @@ export default class N8nClient {
 
   /** Workflow management — list, get, create, update, delete, activate, deactivate, archive, transfer, tags, versions. */
   workflows() {
-    return new WorkflowClient(this.#http);
+    return this.#workflows;
   }
 
   /** Execution monitoring — list, get, delete, retry, stop, tags. */
   executions() {
-    return new ExecutionClient(this.#http);
+    return this.#executions;
   }
 
   /** Credential management — list, get, create, update, delete, test, transfer, schema. */
   credentials() {
-    return new CredentialClient(this.#http);
+    return this.#credentials;
   }
 
   /** Tag management — list, get, create, update, delete. */
   tags() {
-    return new TagClient(this.#http);
+    return this.#tags;
   }
 
   /** User management — list, get, create, delete, role changes. */
   users() {
-    return new UserClient(this.#http);
+    return this.#users;
   }
 
   /** Variable management — list, get (paginated search), create, update, delete. */
   variables() {
-    return new VariableClient(this.#http);
+    return this.#variables;
   }
 
   /** Project management — list, create, update, delete, members. No `get(id)` — use `list()` to find projects. */
   projects() {
-    return new ProjectClient(this.#http);
+    return this.#projects;
   }
 
   /** Data table management — list, get, create, update, delete, rows, columns. */
   dataTables() {
-    return new DataTableClient(this.#http);
+    return this.#dataTables;
   }
 
   /**
@@ -134,42 +165,48 @@ export default class N8nClient {
    * ```
    */
   folders(projectId: string) {
-    return new FolderClient(this.#http, projectId);
+    let folders = this.#folders.get(projectId);
+    if (!folders) {
+      folders = new FolderClient(this.#http, projectId);
+      this.#folders.set(projectId, folders);
+    }
+
+    return folders;
   }
 
   /** Community package management — list, install, update, uninstall. */
   communityPackages() {
-    return new CommunityPackageClient(this.#http);
+    return this.#communityPackages;
   }
 
   /** Audit report generation (singleton — no `list`/`get`). */
   audit() {
-    return new AuditClient(this.#http);
+    return this.#audit;
   }
 
   /** Execution insights summary (singleton — no `list`/`get`). */
   insights() {
-    return new InsightsClient(this.#http);
+    return this.#insights;
   }
 
   /** Source control operations — pull, list files (singleton). */
   sourceControl() {
-    return new SourceControlClient(this.#http);
+    return this.#sourceControl;
   }
 
   /** Security policy settings (singleton). */
   securityPolicy() {
-    return new SecurityPolicyClient(this.#http);
+    return this.#securityPolicy;
   }
 
   /** Resource discovery — list available API resources, operations, and filters (singleton). */
   discover() {
-    return new DiscoverClient(this.#http);
+    return this.#discover;
   }
 
   /** n8n package import/export — export workflows as gzipped packages, import packages (singleton). */
   n8nPackage() {
-    return new N8nPackageClient(this.#http);
+    return this.#n8nPackage;
   }
 }
 

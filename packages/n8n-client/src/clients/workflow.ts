@@ -27,6 +27,8 @@ import {
 } from '../response-mappers.js';
 
 export default class WorkflowClient extends BaseClient {
+  private readonly executions = new ExecutionClient(this.http);
+
   async list(params?: WorkflowListParams): Promise<WorkflowListResponse> {
     return normalizeWorkflowListResponse(await this.http.get<WorkflowListResponse>('/workflows', params));
   }
@@ -36,14 +38,14 @@ export default class WorkflowClient extends BaseClient {
   }
 
   async getResource(id: string, params?: WorkflowGetParams): Promise<WorkflowResource> {
-    return new WorkflowResource(this, new ExecutionClient(this.http), await this.get(id, params));
+    return new WorkflowResource(this, this.executions, await this.get(id, params));
   }
 
   async listResources(params?: WorkflowListParams): Promise<PaginatedResponse<WorkflowResource>> {
     const response = await this.list(params);
 
     return {
-      data: response.data.map((workflow) => new WorkflowResource(this, new ExecutionClient(this.http), workflow)),
+      data: response.data.map((workflow) => new WorkflowResource(this, this.executions, workflow)),
       nextCursor: response.nextCursor,
     };
   }
@@ -53,7 +55,7 @@ export default class WorkflowClient extends BaseClient {
   }
 
   async createResource(data: WorkflowCreate): Promise<WorkflowResource> {
-    return new WorkflowResource(this, new ExecutionClient(this.http), await this.create(data));
+    return new WorkflowResource(this, this.executions, await this.create(data));
   }
 
   async update(id: string, data: WorkflowUpdate): Promise<Workflow> {
@@ -61,7 +63,7 @@ export default class WorkflowClient extends BaseClient {
   }
 
   async updateResource(id: string, data: WorkflowUpdate): Promise<WorkflowResource> {
-    return new WorkflowResource(this, new ExecutionClient(this.http), await this.update(id, data));
+    return new WorkflowResource(this, this.executions, await this.update(id, data));
   }
 
   async delete(id: string): Promise<Workflow> {

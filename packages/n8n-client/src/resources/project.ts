@@ -178,54 +178,22 @@ export default class ProjectResource extends BaseResource<Project | ProjectListI
         return response;
       },
       get: async (id) => {
-        if (
-          !(await this.hasResourceInProject({
-            listPage: (cursor) => this.relations.workflows.list({ projectId: this.id, cursor }),
-            matches: (workflow) => workflow.id === id,
-          }))
-        ) {
-          throw new HttpError(404, `Workflow not found in project: ${id}`, { id, projectId: this.id });
-        }
-
+        await this.assertWorkflowInProject(id);
         return this.relations.workflows.get(id);
       },
       getResource: async (id) => {
-        if (
-          !(await this.hasResourceInProject({
-            listPage: (cursor) => this.relations.workflows.list({ projectId: this.id, cursor }),
-            matches: (workflow) => workflow.id === id,
-          }))
-        ) {
-          throw new HttpError(404, `Workflow not found in project: ${id}`, { id, projectId: this.id });
-        }
-
+        await this.assertWorkflowInProject(id);
         return this.relations.workflows.getResource(id);
       },
       createResource: (data) => this.relations.workflows.createResource({ ...data, projectId: this.id }),
       create: (data) => this.relations.workflows.create({ ...data, projectId: this.id }),
       update: async (id, data) => {
-        if (
-          !(await this.hasResourceInProject({
-            listPage: (cursor) => this.relations.workflows.list({ projectId: this.id, cursor }),
-            matches: (workflow) => workflow.id === id,
-          }))
-        ) {
-          throw new HttpError(404, `Workflow not found in project: ${id}`, { id, projectId: this.id });
-        }
-
+        await this.assertWorkflowInProject(id);
         return this.relations.workflows.update(id, data);
       },
       patch: async (id, data) => (await this.workflows().patchResource(id, data)).data,
       updateResource: async (id, data) => {
-        if (
-          !(await this.hasResourceInProject({
-            listPage: (cursor) => this.relations.workflows.list({ projectId: this.id, cursor }),
-            matches: (workflow) => workflow.id === id,
-          }))
-        ) {
-          throw new HttpError(404, `Workflow not found in project: ${id}`, { id, projectId: this.id });
-        }
-
+        await this.assertWorkflowInProject(id);
         return this.relations.workflows.updateResource(id, data);
       },
       patchResource: async (id, data) => {
@@ -273,7 +241,10 @@ export default class ProjectResource extends BaseResource<Project | ProjectListI
         const variable = await this.relations.variables.getResource(id, { projectId: this.id });
         return variable.patch(data);
       },
-      delete: (id) => this.relations.variables.delete(id),
+      delete: async (id) => {
+        await this.relations.variables.get(id, { projectId: this.id });
+        await this.relations.variables.delete(id);
+      },
     };
   }
 
@@ -309,27 +280,11 @@ export default class ProjectResource extends BaseResource<Project | ProjectListI
       list: (params) => this.relations.executions.list({ ...params, projectId: this.id }),
       listResources: (params) => this.relations.executions.listResources({ ...params, projectId: this.id }),
       get: async (id, params) => {
-        if (
-          !(await this.hasResourceInProject({
-            listPage: (cursor) => this.relations.executions.list({ projectId: this.id, cursor }),
-            matches: (execution) => execution.id === id,
-          }))
-        ) {
-          throw new HttpError(404, `Execution not found in project: ${id}`, { id, projectId: this.id });
-        }
-
+        await this.assertExecutionInProject(id);
         return this.relations.executions.get(id, params);
       },
       getResource: async (id, params) => {
-        if (
-          !(await this.hasResourceInProject({
-            listPage: (cursor) => this.relations.executions.list({ projectId: this.id, cursor }),
-            matches: (execution) => execution.id === id,
-          }))
-        ) {
-          throw new HttpError(404, `Execution not found in project: ${id}`, { id, projectId: this.id });
-        }
-
+        await this.assertExecutionInProject(id);
         return this.relations.executions.getResource(id, params);
       },
     };
@@ -342,6 +297,40 @@ export default class ProjectResource extends BaseResource<Project | ProjectListI
     }
 
     return dataTable;
+  }
+
+  private async assertWorkflowInProject(id: string): Promise<void> {
+    await this.assertResourceInProject({
+      id,
+      resourceName: 'Workflow',
+      listPage: (cursor) => this.relations.workflows.list({ projectId: this.id, cursor }),
+      matches: (workflow) => workflow.id === id,
+    });
+  }
+
+  private async assertExecutionInProject(id: number): Promise<void> {
+    await this.assertResourceInProject({
+      id,
+      resourceName: 'Execution',
+      listPage: (cursor) => this.relations.executions.list({ projectId: this.id, cursor }),
+      matches: (execution) => execution.id === id,
+    });
+  }
+
+  private async assertResourceInProject<T>(options: {
+    id: string | number;
+    resourceName: string;
+    listPage: (cursor?: string) => Promise<{ data: T[]; nextCursor: string | null }>;
+    matches: (resource: T) => boolean;
+  }): Promise<void> {
+    if (await this.hasResourceInProject(options)) {
+      return;
+    }
+
+    throw new HttpError(404, `${options.resourceName} not found in project: ${options.id}`, {
+      id: options.id,
+      projectId: this.id,
+    });
   }
 
   private async hasResourceInProject<T>(options: {

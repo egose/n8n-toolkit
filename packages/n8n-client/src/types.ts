@@ -27,6 +27,8 @@ export type JsonArray = JsonValue[];
 export type N8nClientConfig = {
   /** Base URL of the n8n instance (e.g. `http://localhost:5678`). */
   baseUrl: string;
+  /** Default per-request timeout in milliseconds. Defaults to `30000`. */
+  requestTimeoutMs?: number;
 } & (
   | {
       /** n8n API key — sent as `X-N8N-API-KEY` header. Mutually exclusive with `bearerToken`. */

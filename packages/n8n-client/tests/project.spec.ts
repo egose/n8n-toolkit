@@ -600,10 +600,31 @@ describe('Implementation Consistency: Project', () => {
     await resource.variables().patch('v-1', { value: 'two' });
     const patchedResource = await resource.variables().patchResource('v-1', { value: 'three' });
 
-    expect(http.put).toHaveBeenNthCalledWith(1, '/variables/v-1', { value: 'two' });
-    expect(http.put).toHaveBeenNthCalledWith(2, '/variables/v-1', { value: 'three' });
+    expect(http.put).toHaveBeenNthCalledWith(1, '/variables/v-1', { value: 'two', projectId: 'p-1' });
+    expect(http.put).toHaveBeenNthCalledWith(2, '/variables/v-1', { value: 'three', projectId: 'p-1' });
     expect(patchedResource).toBeInstanceOf(VariableResource);
     expect(patchedResource.value).toBe('three');
+  });
+
+  test('project resource variable delete verifies project scope before deleting', async () => {
+    const http = createMockHttpClient([
+      { body: { data: [{ id: 'v-1', key: 'FIRST', value: 'one' }], nextCursor: undefined } },
+      { body: undefined },
+    ]);
+    const resource = new ProjectResource(
+      new ProjectClient(http),
+      new WorkflowClient(http),
+      new FolderClient(http, 'p-1'),
+      new VariableClient(http),
+      new DataTableClient(http),
+      new ExecutionClient(http),
+      projectListItem(),
+    );
+
+    await resource.variables().delete('v-1');
+
+    expect(http.get).toHaveBeenCalledWith('/variables', { projectId: 'p-1', cursor: undefined });
+    expect(http.delete).toHaveBeenCalledWith('/variables/v-1');
   });
 
   test('project resource data table creation injects projectId', async () => {

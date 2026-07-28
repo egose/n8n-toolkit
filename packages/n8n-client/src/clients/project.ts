@@ -25,6 +25,12 @@ import {
 } from '../response-mappers.js';
 
 export default class ProjectClient extends BaseClient {
+  private readonly workflowsClient = new WorkflowClient(this.http);
+  private readonly variablesClient = new VariableClient(this.http);
+  private readonly dataTablesClient = new DataTableClient(this.http);
+  private readonly executionsClient = new ExecutionClient(this.http);
+  private readonly folderClients = new Map<string, FolderClient>();
+
   async list(params?: PaginationParams): Promise<ProjectListResponse> {
     return normalizeProjectListResponse(await this.http.get<ProjectListResponse>('/projects', params));
   }
@@ -96,13 +102,23 @@ export default class ProjectClient extends BaseClient {
   private bindResource(project: Project | ProjectSummary): ProjectResource {
     return new ProjectResource(
       this,
-      new WorkflowClient(this.http),
-      new FolderClient(this.http, project.id),
-      new VariableClient(this.http),
-      new DataTableClient(this.http),
-      new ExecutionClient(this.http),
+      this.workflowsClient,
+      this.folderClient(project.id),
+      this.variablesClient,
+      this.dataTablesClient,
+      this.executionsClient,
       project,
     );
+  }
+
+  private folderClient(projectId: string): FolderClient {
+    let client = this.folderClients.get(projectId);
+    if (!client) {
+      client = new FolderClient(this.http, projectId);
+      this.folderClients.set(projectId, client);
+    }
+
+    return client;
   }
 
   private async findProject(id: string): Promise<ProjectSummary | undefined> {

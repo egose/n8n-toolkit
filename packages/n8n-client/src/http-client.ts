@@ -19,12 +19,16 @@ export interface RequestOptions {
   body?: unknown;
   query?: object;
   headers?: Record<string, string>;
+  timeoutMs?: number;
+  /** Override the default retry policy. By default only idempotent reads retry. */
+  retry?: boolean;
 }
 
 export class HttpClient {
   private baseUrl: string;
   private apiKey?: string;
   private bearerToken?: string;
+  private requestTimeoutMs: number;
 
   constructor(config: N8nClientConfig) {
     if (!config.apiKey && !config.bearerToken) {
@@ -38,6 +42,12 @@ export class HttpClient {
     this.baseUrl = config.baseUrl.replace(/\/+$/, '');
     this.apiKey = config.apiKey;
     this.bearerToken = config.bearerToken;
+    this.requestTimeoutMs = config.requestTimeoutMs ?? 30_000;
+  }
+
+  private isRetryableByDefault(method: string): boolean {
+    const normalizedMethod = method.toUpperCase();
+    return normalizedMethod === 'GET' || normalizedMethod === 'HEAD' || normalizedMethod === 'OPTIONS';
   }
 
   private buildHeaders(): Record<string, string> {
@@ -92,28 +102,40 @@ export class HttpClient {
       ...extraHeaders,
     };
 
-    const response = await retryTransientError(async () => {
+    const timeoutMs = options.timeoutMs ?? this.requestTimeoutMs;
+    const shouldRetry = options.retry ?? this.isRetryableByDefault(method);
+
+    const requestOnce = async () => {
       const init: RequestInit = { method, headers };
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      init.signal = controller.signal;
 
-      if (body !== undefined && method !== 'GET') {
-        if (body instanceof FormData) {
-          init.body = body;
-          delete headers['Content-Type'];
-        } else {
-          init.body = JSON.stringify(body);
+      try {
+        if (body !== undefined && method !== 'GET') {
+          if (body instanceof FormData) {
+            init.body = body;
+            delete headers['Content-Type'];
+          } else {
+            init.body = JSON.stringify(body);
+          }
         }
+
+        const response = await fetch(url, init);
+
+        if (!response.ok && response.status !== 204) {
+          const data = await this.parseResponseData(response);
+          const message = (data as { message?: string })?.message || `HTTP ${response.status}`;
+          throw new HttpError(response.status, message, data);
+        }
+
+        return response;
+      } finally {
+        clearTimeout(timeout);
       }
+    };
 
-      const response = await fetch(url, init);
-
-      if (!response.ok && response.status !== 204) {
-        const data = await this.parseResponseData(response);
-        const message = (data as { message?: string })?.message || `HTTP ${response.status}`;
-        throw new HttpError(response.status, message, data);
-      }
-
-      return response;
-    });
+    const response = shouldRetry ? await retryTransientError(requestOnce) : await requestOnce();
 
     if (response.status === 204) {
       return undefined as T;

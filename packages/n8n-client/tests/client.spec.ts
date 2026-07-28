@@ -44,6 +44,15 @@ describe('N8nClient', () => {
     expect(client.n8nPackage()).toBeDefined();
   });
 
+  test('reuses stateless client accessors and project-scoped folder clients', () => {
+    const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
+
+    expect(client.workflows()).toBe(client.workflows());
+    expect(client.projects()).toBe(client.projects());
+    expect(client.folders('proj-1')).toBe(client.folders('proj-1'));
+    expect(client.folders('proj-1')).not.toBe(client.folders('proj-2'));
+  });
+
   test('exposes low-level request helpers without exposing the transport object', async () => {
     const requestSpy = vi.spyOn(HttpClient.prototype, 'get').mockResolvedValue({ data: [] });
     const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
@@ -59,6 +68,7 @@ describe('N8nClient', () => {
 
 describe('HttpClient', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -93,5 +103,48 @@ describe('HttpClient', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(result).toEqual({ data: [] });
+  });
+
+  test('does not retry transient failures for unsafe methods by default', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: 'Slow down' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const client = new HttpClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
+
+    await expect(client.post('/workflows', { name: 'Created once' })).rejects.toMatchObject({ status: 429 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('aborts hung requests after the configured timeout', async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          reject(Object.assign(new Error('This operation was aborted'), { name: 'AbortError' }));
+        });
+      });
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const client = new HttpClient({
+      baseUrl: 'http://localhost:5678',
+      apiKey: 'test-key', // pragma: allowlist secret
+      requestTimeoutMs: 50,
+    });
+
+    const request = client.request({ method: 'GET', path: '/workflows', retry: false });
+    const assertion = expect(request).rejects.toMatchObject({ name: 'AbortError' });
+    await vi.advanceTimersByTimeAsync(50);
+
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

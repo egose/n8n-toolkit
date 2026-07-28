@@ -5,6 +5,10 @@ function isTransientError(error: unknown): boolean {
     return RETRYABLE_STATUS_CODES.has((error as { status: number }).status);
   }
 
+  if (error instanceof Error && error.name === 'AbortError') {
+    return true;
+  }
+
   if (error instanceof TypeError && error.message.includes('fetch')) {
     return true;
   }
