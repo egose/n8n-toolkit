@@ -362,6 +362,27 @@ describe('createApplier', () => {
         role: 'workflow:owner',
       });
     });
+
+    it('retries owner fallback resolution after a transient error', async () => {
+      const repos = makeRepos();
+      repos.user.findOne
+        .mockRejectedValueOnce(new Error('temporary db error'))
+        .mockResolvedValueOnce({ id: 'owner-1' });
+      repos.project.getPersonalProjectForUser.mockResolvedValueOnce({ id: 'personal-proj-1' });
+      const apply = createApplier(repos, { log });
+
+      await apply({ type: 'workflow.upsert', at: '', sourceId: 's', workflow });
+      repos.credentials.findOneBy.mockResolvedValue(null);
+      await apply({ type: 'credentials.upsert', at: '', sourceId: 's', credential });
+
+      expect(repos.user.findOne).toHaveBeenCalledTimes(2);
+      expect(repos.sharedWorkflow.save).not.toHaveBeenCalled();
+      expect(repos.sharedCredentials.save).toHaveBeenCalledWith({
+        credentialsId: 'cred-1',
+        projectId: 'personal-proj-1',
+        role: 'credential:owner',
+      });
+    });
   });
 
   describe('execution.upsert', () => {

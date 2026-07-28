@@ -12,15 +12,15 @@ export default class VariableResource extends BaseResource<Variable> {
   }
 
   get id(): string {
-    return this.data.id;
+    return this.snapshot.id;
   }
 
   get key(): string {
-    return this.data.key;
+    return this.snapshot.key;
   }
 
   get value(): string {
-    return this.data.value;
+    return this.snapshot.value;
   }
 
   async refresh(): Promise<this> {
@@ -28,13 +28,15 @@ export default class VariableResource extends BaseResource<Variable> {
   }
 
   async update(data: VariableUpdate): Promise<this> {
-    await this.variables.update(this.id, data);
-    return this.mergeSnapshot(data);
+    const scopedData = this.params?.projectId !== undefined ? { ...data, projectId: this.params.projectId } : data;
+    await this.variables.update(this.id, scopedData);
+    const { projectId: _projectId, ...snapshotPatch } = scopedData;
+    void _projectId;
+    return this.mergeSnapshot(snapshotPatch);
   }
 
   async patch(data: VariableUpdate): Promise<this> {
-    await this.variables.update(this.id, data);
-    return this.mergeSnapshot(data);
+    return this.update(data);
   }
 
   async delete(): Promise<void> {

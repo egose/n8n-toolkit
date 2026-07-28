@@ -6,6 +6,7 @@ import {
   SYNC_ENTITIES,
   SYNC_EVENTS_PATH,
   SYNC_FILTER_BY_TAG,
+  SYNC_MAX_QUEUE_SIZE,
   SYNC_MAX_RETRIES,
   SYNC_SHARED_SECRET,
   SYNC_SOURCE_ID,
@@ -33,6 +34,7 @@ function createHookConfig() {
       authMode: SYNC_AUTH_MODE,
       timeoutMs: SYNC_TIMEOUT_MS,
       maxRetries: SYNC_MAX_RETRIES,
+      maxQueueSize: SYNC_MAX_QUEUE_SIZE,
       log,
     }),
   );
@@ -70,6 +72,7 @@ function createHookConfig() {
     sourceId,
     authMode: SYNC_AUTH_MODE,
     targets: senders.length ? SYNC_SUBSCRIBER_URLS : '(disabled)',
+    maxQueueSize: SYNC_MAX_QUEUE_SIZE,
     entities,
     ...tagFilter,
   });

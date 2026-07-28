@@ -185,6 +185,17 @@ describe('createSyncRouteHandler (token mode)', () => {
     expect(res.status).toHaveBeenCalledWith(401);
     expect(apply).not.toHaveBeenCalled();
   });
+
+  it('rejects an invalid bearer token before attempting to parse the body', async () => {
+    const apply = vi.fn();
+    const handler = createSyncRouteHandler({ secret: SECRET, apply, log, authMode: 'token' });
+    const res = makeRes();
+
+    await handler(makeRawReq('{invalid', { 'x-sync-token': 'wrong-token' }) as never, res as never);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(apply).not.toHaveBeenCalled();
+  });
 });
 
 describe('mountSyncRoutes', () => {

@@ -107,8 +107,9 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
         where: { id: workflowOrId.id },
         relations: ['tags'],
       });
-      // Fall back to the in-memory hook payload when the DB lookup fails; the
-      // tag filter just won't apply (event will be published).
+      // Fall back to the in-memory hook payload when the DB lookup fails. In
+      // filtered mode this leaves tags unresolved, and the caller will skip
+      // emitting rather than risk an unintended delete.
       return withTags ?? workflowOrId;
     }
     const workflow = await this.dbCollections?.Workflow?.findOne({
@@ -122,14 +123,17 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
     return Array.isArray(tags) && tags.some((tag) => tag?.name === tagName);
   }
 
+  type WorkflowSyncDecision = 'emit' | 'delete' | 'skip';
+
   /**
-   * Decide whether a workflow is eligible for sync. When the tag filter is
-   * disabled, every workflow passes. When enabled, the workflow must carry
-   * {@link syncWorkflowTag}.
+   * Decide whether a workflow should be emitted, deleted, or skipped. When
+   * the tag filter is enabled but tags are unresolved, the publisher skips
+   * the event rather than treating an unknown tag state as a delete.
    */
-  function shouldSyncWorkflow(workflow: { tags?: IWorkflowTag[] }): boolean {
-    if (!filterByTag) return true;
-    return workflowHasTag(workflow.tags, syncWorkflowTag);
+  function shouldSyncWorkflow(workflow: { tags?: IWorkflowTag[] }): WorkflowSyncDecision {
+    if (!filterByTag) return 'emit';
+    if (workflow.tags === undefined) return 'skip';
+    return workflowHasTag(workflow.tags, syncWorkflowTag) ? 'emit' : 'delete';
   }
 
   /**
@@ -209,7 +213,11 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
    * is a documented no-op on the subscriber side).
    */
   const emitWorkflowUpsert = async (workflow: IWorkflowBase & { tags?: IWorkflowTag[] }) => {
-    if (!shouldSyncWorkflow(workflow)) {
+    const decision = shouldSyncWorkflow(workflow);
+    if (decision === 'skip') {
+      return;
+    }
+    if (decision === 'delete') {
       await deps.emit(envelope({ type: 'workflow.delete', workflowId: workflow.id }));
       return;
     }
@@ -222,7 +230,11 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
    * can't keep a stale active copy around.
    */
   const emitWorkflowActivate = async (workflow: IWorkflowBase & { tags?: IWorkflowTag[] }) => {
-    if (!shouldSyncWorkflow(workflow)) {
+    const decision = shouldSyncWorkflow(workflow);
+    if (decision === 'skip') {
+      return;
+    }
+    if (decision === 'delete') {
       await deps.emit(envelope({ type: 'workflow.delete', workflowId: workflow.id }));
       return;
     }

@@ -1,12 +1,18 @@
 export default abstract class BaseResource<TData> {
-  constructor(private snapshot: TData) {}
+  constructor(private currentSnapshot: TData) {
+    this.currentSnapshot = this.clone(currentSnapshot);
+  }
+
+  protected get snapshot(): TData {
+    return this.currentSnapshot;
+  }
 
   get data(): TData {
-    return this.snapshot;
+    return this.clone(this.currentSnapshot);
   }
 
   toObject(): TData {
-    return this.snapshot;
+    return this.clone(this.currentSnapshot);
   }
 
   toJSON(): TData {
@@ -14,12 +20,16 @@ export default abstract class BaseResource<TData> {
   }
 
   protected replaceSnapshot(data: TData): this {
-    this.snapshot = data;
+    this.currentSnapshot = this.clone(data);
     return this;
   }
 
   protected mergeSnapshot(data: Partial<TData>): this {
-    this.snapshot = { ...this.snapshot, ...data };
+    this.currentSnapshot = this.clone({ ...this.currentSnapshot, ...data });
     return this;
+  }
+
+  private clone<TValue>(value: TValue): TValue {
+    return structuredClone(value);
   }
 }

@@ -32,6 +32,12 @@ describe('readJsonBody', () => {
     expect(result.raw).toBe('{"hello":"world"}');
   });
 
+  it('enforces the size limit for an already-parsed body fallback', async () => {
+    await expect(readJsonBody(streamReq([], { body: { payload: 'x'.repeat(2048) } }), 1024)).rejects.toMatchObject({
+      statusCode: 413,
+    });
+  });
+
   it('collects the raw stream and parses JSON', async () => {
     await expect(readJsonBody(streamReq(['{"a":', '1, "b": [2, 3]}']), 1024)).resolves.toEqual({
       raw: '{"a":1, "b": [2, 3]}',

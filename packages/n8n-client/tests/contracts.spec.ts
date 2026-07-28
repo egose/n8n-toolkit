@@ -752,4 +752,44 @@ describe('Public API contracts', () => {
     expectTypeOf(workflow.toObject()).toEqualTypeOf<Workflow>();
     expectTypeOf(workflow.toJSON()).toEqualTypeOf<Workflow>();
   });
+
+  test('resource snapshots are isolated from caller mutation', () => {
+    const source: Workflow = {
+      id: 'wf-1',
+      name: 'Workflow',
+      description: null,
+      active: false,
+      createdAt: '',
+      updatedAt: '',
+      isArchived: false,
+      versionId: 'v1',
+      triggerCount: 0,
+      nodes: [],
+      connections: {},
+      settings: {},
+      staticData: null,
+      pinData: null,
+      meta: null,
+      nodeGroups: [],
+      activeVersionId: null,
+      versionCounter: null,
+      sourceWorkflowId: null,
+      tags: [],
+      shared: [],
+      parentFolder: null,
+      activeVersion: null,
+    };
+    const workflow = new WorkflowResource(
+      new WorkflowClient(createMockHttpClient()),
+      new ExecutionClient(createMockHttpClient()),
+      source,
+    );
+
+    source.name = 'Mutated outside';
+    const cloned = workflow.toObject();
+    cloned.name = 'Mutated clone';
+
+    expect(workflow.name).toBe('Workflow');
+    expect(workflow.data.name).toBe('Workflow');
+  });
 });

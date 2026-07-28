@@ -16,7 +16,7 @@ function makeEvent(id: string): SyncEvent {
   return { type: 'workflow.delete', at: '2026-01-01T00:00:00.000Z', sourceId: 'src', workflowId: id };
 }
 
-function makeSenderOptions(fetchImpl: typeof fetch) {
+function makeSenderOptions(fetchImpl: typeof fetch, overrides: Partial<{ maxQueueSize: number }> = {}) {
   return {
     baseUrl: 'https://target.example.com',
     eventsPath: '/rest/sync/v1/events',
@@ -24,6 +24,7 @@ function makeSenderOptions(fetchImpl: typeof fetch) {
     authMode: 'hmac' as const,
     timeoutMs: 1000,
     maxRetries: 1,
+    maxQueueSize: overrides.maxQueueSize,
     log,
     fetchImpl,
     sleep: vi.fn().mockResolvedValue(undefined) as (ms: number) => Promise<void>,
@@ -95,6 +96,73 @@ describe('createEventSender', () => {
 
     expect(delivered).toEqual(['wf-2']);
     expect(log.error).toHaveBeenCalled();
+  });
+
+  it('coalesces queued events for the same resource key', async () => {
+    const delivered: string[] = [];
+    let releaseFirst!: () => void;
+    const firstDelivery = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+
+    const fetchImpl = vi.fn().mockImplementation(((_url: string, init: RequestInit) => {
+      const id = JSON.parse(init.body as string).workflowId as string;
+      return id === 'wf-1'
+        ? firstDelivery.then(() => {
+            delivered.push(id);
+            return { ok: true, status: 200 };
+          })
+        : Promise.resolve().then(() => {
+            delivered.push(id);
+            return { ok: true, status: 200 };
+          });
+    }) as unknown as typeof fetch);
+
+    const sender = createEventSender(makeSenderOptions(fetchImpl));
+
+    sender.send(makeEvent('wf-1'));
+    sender.send(makeEvent('wf-2'));
+    sender.send(makeEvent('wf-2'));
+
+    releaseFirst();
+    await sender.drain();
+
+    expect(delivered).toEqual(['wf-1', 'wf-2']);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('drops the oldest queued event when the queue reaches its size limit', async () => {
+    const delivered: string[] = [];
+    let releaseFirst!: () => void;
+    const firstDelivery = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+
+    const fetchImpl = vi.fn().mockImplementation(((_url: string, init: RequestInit) => {
+      const id = JSON.parse(init.body as string).workflowId as string;
+      return id === 'wf-1'
+        ? firstDelivery.then(() => {
+            delivered.push(id);
+            return { ok: true, status: 200 };
+          })
+        : Promise.resolve().then(() => {
+            delivered.push(id);
+            return { ok: true, status: 200 };
+          });
+    }) as unknown as typeof fetch);
+
+    const sender = createEventSender(makeSenderOptions(fetchImpl, { maxQueueSize: 2 }));
+
+    sender.send(makeEvent('wf-1'));
+    sender.send(makeEvent('wf-2'));
+    sender.send(makeEvent('wf-3'));
+    sender.send(makeEvent('wf-4'));
+
+    releaseFirst();
+    await sender.drain();
+
+    expect(delivered).toEqual(['wf-1', 'wf-3', 'wf-4']);
+    expect(log.warn).toHaveBeenCalled();
   });
 
   it('drain() resolves immediately when the queue is empty', async () => {

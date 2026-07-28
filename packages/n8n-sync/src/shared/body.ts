@@ -36,14 +36,18 @@ export interface JsonBody {
 export async function readJsonBody(req: BodyCarrier, maxBytes: number): Promise<JsonBody> {
   if (req.rawBody !== undefined) {
     const raw = Buffer.isBuffer(req.rawBody) ? req.rawBody.toString('utf8') : req.rawBody;
-    if (raw.length > maxBytes) {
+    if (Buffer.byteLength(raw, 'utf8') > maxBytes) {
       throw new BodyParseError('Request body too large', 413);
     }
     return { raw, parsed: parse(raw) };
   }
 
   if (req.body !== undefined && req.body !== null) {
-    return { raw: JSON.stringify(req.body), parsed: req.body };
+    const raw = JSON.stringify(req.body);
+    if (Buffer.byteLength(raw, 'utf8') > maxBytes) {
+      throw new BodyParseError('Request body too large', 413);
+    }
+    return { raw, parsed: req.body };
   }
 
   const chunks: Buffer[] = [];
