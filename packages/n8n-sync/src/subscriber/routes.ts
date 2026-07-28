@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from 'express';
 
-import { verifyRequest, type SyncAuthMode } from '../shared/auth';
+import { verifyRequest, verifyRequestToken, type SyncAuthMode } from '../shared/auth';
 import { BodyParseError, readJsonBody } from '../shared/body';
 import { SYNC_MAX_BODY_BYTES, SYNC_SIGNATURE_TOLERANCE_MS } from '../shared/config';
 import { logError, type Logger } from '../shared/logger';
@@ -29,6 +29,11 @@ export function createSyncRouteHandler(deps: SyncRouteHandlerDeps) {
   const signatureToleranceMs = deps.signatureToleranceMs ?? SYNC_SIGNATURE_TOLERANCE_MS;
 
   return async function syncEventsHandler(req: Request, res: Response): Promise<void> {
+    if (authMode === 'token' && !verifyRequestToken(req, deps.secret)) {
+      res.status(401).json({ error: 'unauthorized' });
+      return;
+    }
+
     let raw: string;
     let payload: unknown;
     try {
@@ -39,7 +44,7 @@ export function createSyncRouteHandler(deps: SyncRouteHandlerDeps) {
       return;
     }
 
-    if (!verifyRequest(req, deps.secret, raw, authMode, signatureToleranceMs)) {
+    if (authMode === 'hmac' && !verifyRequest(req, deps.secret, raw, authMode, signatureToleranceMs)) {
       res.status(401).json({ error: 'unauthorized' });
       return;
     }

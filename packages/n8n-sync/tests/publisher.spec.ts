@@ -385,6 +385,19 @@ describe('createPublisherHooks', () => {
       expect(emit).not.toHaveBeenCalled();
     });
 
+    it('skips an unresolved workflow payload rather than emitting workflow.delete', async () => {
+      const { emit, hooks } = makeDeps({ filterByTag: true });
+      const findOne = vi.fn().mockResolvedValue(null);
+
+      await hooks.workflow.afterUpdate[0].call({ dbCollections: { Workflow: { findOne } } }, {
+        ...workflow,
+        id: 'wf-unknown-tags',
+      } as never);
+
+      expect(findOne).toHaveBeenCalledWith({ where: { id: 'wf-unknown-tags' }, relations: ['tags'] });
+      expect(emit).not.toHaveBeenCalled();
+    });
+
     it('workflow.postExecute drops the execution when the workflow lacks the sync tag', async () => {
       const { emit, hooks } = makeDeps({ entities: { executions: true }, filterByTag: true });
       // workflowData carries tags inline — no DB lookup needed

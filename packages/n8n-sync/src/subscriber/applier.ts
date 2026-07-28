@@ -98,7 +98,6 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
       log.warn('Owner fallback: failed to resolve personal project', {
         error: error instanceof Error ? error.message : String(error),
       });
-      cachedFallbackProjectId = null;
       return undefined;
     }
   }

@@ -11,6 +11,7 @@ export interface EventSenderOptions {
   authMode: SyncAuthMode;
   timeoutMs: number;
   maxRetries: number;
+  maxQueueSize?: number;
   log: Logger;
   /** Injectable for tests. */
   fetchImpl?: typeof fetch;
@@ -36,7 +37,10 @@ export interface EventSender {
  */
 export function createEventSender(options: EventSenderOptions): EventSender {
   const url = `${options.baseUrl}${options.eventsPath}`;
-  let chain: Promise<void> = Promise.resolve();
+  const maxQueueSize = Math.max(1, options.maxQueueSize ?? 1000);
+  const queue: SyncEvent[] = [];
+  const idleResolvers = new Set<() => void>();
+  let draining = false;
 
   const deliver = (event: SyncEvent): Promise<void> =>
     sendSyncEvent(event, {
@@ -50,19 +54,92 @@ export function createEventSender(options: EventSenderOptions): EventSender {
       sleep: options.sleep,
     });
 
+  const eventKey = (event: SyncEvent): string => {
+    switch (event.type) {
+      case 'workflow.upsert':
+      case 'workflow.activate':
+        return `workflow:${event.workflow.id}`;
+      case 'workflow.delete':
+      case 'workflow.archive':
+        return `workflow:${event.workflowId}`;
+      case 'credentials.upsert':
+        return `credential:${event.credential.id}`;
+      case 'credentials.delete':
+        return `credential:${event.credentialId}`;
+      case 'execution.upsert':
+        return `execution:${event.execution.id}`;
+    }
+  };
+
+  const resolveIdle = () => {
+    if (draining || queue.length > 0) {
+      return;
+    }
+
+    for (const resolve of idleResolvers) {
+      resolve();
+    }
+    idleResolvers.clear();
+  };
+
+  const pumpQueue = async (): Promise<void> => {
+    if (draining) {
+      return;
+    }
+
+    draining = true;
+    try {
+      while (queue.length > 0) {
+        const event = queue.shift();
+        if (!event) {
+          continue;
+        }
+
+        try {
+          await deliver(event);
+          options.log.debug('Sync event delivered', { type: event.type, target: url });
+        } catch (error) {
+          logError(options.log, error, { context: 'publish sync event', type: event.type, target: url });
+        }
+      }
+    } finally {
+      draining = false;
+      resolveIdle();
+      if (queue.length > 0) {
+        void pumpQueue();
+      }
+    }
+  };
+
   const send = (event: SyncEvent): void => {
-    chain = chain
-      .then(() => deliver(event))
-      .then(() => {
-        options.log.debug('Sync event delivered', { type: event.type, target: url });
-      })
-      .catch((error: unknown) => {
-        logError(options.log, error, { context: 'publish sync event', type: event.type, target: url });
+    const key = eventKey(event);
+    const existingIndex = queue.findIndex((queuedEvent) => eventKey(queuedEvent) === key);
+    if (existingIndex >= 0) {
+      queue.splice(existingIndex, 1);
+      options.log.debug('Coalesced queued sync event', { type: event.type, target: url, key });
+    }
+
+    if (queue.length >= maxQueueSize) {
+      const dropped = queue.shift();
+      options.log.warn('Sync queue is full; dropping oldest queued event', {
+        target: url,
+        droppedType: dropped?.type,
+        droppedKey: dropped ? eventKey(dropped) : undefined,
+        maxQueueSize,
       });
+    }
+
+    queue.push(event);
+    void pumpQueue();
   };
 
   return {
     send,
-    drain: () => chain,
+    drain: () =>
+      !draining && queue.length === 0
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+            idleResolvers.add(resolve);
+          }),
   };
 }

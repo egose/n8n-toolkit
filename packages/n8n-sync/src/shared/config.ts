@@ -83,6 +83,7 @@ export const SYNC_SOURCE_ID = process.env.SYNC_SOURCE_ID ?? '';
 export const SYNC_EVENTS_PATH = process.env.SYNC_EVENTS_PATH || '/rest/sync/v1/events';
 export const SYNC_TIMEOUT_MS = intFromEnv(process.env.SYNC_TIMEOUT_MS, 10_000);
 export const SYNC_MAX_RETRIES = intFromEnv(process.env.SYNC_MAX_RETRIES, 3);
+export const SYNC_MAX_QUEUE_SIZE = intFromEnv(process.env.SYNC_MAX_QUEUE_SIZE, 1000);
 
 // Subscriber
 export const SYNC_ROUTE_BASE = (process.env.SYNC_ROUTE_BASE || '/rest/sync/v1').replace(/\/+$/, '');
