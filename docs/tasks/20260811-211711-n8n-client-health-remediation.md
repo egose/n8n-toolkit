@@ -65,7 +65,7 @@ The green baseline does not cover installed-package consumers, live integration 
 
 ### Task REQ-01: Serialize Data-Table Filters And Validate Column Names
 
-Status: pending
+Status: completed
 
 Priority: P0
 
@@ -109,9 +109,16 @@ Acceptance criteria:
 - `pnpm --filter @egose/n8n-client test -- data-table.spec.ts` passes.
 - `pnpm --filter @egose/n8n-client typecheck` passes.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/types.ts`, `packages/n8n-client/src/clients/data-table.ts`, `packages/n8n-client/tests/data-table.spec.ts`, `packages/n8n-client/tests/contracts.spec.ts`, `CHANGELOG.md`
+- Verified: `pnpm --filter @egose/n8n-client test -- data-table.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Result: `deleteRows()` now accepts structured `DataTableFilter`, serializes it once before transport, keeps `returnData` and `dryRun` behavior intact, validates column names locally, and documents the breaking raw-string removal in release notes.
+
 ### Task REQ-02: Encode Every Dynamic Path Segment
 
-Status: pending
+Status: completed
 
 Priority: P0
 
@@ -151,9 +158,17 @@ Acceptance criteria:
 - A repository search finds no unreviewed direct interpolation of dynamic path parameters in client request paths.
 - Focused client tests and `pnpm --filter @egose/n8n-client typecheck` pass.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/path.ts`, `packages/n8n-client/src/clients/community-package.ts`, `packages/n8n-client/src/clients/credential.ts`, `packages/n8n-client/src/clients/data-table.ts`, `packages/n8n-client/src/clients/execution.ts`, `packages/n8n-client/src/clients/folder.ts`, `packages/n8n-client/src/clients/project.ts`, `packages/n8n-client/src/clients/tag.ts`, `packages/n8n-client/src/clients/user.ts`, `packages/n8n-client/src/clients/variable.ts`, `packages/n8n-client/src/clients/workflow.ts`, `packages/n8n-client/tests/regressions.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client test`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `rg --pcre2 '\$\{(?!encodePathSegment\()' packages/n8n-client/src/clients -g '*.ts'`
+- Result: all reviewed caller-controlled path segments now pass through one shared `encodePathSegment()` helper; regression tests cover scoped package names and reserved-character IDs including slash, `?`, `#`, `%`, and Unicode.
+
 ### Task HTTP-01: Make Authentication And Redirect Handling Non-Overridable And Origin-Safe
 
-Status: pending
+Status: completed
 
 Priority: P0
 
@@ -194,9 +209,17 @@ Acceptance criteria:
 - Lowercase multipart `content-type` cannot suppress the generated boundary.
 - `pnpm --filter @egose/n8n-client test -- client.spec.ts` passes.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/http-client.ts`, `packages/n8n-client/tests/client.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client test -- client.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `ASDF_NODEJS_VERSION=20.10.0 node --input-type=module -e "..."`
+- Result: caller overrides for `Authorization` and `X-N8N-API-KEY` now fail locally case-insensitively, each request attempt builds a fresh `Headers` object, lowercase multipart `content-type` is removed for `FormData`, same-origin redirects preserve auth, and cross-origin redirects are blocked before credentials reach the target origin. The direct Node 20.10.0 runtime verification confirmed `sameOriginRequests` retained the API key on the redirected same-origin hop, `targetRequests` stayed empty for a cross-origin redirect, and the client raised `Cross-origin redirect blocked`.
+
 ### Task HTTP-02: Make Response Parsing And Query Serialization Total And Typed
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -239,9 +262,16 @@ Acceptance criteria:
 - Lowercase methods behave identically to uppercase methods.
 - Focused transport tests and package typecheck pass.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/http-client.ts`, `packages/n8n-client/src/index.ts`, `packages/n8n-client/tests/client.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client test -- client.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Result: response bodies are now read once, non-2xx responses always throw `HttpError` with status, status text, method, path, response headers, and raw fallback body data, empty successful 200/201/204 and HEAD responses return `undefined`, arrays serialize as repeated query keys, unsupported nested query values fail locally, empty queries omit the trailing `?`, and lowercase methods are normalized before retry and body rules are applied.
+
 ### Task HTTP-03: Define Retry, Deadline, Cancellation, And Test-Injection Policy
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -284,11 +314,19 @@ Acceptance criteria:
 - Network failures are tested without relying on exact error text.
 - README states exact retryable statuses, methods, timeout semantics, and overrides.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/types.ts`, `packages/n8n-client/src/http-client.ts`, `packages/n8n-client/src/utils/retry.ts`, `packages/n8n-client/tests/client.spec.ts`, `packages/n8n-client/tests/contracts.spec.ts`, `packages/n8n-client/README.md`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client exec vitest run --no-cache --config vitest.unit.config.ts tests/client.spec.ts tests/contracts.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client test`
+- Result: `requestTimeoutMs` and per-request `timeoutMs` now act as total deadlines across attempts and backoff, callers can cancel with `signal`, retry sleeps are abortable, `Retry-After` delta-seconds and HTTP-date values are honored up to a 30-second cap with deterministic positive jitter, fetch/network failures are classified at the transport boundary, and the client config supports injected `fetch`, `sleep`, `now`, and `random` hooks for deterministic tests.
+
 ## Wave 2: Truthful Response Contracts And Resource State
 
 ### Task MODEL-01: Introduce Endpoint-Specific Workflow Wire Shapes
 
-Status: pending
+Status: completed
 
 Priority: P0
 
@@ -333,9 +371,16 @@ Acceptance criteria:
 - Missing core identity fields fail at the response boundary with an actionable error.
 - Unit tests, typecheck, and README examples pass.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/types.ts`, `packages/n8n-client/src/response-mappers.ts`, `packages/n8n-client/src/clients/workflow.ts`, `packages/n8n-client/src/resources/workflow.ts`, `packages/n8n-client/src/resources/project.ts`, `packages/n8n-client/tests/workflow.spec.ts`, `packages/n8n-client/tests/project.spec.ts`, `packages/n8n-client/tests/regressions.spec.ts`, `packages/n8n-client/tests/contracts.spec.ts`, `packages/n8n-client/README.md`, `CHANGELOG.md`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client test`
+- Result: workflow responses now distinguish list/detail/compact-mutation shapes, `SharedWorkflow.project` remains omitted unless the endpoint enriches it, workflow mappers reject missing core identity/graph fields at the response boundary, and bound workflow resources merge compact mutation responses so omitted enrichment fields do not erase known snapshot state while explicit clears still take effect.
+
 ### Task MODEL-02: Replace Partial-To-Complete Mapper Assertions
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -376,9 +421,16 @@ Acceptance criteria:
 - Permission/enrichment omission remains distinguishable from empty permission/enrichment data.
 - Mapper/client tests and package typecheck pass.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/types.ts`, `packages/n8n-client/src/response-mappers.ts`, `packages/n8n-client/tests/contracts.spec.ts`, `packages/n8n-client/tests/credential.spec.ts`, `packages/n8n-client/tests/data-table.spec.ts`, `packages/n8n-client/tests/discover.spec.ts`, `packages/n8n-client/tests/folder.spec.ts`, `packages/n8n-client/tests/project.spec.ts`, `packages/n8n-client/tests/regressions.spec.ts`, `packages/n8n-client/tests/tag.spec.ts`, `packages/n8n-client/tests/user.spec.ts`, `packages/n8n-client/tests/variable.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client test`
+- Result: non-workflow response mappers now validate required identity/core fields from `unknown` inputs instead of asserting `Partial<T>` into complete DTOs, cursor responses consistently expose `nextCursor: string | null`, and optional permission/enrichment fields such as project role/scopes, variable project/type, tag timestamps, folder metadata, and data-table row/column metadata remain omitted unless the API explicitly returns them.
+
 ### Task MODEL-03: Model Folder, Tag, Project, And Data-Table Response Variants
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -417,9 +469,17 @@ Acceptance criteria:
 - Explicit clear operations are representable where confirmed.
 - Public API changes are documented and type-tested.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/types.ts`, `packages/n8n-client/src/response-mappers.ts`, `packages/n8n-client/src/clients/tag.ts`, `packages/n8n-client/src/clients/folder.ts`, `packages/n8n-client/src/clients/project.ts`, `packages/n8n-client/src/resources/tag.ts`, `packages/n8n-client/src/resources/folder.ts`, `packages/n8n-client/src/resources/project.ts`
+- Changed: `packages/n8n-client/tests/tag.spec.ts`, `packages/n8n-client/tests/folder.spec.ts`, `packages/n8n-client/tests/project.spec.ts`, `packages/n8n-client/tests/data-table.spec.ts`, `packages/n8n-client/tests/contracts.spec.ts`, `packages/n8n-client/README.md`
+- Verified: `pnpm typecheck`
+- Verified: `pnpm exec vitest run --no-cache --config vitest.unit.config.ts tests/tag.spec.ts tests/folder.spec.ts tests/project.spec.ts tests/data-table.spec.ts tests/contracts.spec.ts`
+- Result: 114 focused unit and contract tests passed; compact tag/folder mutation responses now preserve known resource snapshot fields, project create responses expose permission-bearing variants without inventing omitted permissions, and data-table list columns inherit the parent table ID instead of fabricating `null`.
+
 ### Task RESOURCE-01: Define Confirmed Snapshot And Patch Semantics
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -461,11 +521,18 @@ Acceptance criteria:
 - Partial endpoints send only caller-supplied mutable fields.
 - Void mutation snapshots are either refreshed or explicitly represented/documented as optimistic.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/resources/base.ts`, `packages/n8n-client/src/resources/variable.ts`, `packages/n8n-client/src/resources/project.ts`, `packages/n8n-client/src/resources/user.ts`, `packages/n8n-client/src/resources/credential.ts`, `packages/n8n-client/src/resources/folder.ts`, `packages/n8n-client/src/resources/community-package.ts`, `packages/n8n-client/README.md`, `packages/n8n-client/tests/variable.spec.ts`, `packages/n8n-client/tests/project.spec.ts`, `packages/n8n-client/tests/credential.spec.ts`, `packages/n8n-client/tests/folder.spec.ts`, `packages/n8n-client/tests/community-package.spec.ts`, `packages/n8n-client/tests/user.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client test -- variable.spec.ts project.spec.ts credential.spec.ts folder.spec.ts community-package.spec.ts user.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Result: void mutations on variables, projects, and users now refresh before exposing `resource.data`; project request-only `relations` no longer leak into snapshots; credential/folder/community-package partial helpers no longer resend omitted fields from stale local state; and the README now documents per-resource-family `update()`/`patch()` semantics.
+
 ## Wave 3: Type Safety, Performance, And Encapsulation
 
 ### Task TYPE-01: Enable Strict Null Checking And Then Strict Mode
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -503,9 +570,16 @@ Acceptance criteria:
 - No new broad `any`, `unknown as`, or non-null assertions are introduced merely to silence migration errors.
 - Emitted declarations type-check from strict ESM and CJS consumer fixtures.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/tsconfig.json`, `packages/n8n-client/package.json`, `packages/n8n-client/src/types.ts`, `packages/n8n-client/src/resources/folder.ts`, `packages/n8n-client/tests/contracts.spec.ts`, `packages/n8n-client/tests/fixtures/consumer-esm/index.mts`, `packages/n8n-client/tests/fixtures/consumer-esm/tsconfig.json`, `packages/n8n-client/tests/fixtures/consumer-cjs/index.cts`, `packages/n8n-client/tests/fixtures/consumer-cjs/tsconfig.json`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client exec vitest run --no-cache --config vitest.unit.config.ts tests/contracts.spec.ts tests/workflow.spec.ts tests/folder.spec.ts`
+- Result: `@egose/n8n-client` now compiles with `strict: true`, `skipLibCheck: false`, keeps folder/workflow nullability aligned with runtime shapes, updates contract assertions to the stricter paginated/resource types, and type-checks the emitted declarations from both strict ESM and CJS consumer fixtures.
+
 ### Task PERF-01: Stop Cloning Whole Resources During Internal Reads
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -543,9 +617,16 @@ Acceptance criteria:
 - Mutating objects returned by `data`/`toObject` cannot mutate internal state.
 - Mutating request/response fixture objects after resource construction cannot mutate internal state.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/resources/community-package.ts`, `packages/n8n-client/src/resources/credential.ts`, `packages/n8n-client/src/resources/data-table.ts`, `packages/n8n-client/src/resources/execution.ts`, `packages/n8n-client/src/resources/folder.ts`, `packages/n8n-client/src/resources/project.ts`, `packages/n8n-client/src/resources/tag.ts`, `packages/n8n-client/src/resources/user.ts`, `packages/n8n-client/src/resources/variable.ts`, `packages/n8n-client/src/resources/workflow.ts`, `packages/n8n-client/tests/contracts.spec.ts`, `packages/n8n-client/tests/workflow.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client exec vitest run --no-cache --config vitest.unit.config.ts tests/contracts.spec.ts tests/workflow.spec.ts tests/data-table.spec.ts tests/project.spec.ts`
+- Result: resource getters and request-building paths now read the protected in-memory snapshot instead of cloning whole resources; public `data`/`toObject`/`toJSON` boundaries remain defensive clones; workflow patch now proves a single clone during request/update flow, and snapshot-isolation tests cover constructor input, public snapshot output, and stored mutation responses.
+
 ### Task PERF-02: Remove Hidden Full-Collection Scans From Scoped Get Paths
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -584,9 +665,16 @@ Acceptance criteria:
 - Variable refresh starts from the first page and does not retain transient state/limit/cursor filters.
 - Negative cross-project cases continue to return controlled errors where scope can be verified.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/resources/project.ts`, `packages/n8n-client/src/resources/workflow.ts`, `packages/n8n-client/src/clients/variable.ts`, `packages/n8n-client/src/resources/variable.ts`, `packages/n8n-client/tests/project.spec.ts`, `packages/n8n-client/tests/workflow.spec.ts`, `packages/n8n-client/tests/variable.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client exec vitest run --no-cache --config vitest.unit.config.ts tests/project.spec.ts tests/workflow.spec.ts tests/variable.spec.ts tests/contracts.spec.ts`
+- Result: project-scoped workflow lookups now use a single direct workflow fetch and validate membership from `shared[].projectId`; project-scoped execution lookups no longer hide paginated advisory scans and instead rely on direct execution fetches; workflow-scoped execution lookups validate `execution.workflowId` from the direct response; variable-bound resources now retain only `projectId`, so refresh/update restart from the first scoped page instead of reusing transient cursor/limit/state filters.
+
 ### Task ARCH-01: Extract Reusable Scoped Collection Objects And Bound Caches
 
-Status: pending
+Status: completed
 
 Priority: P2
 
@@ -628,9 +716,16 @@ Acceptance criteria:
 - High-cardinality project IDs do not cause unbounded retained folder clients.
 - Existing nested collection contract tests and new focused unit tests pass.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/resources/project.ts`, `packages/n8n-client/src/resources/workflow.ts`, `packages/n8n-client/src/clients/project.ts`, `packages/n8n-client/src/index.ts`, `packages/n8n-client/tests/client.spec.ts`, `packages/n8n-client/tests/project.spec.ts`, `packages/n8n-client/tests/workflow.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client exec vitest run --no-cache --config vitest.unit.config.ts tests/client.spec.ts tests/project.spec.ts tests/workflow.spec.ts tests/contracts.spec.ts`
+- Result: project- and workflow-scoped nested collection handles are now exported reusable classes with one implementation per scope; `ProjectResource` and `WorkflowResource` reuse stable collection instances on repeated accessor calls; root and project folder accessors no longer retain unbounded per-project `FolderClient` caches; focused and contract tests passed (`121` tests across `4` files).
+
 ### Task PAGE-01: Correct Folder Pagination Semantics
 
-Status: pending
+Status: completed
 
 Priority: P2
 
@@ -665,11 +760,18 @@ Acceptance criteria:
 - Count, skip, and take behavior has boundary tests.
 - Project and root folder clients expose the same pagination semantics.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/src/types.ts`, `packages/n8n-client/src/clients/folder.ts`, `packages/n8n-client/src/resources/project.ts`, `packages/n8n-client/src/index.ts`, `packages/n8n-client/README.md`, `packages/n8n-client/tests/folder.spec.ts`, `packages/n8n-client/tests/project.spec.ts`, `packages/n8n-client/tests/contracts.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client exec vitest run --no-cache --config vitest.unit.config.ts tests/folder.spec.ts tests/project.spec.ts tests/contracts.spec.ts`
+- Result: folder list params now model offset pagination with numeric `skip`/`take`; `FolderClient.listResources()` and `ProjectFolderResourceCollection.listResources()` return `FolderResourcePage` with `{ count, data }` instead of a cursor-shaped page; README examples and contract tests document the public signature change; focused verification passed (`74` tests across `3` files).
+
 ## Wave 4: Capability, Contract, And Packaging Assurance
 
 ### Task CAP-01: Define Supported API Version And Capability Semantics
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -713,9 +815,16 @@ Acceptance criteria:
 - Capability and scope categories are not represented as interchangeable concepts.
 - Security-policy and discover tests cover supported auth/capability behavior without interpreting ambiguous 404s as one cause.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/.public-api/reviewed-drift.json`, `packages/n8n-client/src/public-api-contract.ts`, `packages/n8n-client/src/types.ts`, `packages/n8n-client/src/response-mappers.ts`, `packages/n8n-client/src/clients/discover.ts`, `packages/n8n-client/src/clients/security-policy.ts`, `packages/n8n-client/src/index.ts`, `packages/n8n-client/README.md`, `packages/n8n-client/tests/discover.spec.ts`, `packages/n8n-client/tests/security-policy.spec.ts`, `packages/n8n-client/tests/project.spec.ts`, `packages/n8n-client/tests/contracts.spec.ts`, `packages/n8n-client/tests/spec-coverage.spec.ts`, `packages/n8n-client/tests/schema-shapes.spec.ts`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client exec vitest run --no-cache --config vitest.unit.config.ts tests/discover.spec.ts tests/security-policy.spec.ts tests/project.spec.ts tests/contracts.spec.ts tests/spec-coverage.spec.ts tests/schema-shapes.spec.ts`
+- Result: the package now pins the reviewed `v1.1.1` public API contract in code/docs, enforces a reviewed upstream drift allowlist in CI, exposes discover API-key scopes separately from project-effective scopes, fails fast for bearer-auth `/discover`, documents ambiguous optional-endpoint 404 semantics, and removes the incorrect source-control "list files" claim. Focused verification passed (`132` tests across `6` files).
+
 ### Task TEST-01: Add Sweep-Backed Contract Fixtures And A Privilege Matrix
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -758,9 +867,17 @@ Acceptance criteria:
 - Integration output records n8n version, auth mode/role, relevant feature/license state, and probe preconditions.
 - No secrets or personal data are present in committed fixtures.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/tests/api-sweep-contracts.spec.ts`, `packages/n8n-client/tests/fixtures/api-sweep/*.json`, `sandbox/api-sweep-catalog.ts`, `sandbox/api-sweep-failure-classification.json`, `sandbox/api-sweep-privilege-matrix.json`, `sandbox/run-api-sweep.ts`, `sandbox/provisioner/common.js`, `sandbox/provisioner/apispec-provision.js`, `sandbox/README.md`
+- Verified: `pnpm test:unit -- api-sweep-contracts.spec.ts`
+- Verified: `pnpm typecheck`
+- Verified: `node --check sandbox/provisioner/common.js && node --check sandbox/provisioner/apispec-provision.js`
+- Result: added redacted sweep-backed workflow and security-policy fixtures, non-empty test-run fixtures, explicit failed-probe classification and privilege-matrix artifacts, and sweep/provisioning metadata support for auth profiles, version/license context, and probe preconditions.
+
 ### Task PACK-01: Verify The Published Tarball In ESM And CommonJS Consumers
 
-Status: pending
+Status: completed
 
 Priority: P1
 
@@ -802,9 +919,17 @@ Acceptance criteria:
 - Package analyzers report no unresolved export/declaration errors.
 - Dry-run package contents and final metadata pass explicit assertions.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/package.json`, `packages/n8n-client/src/index.ts`, `packages/n8n-client/scripts/verify-package.mjs`, `packages/n8n-client/tests/fixtures/consumer-esm/index.mts`, `packages/n8n-client/tests/fixtures/consumer-esm/runtime.mjs`, `packages/n8n-client/tests/fixtures/consumer-esm/tsconfig.json`, `packages/n8n-client/tests/fixtures/consumer-cjs/index.cts`, `packages/n8n-client/tests/fixtures/consumer-cjs/runtime.cjs`, `packages/n8n-client/tests/fixtures/consumer-cjs/tsconfig.json`, `pnpm-lock.yaml`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client pack:verify`
+- Verified: `npx -y node@20 packages/n8n-client/scripts/verify-package.mjs`
+- Result: the package now ships real publish metadata plus a tarball-only files allowlist, uses conditional ESM/CJS declaration branches, exports the documented client classes from the root entrypoint, and has repeatable tarball verification that packs the publishable artifact, asserts packed contents/metadata, runs `publint` and `attw`, and installs the tarball into isolated ESM and CommonJS consumers for runtime and strict NodeNext type checks.
+
 ### Task DOC-01: Make README Examples And Commands Executable
 
-Status: pending
+Status: completed
 
 Priority: P2
 
@@ -838,6 +963,14 @@ Acceptance criteria:
 - Documented clean-checkout commands execute successfully.
 - Accessor and endpoint capability descriptions agree with exported runtime behavior.
 
+Completion evidence:
+
+- Changed: `packages/n8n-client/README.md`, `packages/n8n-client/package.json`, `packages/n8n-client/scripts/check-readme-examples.mjs`
+- Verified: `pnpm --filter @egose/n8n-client docs:check`
+- Verified: `pnpm --filter @egose/n8n-client typecheck`
+- Verified: `pnpm --filter @egose/n8n-client test`
+- Result: the README now uses current monorepo links and `pnpm` commands, the Quick Start examples no longer redeclare `workflow`, the main accessor table includes `securityPolicy()`, the documented test layers match the real test layout, and a dedicated docs check compiles all 26 TypeScript README blocks against the public `@egose/n8n-client` entrypoint.
+
 ## Dependency And Parallelization Guidance
 
 | Wave | Agent lane           | Tasks                     | Parallel constraints                                                                                                                 |
@@ -862,23 +995,23 @@ Shared hotspots requiring serialized ownership:
 - `src/resources/project.ts`: RESOURCE-01 -> PERF-02 -> ARCH-01.
 - `package.json` and emitted `dist/`: TYPE-01 -> PACK-01; do not run conflicting builds concurrently.
 
-## Deferred Decisions Requiring Maintainer Input
+## Resolved Contract Decisions
 
-These do not block regression-test preparation, but they block final public contracts:
+These questions blocked early contract work and were resolved during implementation:
 
-1. Breaking-change policy for replacing `DeleteRowsParams.filter: string` with `DataTableFilter`.
-2. Whether low-level callers may ever override authentication headers. Recommendation: no implicit override.
-3. Whether request timeout means a total operation deadline or per-attempt timeout. Recommendation: total deadline with caller cancellation.
-4. Whether bound resources promise confirmed server state or allow documented optimistic state after void-returning mutations. Recommendation: confirmed where refresh is practical; explicit optimistic fields otherwise.
-5. Whether collection client classes are intended public imports or implementation details.
-6. Which n8n release/spec is the package's compatibility target and whether enterprise/optional endpoints such as security policy, SSO, and log streaming are in product scope.
-7. Whether folder client identity reuse is a public guarantee. Recommendation: no; remove unbounded caches.
+1. `DeleteRowsParams.filter` now accepts structured `DataTableFilter`, serializes it once before transport, and the raw-string ambiguity was removed and documented as a breaking change in `CHANGELOG.md`.
+2. Low-level callers cannot override `Authorization` or `X-N8N-API-KEY`; the transport rejects those headers locally and preserves origin-safe redirect behavior.
+3. `requestTimeoutMs` and per-request `timeoutMs` now act as total deadlines across retries and backoff, with caller cancellation via `AbortSignal`.
+4. Bound resources now prefer confirmed server state after void mutations by refreshing where practical; partial-update helpers no longer resend omitted stale fields.
+5. Documented collection client classes are treated as public imports and are exported from the root entrypoint with tarball verification coverage.
+6. The package now pins the reviewed n8n Public API `v1` / checked-in OpenAPI contract `v1.1.1`, distinguishes optional capability-dependent routes, and documents bearer limits for `/discover`.
+7. Folder-client identity reuse is not a public guarantee; the previous unbounded caches were removed.
 
 ## Final Integration Task
 
 ### Task REVIEW-01: Independently Verify Remediation And Release Readiness
 
-Status: pending
+Status: completed
 
 Priority: P0
 
@@ -923,6 +1056,18 @@ Acceptance criteria:
 - Relevant sanitized integration/sweep checks pass or have environment-specific blockers recorded.
 - `pnpm test`, `pnpm typecheck`, and `pnpm build` pass at repository level, run serially where generated output is shared.
 - No unresolved P0/P1 finding remains without explicit maintainer deferral and residual-risk documentation.
+
+Completion evidence:
+
+- Changed: `packages/n8n-sync/tsconfig.tests.json`, `packages/n8n-sync/tests/mappers.spec.ts`, `packages/n8n-sync/tests/publisher.spec.ts`, `docs/tasks/20260811-211711-n8n-client-health-remediation.md`
+- Verified: `pnpm --filter @egose/n8n-sync typecheck`
+- Verified: `pnpm --filter @egose/n8n-client pack:verify`
+- Verified: `npx -y node@20 packages/n8n-client/scripts/verify-package.mjs`
+- Verified: `pnpm typecheck`
+- Verified: `pnpm build`
+- Verified: `pnpm test`
+- Blocker recorded: live Docker-backed integration reruns could not be executed in this environment because `docker` is unavailable in the active WSL distro (`docker compose -f sandbox/docker-compose.yml ps --status running` failed before any stack inspection). Sanitized sweep-backed regression coverage remains included in `pnpm --filter @egose/n8n-client test`.
+- Result: independent review confirmed the package-level release gates, installed-tarball verification, and repository-level `test`/`typecheck`/`build` all pass after fixing the remaining cross-package typecheck issue in `@egose/n8n-sync`, where tests now resolve `@egose/n8n-client` against built declarations instead of workspace source.
 
 ## Definition Of Done
 
