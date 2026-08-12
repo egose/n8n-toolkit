@@ -1,0 +1,80 @@
+{
+  "categories": [
+    "validation",
+    "missing fixture/resource",
+    "authorization",
+    "feature/license state",
+    "disconnected integration",
+    "unknown"
+  ],
+  "entries": {
+    "workflows.activate": {
+      "classification": "validation",
+      "rationale": "The current sweep workflow uses a manual trigger fixture, so activation fails validation rather than route reachability."
+    },
+    "workflows.getVersion": {
+      "classification": "missing fixture/resource",
+      "rationale": "The sweep does not yet capture a concrete workflow version id before probing the version endpoint."
+    },
+    "executions.get": {
+      "classification": "missing fixture/resource",
+      "rationale": "The sweep uses a placeholder execution id because it does not yet create a real execution."
+    },
+    "executions.getTags": {
+      "classification": "missing fixture/resource",
+      "rationale": "The sweep uses a placeholder execution id because it does not yet create a real execution."
+    },
+    "executions.updateTags": {
+      "classification": "missing fixture/resource",
+      "rationale": "The sweep uses a placeholder execution id because it does not yet create a real execution."
+    },
+    "executions.retry": {
+      "classification": "missing fixture/resource",
+      "rationale": "Retry needs a real retryable execution id from the current instance."
+    },
+    "executions.stop": {
+      "classification": "missing fixture/resource",
+      "rationale": "Stop needs a real running execution id from the current instance."
+    },
+    "executions.delete": {
+      "classification": "missing fixture/resource",
+      "rationale": "Delete needs a real execution id from the current instance."
+    },
+    "credentials.test": {
+      "classification": "disconnected integration",
+      "rationale": "Credential testing depends on a node or integration being installed and connected in the target instance."
+    },
+    "credentials.transfer": {
+      "classification": "missing fixture/resource",
+      "rationale": "The sweep does not yet provision a concrete destination project for transfer."
+    },
+    "users.changeRole": {
+      "classification": "authorization",
+      "rationale": "The probe attempts to change the caller's own global role, which n8n forbids."
+    },
+    "dataTables.deleteRows": {
+      "classification": "validation",
+      "rationale": "The query filter format is invalid for the server's expected JSON string contract."
+    },
+    "dataTables.updateColumn": {
+      "classification": "validation",
+      "rationale": "The replacement column name violates the server's allowed name pattern."
+    },
+    "sourceControl.pull": {
+      "classification": "disconnected integration",
+      "rationale": "Source Control is reachable but not connected to a repository in the sweep environment."
+    },
+    "securityPolicy.get": {
+      "classification": "feature/license state",
+      "rationale": "This optional route remains ambiguous across deployment version, route registration, and feature or license state."
+    },
+    "securityPolicy.update": {
+      "classification": "feature/license state",
+      "rationale": "This optional route remains ambiguous across deployment version, route registration, and feature or license state."
+    },
+    "n8nPackage.exportWorkflows": {
+      "classification": "validation",
+      "rationale": "The current export probe sends an empty request body instead of a concrete workflow, folder, or project selection."
+    }
+  }
+}

@@ -4,15 +4,10 @@ import DataTableResource from '../src/resources/data-table';
 import { createMockHttpClient } from './test-utils';
 
 const normalizedRow = <T extends Record<string, unknown>>(row: T) => ({
-  createdAt: null,
-  updatedAt: null,
   ...row,
 });
 
 const normalizedColumn = <T extends Record<string, unknown>>(column: T) => ({
-  dataTableId: null,
-  createdAt: null,
-  updatedAt: null,
   ...column,
 });
 
@@ -27,6 +22,39 @@ describe('Implementation Consistency: DataTable', () => {
     expect(result).toEqual({ data: [], nextCursor: null });
   });
 
+  test('list backfills nested column dataTableId from the parent table id', async () => {
+    const http = createMockHttpClient([
+      {
+        body: {
+          data: [
+            {
+              id: 'dt-1',
+              name: 'Users',
+              projectId: 'p-1',
+              createdAt: '',
+              updatedAt: '',
+              columns: [{ id: 'col-1', name: 'email', type: 'string', index: 0, createdAt: '', updatedAt: '' }],
+            },
+          ],
+          nextCursor: undefined,
+        },
+      },
+    ]);
+    const handle = new DataTableClient(http);
+
+    const result = await handle.list();
+
+    expect(result.data[0]?.columns[0]).toEqual({
+      id: 'col-1',
+      name: 'email',
+      dataTableId: 'dt-1',
+      type: 'string',
+      index: 0,
+      createdAt: '',
+      updatedAt: '',
+    });
+  });
+
   test('get calls GET /data-tables/:id', async () => {
     const table = { id: 'dt-1', name: 'Users', columns: [], projectId: 'p-1', createdAt: '', updatedAt: '' };
     const http = createMockHttpClient([{ body: table }]);
@@ -36,6 +64,15 @@ describe('Implementation Consistency: DataTable', () => {
 
     expect(http.get).toHaveBeenCalledWith('/data-tables/dt-1');
     expect(result).toEqual(table);
+  });
+
+  test('get rejects data table responses missing mandatory identity fields', async () => {
+    const http = createMockHttpClient([
+      { body: { name: 'Users', columns: [], projectId: 'p-1', createdAt: '', updatedAt: '' } },
+    ]);
+    const handle = new DataTableClient(http);
+
+    await expect(handle.get('dt-1')).rejects.toThrow('data table.id must be a string');
   });
 
   test('create calls POST /data-tables', async () => {
@@ -199,17 +236,52 @@ describe('Implementation Consistency: DataTable', () => {
     const rows = [{ id: 1, name: 'Alice' }];
     const http = createMockHttpClient([{ body: rows }]);
     const handle = new DataTableClient(http);
+    const filter = { filters: [{ columnName: 'name', condition: 'eq' as const, value: 'Alice' }] };
 
     const result = await handle.deleteRows('dt-1', {
-      filter: '{"filters":[{"columnName":"name","condition":"eq","value":"Alice"}]}',
+      filter,
       returnData: true,
+    });
+
+    const [, params] = http.delete.mock.calls[0] as [string, { filter: string; returnData?: boolean }];
+
+    expect(http.delete).toHaveBeenCalledWith('/data-tables/dt-1/rows/delete', {
+      filter: JSON.stringify(filter),
+      returnData: true,
+    });
+    expect(typeof params.filter).toBe('string');
+    expect(JSON.parse(params.filter)).toEqual(filter);
+    expect(result).toEqual(rows.map(normalizedRow));
+  });
+
+  test('deleteRows returns boolean when returnData is omitted', async () => {
+    const http = createMockHttpClient([{ body: false }]);
+    const handle = new DataTableClient(http);
+    const filter = { filters: [{ columnName: 'active', condition: 'eq' as const, value: true }] };
+
+    const result = await handle.deleteRows('dt-1', { filter });
+
+    expect(http.delete).toHaveBeenCalledWith('/data-tables/dt-1/rows/delete', { filter: JSON.stringify(filter) });
+    expect(result).toBe(false);
+  });
+
+  test('deleteRows preserves dryRun and explicit false returnData serialization', async () => {
+    const http = createMockHttpClient([{ body: true }]);
+    const handle = new DataTableClient(http);
+    const filter = { filters: [{ columnName: 'status', condition: 'eq' as const, value: 'stale' }] };
+
+    const result = await handle.deleteRows('dt-1', {
+      filter,
+      returnData: false,
+      dryRun: true,
     });
 
     expect(http.delete).toHaveBeenCalledWith('/data-tables/dt-1/rows/delete', {
-      filter: '{"filters":[{"columnName":"name","condition":"eq","value":"Alice"}]}',
-      returnData: true,
+      filter: JSON.stringify(filter),
+      returnData: false,
+      dryRun: true,
     });
-    expect(result).toEqual(rows.map(normalizedRow));
+    expect(result).toBe(true);
   });
 
   test('listColumns calls GET /data-tables/:id/columns', async () => {
@@ -224,15 +296,28 @@ describe('Implementation Consistency: DataTable', () => {
   });
 
   test('createColumn calls POST /data-tables/:id/columns', async () => {
-    const created = { id: 'col-2', name: 'age', type: 'number', index: 1 };
+    const created = { id: 'col-2', name: 'user_name', type: 'string', index: 1 };
     const http = createMockHttpClient([{ body: created }]);
     const handle = new DataTableClient(http);
 
-    const result = await handle.createColumn('dt-1', { name: 'age', type: 'number' });
+    const result = await handle.createColumn('dt-1', { name: 'user_name', type: 'string' });
 
-    expect(http.post).toHaveBeenCalledWith('/data-tables/dt-1/columns', { name: 'age', type: 'number' });
+    expect(http.post).toHaveBeenCalledWith('/data-tables/dt-1/columns', { name: 'user_name', type: 'string' });
     expect(result).toEqual(normalizedColumn(created));
   });
+
+  test.each(['1flag', 'flag-renamed', 'flag renamed'])(
+    'createColumn rejects invalid column name %s before transport',
+    async (name) => {
+      const http = createMockHttpClient([{ body: undefined }]);
+      const handle = new DataTableClient(http);
+
+      await expect(handle.createColumn('dt-1', { name, type: 'string' })).rejects.toThrow(
+        `Invalid data table column name "${name}". Column names must match /^[a-zA-Z][a-zA-Z0-9_]*$/.`,
+      );
+      expect(http.post).not.toHaveBeenCalled();
+    },
+  );
 
   test('deleteColumn calls DELETE /data-tables/:id/columns/:colId', async () => {
     const http = createMockHttpClient([{ body: undefined }]);
@@ -253,6 +338,19 @@ describe('Implementation Consistency: DataTable', () => {
     expect(http.patch).toHaveBeenCalledWith('/data-tables/dt-1/columns/col-1', { name: 'email_address' });
     expect(result).toEqual(normalizedColumn(updated));
   });
+
+  test.each(['1flag', 'flag-renamed', 'flag renamed'])(
+    'updateColumn rejects invalid column name %s before transport',
+    async (name) => {
+      const http = createMockHttpClient([{ body: undefined }]);
+      const handle = new DataTableClient(http);
+
+      await expect(handle.updateColumn('dt-1', 'col-1', { name })).rejects.toThrow(
+        `Invalid data table column name "${name}". Column names must match /^[a-zA-Z][a-zA-Z0-9_]*$/.`,
+      );
+      expect(http.patch).not.toHaveBeenCalled();
+    },
+  );
 
   test('data table resource methods use bound dataTable id', async () => {
     const updated = { id: 'dt-1', name: 'Users Updated', columns: [], projectId: 'p-1', createdAt: '', updatedAt: '' };
@@ -287,7 +385,7 @@ describe('Implementation Consistency: DataTable', () => {
     await resource.insertRows({ data: [{ email: 'alice@example.com' }] });
     await resource.updateRows({ filter: { filters: [] }, data: {} });
     await resource.upsertRow({ filter: { filters: [] }, data: {} });
-    await resource.deleteRows({ filter: '{}' });
+    await resource.deleteRows({ filter: { filters: [] } });
     await resource.listColumns();
     await resource.createColumn({ name: 'active', type: 'boolean' });
     await resource.updateColumn('col-1', { name: 'is_active' });

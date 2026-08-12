@@ -7,7 +7,7 @@ import ProjectClient from '../src/clients/project';
 import DataTableClient from '../src/clients/data-table';
 import DiscoverClient from '../src/clients/discover';
 import ExecutionClient from '../src/clients/execution';
-import FolderClient from '../src/clients/folder';
+import FolderClient, { type FolderResourcePage } from '../src/clients/folder';
 import InsightsClient from '../src/clients/insights';
 import N8nPackageClient from '../src/clients/n8n-package';
 import SecurityPolicyClient from '../src/clients/security-policy';
@@ -33,6 +33,7 @@ import VariableResource from '../src/resources/variable';
 import type { WorkflowExecutionResourceCollection } from '../src/resources/workflow';
 import WorkflowResource from '../src/resources/workflow';
 import type {
+  ApiKeyScope,
   Audit,
   AuditCommunityLocation,
   AuditCredentialLocation,
@@ -69,11 +70,13 @@ import type {
   ExecutionRetryRequest,
   ExportWorkflowsRequest,
   Folder,
+  FolderCreateResult,
   FolderCreate,
   FolderDetail,
   FolderListParams,
   FolderListResponse,
   FolderUpdate,
+  FolderUpdateResult,
   ImportPackageOptions,
   ImportPackageResponse,
   InsightsSummary,
@@ -81,9 +84,12 @@ import type {
   InstallCommunityPackageRequest,
   PaginationParams,
   Project,
+  ProjectCreateResult,
+  ProjectEffectiveScope,
   ProjectCreate,
   ProjectListResponse,
   ProjectMemberListResponse,
+  ProjectWithPermissions,
   ProjectUpdate,
   PullRequest,
   SecurityPolicy,
@@ -93,6 +99,7 @@ import type {
   StopManyExecutionsResponse,
   Tag,
   TagListResponse,
+  TagMutationResult,
   TagMutation,
   User,
   UserCreate,
@@ -118,11 +125,14 @@ import type {
   VariableListResponse,
   VariableUpdate,
   Workflow,
+  WorkflowDetail,
   WorkflowActivateRequest,
   WorkflowConnections,
   WorkflowCreate,
   WorkflowGetParams,
+  WorkflowMutationResult,
   WorkflowListParams,
+  WorkflowListItem,
   WorkflowListResponse,
   WorkflowNodeTelemetryTags,
   WorkflowPinData,
@@ -130,6 +140,7 @@ import type {
   WorkflowUpdate,
   WorkflowVersion,
 } from '../src/types';
+import type { PaginatedResponse } from '../src/pagination';
 import { createMockHttpClient } from './test-utils';
 
 describe('Public API contracts', () => {
@@ -146,7 +157,7 @@ describe('Public API contracts', () => {
   test('DiscoverResponse nests filters and specUrl under data', () => {
     expectTypeOf<DiscoverResponse>().toEqualTypeOf<{
       data: {
-        scopes: string[];
+        apiKeyScopes: ApiKeyScope[];
         resources: Record<string, DiscoverResource>;
         filters: Record<string, DiscoverFilter>;
         specUrl: string;
@@ -154,8 +165,24 @@ describe('Public API contracts', () => {
     }>();
   });
 
+  test('API-key scopes and project-effective scopes stay distinct in the public types', () => {
+    type ApiKeyScopesExtendProjectScopes = ApiKeyScope[] extends ProjectEffectiveScope[] ? true : false;
+    type ProjectScopesExtendApiKeyScopes = ProjectEffectiveScope[] extends ApiKeyScope[] ? true : false;
+
+    expectTypeOf<ApiKeyScopesExtendProjectScopes>().toEqualTypeOf<false>();
+    expectTypeOf<ProjectScopesExtendApiKeyScopes>().toEqualTypeOf<false>();
+  });
+
   test('DataTableClient row methods narrow return types from request flags', () => {
-    const handle = new DataTableClient(createMockHttpClient());
+    const handle = new DataTableClient(
+      createMockHttpClient([
+        { body: [1] },
+        { body: [{ id: 1 }] },
+        { body: [{ id: 1 }] },
+        { body: { id: 1 } },
+        { body: [{ id: 1 }] },
+      ]),
+    );
 
     expectTypeOf(handle.insertRows('dt-1', { data: [], returnType: 'id' })).toEqualTypeOf<Promise<number[]>>();
     expectTypeOf(handle.insertRows('dt-1', { data: [], returnType: 'all' })).toEqualTypeOf<Promise<DataTableRow[]>>();
@@ -165,13 +192,14 @@ describe('Public API contracts', () => {
     expectTypeOf(handle.upsertRow('dt-1', { filter: { filters: [] }, data: {}, returnData: true })).toEqualTypeOf<
       Promise<DataTableRow>
     >();
-    expectTypeOf(handle.deleteRows('dt-1', { filter: '{}', returnData: true })).toEqualTypeOf<
+    expectTypeOf(handle.deleteRows('dt-1', { filter: { filters: [] }, returnData: true })).toEqualTypeOf<
       Promise<DataTableRow[]>
     >();
   });
 
   test('N8nClient exposes low-level request helpers', () => {
     const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'test-key' }); // pragma: allowlist secret
+    const signal = new AbortController().signal;
 
     expectTypeOf(client.get).toBeFunction();
     expectTypeOf(client.post).toBeFunction();
@@ -179,6 +207,9 @@ describe('Public API contracts', () => {
     expectTypeOf(client.patch).toBeFunction();
     expectTypeOf(client.delete).toBeFunction();
     expectTypeOf(client.request).toBeFunction();
+    expectTypeOf(client.request<{ ok: boolean }>({ method: 'GET', path: '/health', signal })).toEqualTypeOf<
+      Promise<{ ok: boolean }>
+    >();
   });
 
   test('N8nClient client factories return the expected client types', () => {
@@ -207,26 +238,22 @@ describe('Public API contracts', () => {
 
     expectTypeOf(handle.list({} satisfies WorkflowListParams)).toEqualTypeOf<Promise<WorkflowListResponse>>();
     expectTypeOf<ReturnType<WorkflowClient['listResources']>>().toEqualTypeOf<
-      Promise<{ data: WorkflowResource[]; nextCursor?: string }>
+      Promise<PaginatedResponse<WorkflowResource>>
     >();
-    expectTypeOf(handle.get('wf-1', {} satisfies WorkflowGetParams)).toEqualTypeOf<Promise<Workflow>>();
+    expectTypeOf<ReturnType<WorkflowClient['get']>>().toEqualTypeOf<Promise<WorkflowDetail>>();
     expectTypeOf<ReturnType<WorkflowClient['getResource']>>().toEqualTypeOf<Promise<WorkflowResource>>();
-    expectTypeOf(handle.create({} as WorkflowCreate)).toEqualTypeOf<Promise<Workflow>>();
+    expectTypeOf<ReturnType<WorkflowClient['create']>>().toEqualTypeOf<Promise<WorkflowDetail>>();
     expectTypeOf<ReturnType<WorkflowClient['createResource']>>().toEqualTypeOf<Promise<WorkflowResource>>();
-    expectTypeOf(handle.update('wf-1', {} as WorkflowUpdate)).toEqualTypeOf<Promise<Workflow>>();
+    expectTypeOf<ReturnType<WorkflowClient['update']>>().toEqualTypeOf<Promise<WorkflowMutationResult>>();
     expectTypeOf<ReturnType<WorkflowClient['updateResource']>>().toEqualTypeOf<Promise<WorkflowResource>>();
-    expectTypeOf(handle.activate('wf-1', {} satisfies WorkflowActivateRequest)).toEqualTypeOf<Promise<Workflow>>();
-    expectTypeOf(handle.transfer('wf-1', 'proj-1')).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.getTags('wf-1')).toEqualTypeOf<Promise<Tag[]>>();
-    expectTypeOf(handle.updateTags('wf-1', [{ id: 'tag-1' }])).toEqualTypeOf<Promise<Tag[]>>();
-    expectTypeOf(handle.getVersion('wf-1', 'ver-1')).toEqualTypeOf<Promise<WorkflowVersion>>();
-    expectTypeOf(handle.listTestRuns('wf-1', {} satisfies TestRunListParams)).toEqualTypeOf<
-      Promise<TestRunListResponse>
-    >();
-    expectTypeOf(handle.getTestRun('wf-1', 'run-1')).toEqualTypeOf<Promise<TestRunSummary>>();
-    expectTypeOf(handle.listTestCases('wf-1', 'run-1', {} satisfies PaginationParams)).toEqualTypeOf<
-      Promise<TestCaseExecutionListResponse>
-    >();
+    expectTypeOf<ReturnType<WorkflowClient['activate']>>().toEqualTypeOf<Promise<WorkflowMutationResult>>();
+    expectTypeOf<ReturnType<WorkflowClient['transfer']>>().toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<WorkflowClient['getTags']>>().toEqualTypeOf<Promise<Tag[]>>();
+    expectTypeOf<ReturnType<WorkflowClient['updateTags']>>().toEqualTypeOf<Promise<Tag[]>>();
+    expectTypeOf<ReturnType<WorkflowClient['getVersion']>>().toEqualTypeOf<Promise<WorkflowVersion>>();
+    expectTypeOf<ReturnType<WorkflowClient['listTestRuns']>>().toEqualTypeOf<Promise<TestRunListResponse>>();
+    expectTypeOf<ReturnType<WorkflowClient['getTestRun']>>().toEqualTypeOf<Promise<TestRunSummary>>();
+    expectTypeOf<ReturnType<WorkflowClient['listTestCases']>>().toEqualTypeOf<Promise<TestCaseExecutionListResponse>>();
   });
 
   test('Workflow nested graph types stay structured', () => {
@@ -234,9 +261,14 @@ describe('Public API contracts', () => {
     expectTypeOf<WorkflowVersion['connections']>().toEqualTypeOf<WorkflowConnections>();
     expectTypeOf<WorkflowCreate['connections']>().toEqualTypeOf<WorkflowConnections>();
     expectTypeOf<WorkflowUpdate['connections']>().toEqualTypeOf<WorkflowConnections>();
-    expectTypeOf<Workflow['pinData']>().toEqualTypeOf<WorkflowPinData | null | undefined>();
+    expectTypeOf<Workflow['pinData']>().toEqualTypeOf<WorkflowPinData | null>();
     expectTypeOf<Workflow['settings']>().toMatchTypeOf<{ customTelemetryTags?: WorkflowTelemetryTag[] } | undefined>();
     expectTypeOf<Workflow['nodes'][number]>().toMatchTypeOf<{ customTelemetryTags?: WorkflowNodeTelemetryTags }>();
+    expectTypeOf<WorkflowDetail>().toMatchTypeOf<Workflow>();
+    expectTypeOf<WorkflowMutationResult>().toMatchTypeOf<Workflow>();
+    expectTypeOf<WorkflowListItem>().toMatchTypeOf<Workflow>();
+    expectTypeOf<ProjectWithPermissions>().toMatchTypeOf<Project>();
+    expectTypeOf<ProjectCreateResult>().toMatchTypeOf<Project>();
   });
 
   test('ExecutionClient method signatures stay stable', () => {
@@ -244,16 +276,14 @@ describe('Public API contracts', () => {
 
     expectTypeOf(handle.list({} satisfies ExecutionListParams)).toEqualTypeOf<Promise<ExecutionListResponse>>();
     expectTypeOf<ReturnType<ExecutionClient['listResources']>>().toEqualTypeOf<
-      Promise<{ data: ExecutionResource[]; nextCursor?: string }>
+      Promise<PaginatedResponse<ExecutionResource>>
     >();
-    expectTypeOf(handle.get(1, {} satisfies ExecutionGetParams)).toEqualTypeOf<Promise<Execution>>();
+    expectTypeOf<ReturnType<ExecutionClient['get']>>().toEqualTypeOf<Promise<Execution>>();
     expectTypeOf<ReturnType<ExecutionClient['getResource']>>().toEqualTypeOf<Promise<ExecutionResource>>();
-    expectTypeOf(handle.retry(1, {} satisfies ExecutionRetryRequest)).toEqualTypeOf<Promise<Execution>>();
-    expectTypeOf(handle.stopMany({ status: ['running'] } satisfies StopManyExecutionsRequest)).toEqualTypeOf<
-      Promise<StopManyExecutionsResponse>
-    >();
-    expectTypeOf(handle.getTags(1)).toEqualTypeOf<Promise<Tag[]>>();
-    expectTypeOf(handle.updateTags(1, [{ id: 'tag-1' }])).toEqualTypeOf<Promise<Tag[]>>();
+    expectTypeOf<ReturnType<ExecutionClient['retry']>>().toEqualTypeOf<Promise<Execution>>();
+    expectTypeOf<ReturnType<ExecutionClient['stopMany']>>().toEqualTypeOf<Promise<StopManyExecutionsResponse>>();
+    expectTypeOf<ReturnType<ExecutionClient['getTags']>>().toEqualTypeOf<Promise<Tag[]>>();
+    expectTypeOf<ReturnType<ExecutionClient['updateTags']>>().toEqualTypeOf<Promise<Tag[]>>();
   });
 
   test('CredentialClient method signatures stay stable', () => {
@@ -263,16 +293,16 @@ describe('Public API contracts', () => {
     expectTypeOf<ReturnType<CredentialClient['listResources']>>().toEqualTypeOf<
       Promise<{ data: CredentialResource[]; nextCursor?: string | null }>
     >();
-    expectTypeOf(handle.get('cred-1')).toEqualTypeOf<Promise<CredentialResponse>>();
+    expectTypeOf<ReturnType<CredentialClient['get']>>().toEqualTypeOf<Promise<CredentialResponse>>();
     expectTypeOf<ReturnType<CredentialClient['getResource']>>().toEqualTypeOf<Promise<CredentialResource>>();
-    expectTypeOf(handle.create({} as CredentialCreate)).toEqualTypeOf<Promise<CredentialResponse>>();
+    expectTypeOf<ReturnType<CredentialClient['create']>>().toEqualTypeOf<Promise<CredentialResponse>>();
     expectTypeOf<ReturnType<CredentialClient['createResource']>>().toEqualTypeOf<Promise<CredentialResource>>();
-    expectTypeOf(handle.update('cred-1', {} as CredentialUpdate)).toEqualTypeOf<Promise<CredentialResponse>>();
+    expectTypeOf<ReturnType<CredentialClient['update']>>().toEqualTypeOf<Promise<CredentialResponse>>();
     expectTypeOf<ReturnType<CredentialClient['updateResource']>>().toEqualTypeOf<Promise<CredentialResource>>();
-    expectTypeOf(handle.delete('cred-1')).toEqualTypeOf<Promise<Credential>>();
-    expectTypeOf(handle.test('cred-1')).toEqualTypeOf<Promise<CredentialTestResponse>>();
-    expectTypeOf(handle.transfer('cred-1', 'proj-1')).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.getSchema('slackApi')).toEqualTypeOf<Promise<CredentialSchema>>();
+    expectTypeOf<ReturnType<CredentialClient['delete']>>().toEqualTypeOf<Promise<Credential>>();
+    expectTypeOf<ReturnType<CredentialClient['test']>>().toEqualTypeOf<Promise<CredentialTestResponse>>();
+    expectTypeOf<ReturnType<CredentialClient['transfer']>>().toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<CredentialClient['getSchema']>>().toEqualTypeOf<Promise<CredentialSchema>>();
   });
 
   test('ProjectClient method signatures stay stable', () => {
@@ -283,43 +313,41 @@ describe('Public API contracts', () => {
       Promise<{ data: ProjectResource[]; nextCursor?: string | null }>
     >();
     expectTypeOf<ReturnType<ProjectClient['getResource']>>().toEqualTypeOf<Promise<ProjectResource>>();
-    expectTypeOf(handle.create({ name: 'Project' } satisfies ProjectCreate)).toEqualTypeOf<Promise<Project>>();
+    expectTypeOf<ReturnType<ProjectClient['create']>>().toEqualTypeOf<Promise<ProjectCreateResult>>();
     expectTypeOf<ReturnType<ProjectClient['createResource']>>().toEqualTypeOf<Promise<ProjectResource>>();
-    expectTypeOf(handle.update('proj-1', { name: 'Renamed' } satisfies ProjectUpdate)).toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<ProjectClient['update']>>().toEqualTypeOf<Promise<void>>();
     expectTypeOf<ReturnType<ProjectClient['updateResource']>>().toEqualTypeOf<Promise<ProjectResource>>();
-    expectTypeOf(handle.delete('proj-1')).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.delete('proj-1', 'proj-2')).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.listMembers('proj-1', {} satisfies PaginationParams)).toEqualTypeOf<
-      Promise<ProjectMemberListResponse>
-    >();
-    expectTypeOf(handle.addMembers('proj-1', [{ userId: 'user-1', role: 'project:editor' }])).toEqualTypeOf<
-      Promise<void>
-    >();
-    expectTypeOf(handle.removeMember('proj-1', 'user-1')).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.changeMemberRole('proj-1', 'user-1', 'project:admin')).toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<ProjectClient['delete']>>().toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<ProjectClient['listMembers']>>().toEqualTypeOf<Promise<ProjectMemberListResponse>>();
+    expectTypeOf<ReturnType<ProjectClient['addMembers']>>().toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<ProjectClient['removeMember']>>().toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<ProjectClient['changeMemberRole']>>().toEqualTypeOf<Promise<void>>();
   });
 
   test('DataTableClient method signatures stay stable', () => {
-    const handle = new DataTableClient(createMockHttpClient());
+    const handle = new DataTableClient(
+      createMockHttpClient([
+        { body: { data: [], nextCursor: null } },
+        { body: true },
+        { body: [{ id: 1 }] },
+        { body: { id: 1 } },
+        { body: true },
+        { body: [{ id: 1 }] },
+      ]),
+    );
 
     expectTypeOf(handle.list({} satisfies DataTableListParams)).toEqualTypeOf<Promise<DataTableListResponse>>();
     expectTypeOf<ReturnType<DataTableClient['listResources']>>().toEqualTypeOf<
       Promise<{ data: DataTableResource[]; nextCursor?: string | null }>
     >();
-    expectTypeOf(handle.get('dt-1')).toEqualTypeOf<Promise<DataTable>>();
+    expectTypeOf<ReturnType<DataTableClient['get']>>().toEqualTypeOf<Promise<DataTable>>();
     expectTypeOf<ReturnType<DataTableClient['getResource']>>().toEqualTypeOf<Promise<DataTableResource>>();
-    expectTypeOf(handle.create({ name: 'Table', columns: [] } satisfies CreateDataTableRequest)).toEqualTypeOf<
-      Promise<DataTable>
-    >();
+    expectTypeOf<ReturnType<DataTableClient['create']>>().toEqualTypeOf<Promise<DataTable>>();
     expectTypeOf<ReturnType<DataTableClient['createResource']>>().toEqualTypeOf<Promise<DataTableResource>>();
-    expectTypeOf(handle.update('dt-1', { name: 'Renamed' } satisfies UpdateDataTableRequest)).toEqualTypeOf<
-      Promise<DataTable>
-    >();
+    expectTypeOf<ReturnType<DataTableClient['update']>>().toEqualTypeOf<Promise<DataTable>>();
     expectTypeOf<ReturnType<DataTableClient['updateResource']>>().toEqualTypeOf<Promise<DataTableResource>>();
-    expectTypeOf(handle.delete('dt-1')).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.listRows('dt-1', {} satisfies DataTableRowListParams)).toEqualTypeOf<
-      Promise<DataTableRowListResponse>
-    >();
+    expectTypeOf<ReturnType<DataTableClient['delete']>>().toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<DataTableClient['listRows']>>().toEqualTypeOf<Promise<DataTableRowListResponse>>();
     expectTypeOf(
       handle.updateRows('dt-1', { filter: { filters: [] }, data: {} } satisfies UpdateRowsBooleanRequest),
     ).toEqualTypeOf<Promise<boolean>>();
@@ -330,43 +358,36 @@ describe('Public API contracts', () => {
         returnData: true,
       } satisfies UpdateRowsDataRequest),
     ).toEqualTypeOf<Promise<DataTableRow[]>>();
-    expectTypeOf(
-      handle.upsertRow('dt-1', { filter: { filters: [] }, data: {} } satisfies UpsertRowBooleanRequest),
-    ).toEqualTypeOf<Promise<boolean>>();
+    expectTypeOf<ReturnType<DataTableClient['upsertRow']>>().toMatchTypeOf<Promise<boolean | DataTableRow>>();
     expectTypeOf(
       handle.upsertRow('dt-1', { filter: { filters: [] }, data: {}, returnData: true } satisfies UpsertRowDataRequest),
     ).toEqualTypeOf<Promise<DataTableRow>>();
-    expectTypeOf(handle.deleteRows('dt-1', { filter: '{}' } satisfies DeleteRowsBooleanParams)).toEqualTypeOf<
-      Promise<boolean>
-    >();
     expectTypeOf(
-      handle.deleteRows('dt-1', { filter: '{}', returnData: true } satisfies DeleteRowsDataParams),
+      handle.deleteRows('dt-1', { filter: { filters: [] } } satisfies DeleteRowsBooleanParams),
+    ).toEqualTypeOf<Promise<boolean>>();
+    expectTypeOf(
+      handle.deleteRows('dt-1', { filter: { filters: [] }, returnData: true } satisfies DeleteRowsDataParams),
     ).toEqualTypeOf<Promise<DataTableRow[]>>();
-    expectTypeOf(handle.clearRows('dt-1')).toEqualTypeOf<Promise<ClearRowsResponse>>();
-    expectTypeOf(handle.listColumns('dt-1')).toEqualTypeOf<Promise<DataTableColumn[]>>();
-    expectTypeOf(handle.createColumn('dt-1', { name: 'col', type: 'string' })).toEqualTypeOf<
-      Promise<DataTableColumn>
-    >();
-    expectTypeOf(handle.deleteColumn('dt-1', 'col-1')).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.updateColumn('dt-1', 'col-1', {} satisfies UpdateColumnRequest)).toEqualTypeOf<
-      Promise<DataTableColumn>
-    >();
+    expectTypeOf<ReturnType<DataTableClient['clearRows']>>().toEqualTypeOf<Promise<ClearRowsResponse>>();
+    expectTypeOf<ReturnType<DataTableClient['listColumns']>>().toEqualTypeOf<Promise<DataTableColumn[]>>();
+    expectTypeOf<ReturnType<DataTableClient['createColumn']>>().toEqualTypeOf<Promise<DataTableColumn>>();
+    expectTypeOf<ReturnType<DataTableClient['deleteColumn']>>().toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<DataTableClient['updateColumn']>>().toEqualTypeOf<Promise<DataTableColumn>>();
   });
 
   test('FolderClient method signatures stay stable', () => {
     const handle = new FolderClient(createMockHttpClient(), 'proj-1');
 
-    expectTypeOf(handle.list({} satisfies FolderListParams)).toEqualTypeOf<Promise<FolderListResponse>>();
-    expectTypeOf<ReturnType<FolderClient['listResources']>>().toEqualTypeOf<
-      Promise<{ data: FolderResource[]; nextCursor?: string | null }>
-    >();
-    expectTypeOf(handle.get('folder-1')).toEqualTypeOf<Promise<FolderDetail>>();
+    expectTypeOf<FolderListParams>().toMatchTypeOf<{ skip?: number; take?: number }>();
+    expectTypeOf<ReturnType<FolderClient['list']>>().toEqualTypeOf<Promise<FolderListResponse>>();
+    expectTypeOf<ReturnType<FolderClient['listResources']>>().toEqualTypeOf<Promise<FolderResourcePage>>();
+    expectTypeOf<ReturnType<FolderClient['get']>>().toEqualTypeOf<Promise<FolderDetail>>();
     expectTypeOf<ReturnType<FolderClient['getResource']>>().toEqualTypeOf<Promise<FolderResource>>();
-    expectTypeOf(handle.create({ name: 'Folder' } satisfies FolderCreate)).toEqualTypeOf<Promise<Folder>>();
+    expectTypeOf<ReturnType<FolderClient['create']>>().toEqualTypeOf<Promise<FolderCreateResult>>();
     expectTypeOf<ReturnType<FolderClient['createResource']>>().toEqualTypeOf<Promise<FolderResource>>();
-    expectTypeOf(handle.update('folder-1', {} satisfies FolderUpdate)).toEqualTypeOf<Promise<Folder>>();
+    expectTypeOf<ReturnType<FolderClient['update']>>().toEqualTypeOf<Promise<FolderUpdateResult>>();
     expectTypeOf<ReturnType<FolderClient['updateResource']>>().toEqualTypeOf<Promise<FolderResource>>();
-    expectTypeOf(handle.delete('folder-1')).toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<FolderClient['delete']>>().toEqualTypeOf<Promise<void>>();
   });
 
   test('TagClient method signatures stay stable', () => {
@@ -376,13 +397,13 @@ describe('Public API contracts', () => {
     expectTypeOf<ReturnType<TagClient['listResources']>>().toEqualTypeOf<
       Promise<{ data: TagResource[]; nextCursor?: string | null }>
     >();
-    expectTypeOf(handle.get('tag-1')).toEqualTypeOf<Promise<Tag>>();
+    expectTypeOf<ReturnType<TagClient['get']>>().toEqualTypeOf<Promise<Tag>>();
     expectTypeOf<ReturnType<TagClient['getResource']>>().toEqualTypeOf<Promise<TagResource>>();
-    expectTypeOf(handle.create({ name: 'Tag' } satisfies TagMutation)).toEqualTypeOf<Promise<Tag>>();
+    expectTypeOf<ReturnType<TagClient['create']>>().toEqualTypeOf<Promise<Tag>>();
     expectTypeOf<ReturnType<TagClient['createResource']>>().toEqualTypeOf<Promise<TagResource>>();
-    expectTypeOf(handle.update('tag-1', { name: 'Renamed' } satisfies TagMutation)).toEqualTypeOf<Promise<Tag>>();
+    expectTypeOf<ReturnType<TagClient['update']>>().toEqualTypeOf<Promise<TagMutationResult>>();
     expectTypeOf<ReturnType<TagClient['updateResource']>>().toEqualTypeOf<Promise<TagResource>>();
-    expectTypeOf(handle.delete('tag-1')).toEqualTypeOf<Promise<Tag>>();
+    expectTypeOf<ReturnType<TagClient['delete']>>().toEqualTypeOf<Promise<TagMutationResult>>();
   });
 
   test('UserClient method signatures stay stable', () => {
@@ -392,13 +413,11 @@ describe('Public API contracts', () => {
     expectTypeOf<ReturnType<UserClient['listResources']>>().toEqualTypeOf<
       Promise<{ data: UserResource[]; nextCursor?: string | null }>
     >();
-    expectTypeOf(handle.get('user-1', {} satisfies UserGetParams)).toEqualTypeOf<Promise<User>>();
+    expectTypeOf<ReturnType<UserClient['get']>>().toEqualTypeOf<Promise<User>>();
     expectTypeOf<ReturnType<UserClient['getResource']>>().toEqualTypeOf<Promise<UserResource>>();
-    expectTypeOf(handle.create([{ email: 'user@example.com' }] satisfies UserCreate[])).toEqualTypeOf<
-      Promise<UserCreateResponse>
-    >();
-    expectTypeOf(handle.delete('user-1')).toEqualTypeOf<Promise<void>>();
-    expectTypeOf(handle.changeRole('user-1', 'global:admin')).toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<UserClient['create']>>().toEqualTypeOf<Promise<UserCreateResponse>>();
+    expectTypeOf<ReturnType<UserClient['delete']>>().toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<UserClient['changeRole']>>().toEqualTypeOf<Promise<void>>();
   });
 
   test('VariableClient method signatures stay stable', () => {
@@ -427,19 +446,15 @@ describe('Public API contracts', () => {
     expectTypeOf<ReturnType<CommunityPackageClient['getResource']>>().toEqualTypeOf<
       Promise<CommunityPackageResource>
     >();
-    expectTypeOf(handle.install({ name: 'n8n-nodes-test' } satisfies InstallCommunityPackageRequest)).toEqualTypeOf<
-      Promise<CommunityPackage>
-    >();
+    expectTypeOf<ReturnType<CommunityPackageClient['install']>>().toEqualTypeOf<Promise<CommunityPackage>>();
     expectTypeOf<ReturnType<CommunityPackageClient['installResource']>>().toEqualTypeOf<
       Promise<CommunityPackageResource>
     >();
-    expectTypeOf(handle.update('n8n-nodes-test', {} satisfies UpdateCommunityPackageRequest)).toEqualTypeOf<
-      Promise<CommunityPackage>
-    >();
+    expectTypeOf<ReturnType<CommunityPackageClient['update']>>().toEqualTypeOf<Promise<CommunityPackage>>();
     expectTypeOf<ReturnType<CommunityPackageClient['updateResource']>>().toEqualTypeOf<
       Promise<CommunityPackageResource>
     >();
-    expectTypeOf(handle.uninstall('n8n-nodes-test')).toEqualTypeOf<Promise<void>>();
+    expectTypeOf<ReturnType<CommunityPackageClient['uninstall']>>().toEqualTypeOf<Promise<void>>();
   });
 
   test('AuditClient, InsightsClient, SecurityPolicyClient, SourceControlClient, DiscoverClient, and N8nPackageClient stay stable', () => {
@@ -450,8 +465,8 @@ describe('Public API contracts', () => {
     const discover = new DiscoverClient(createMockHttpClient());
     const n8nPackage = new N8nPackageClient(createMockHttpClient());
 
-    expectTypeOf(audit.generate({} satisfies AuditRequest)).toEqualTypeOf<Promise<Audit>>();
-    expectTypeOf(insights.getSummary({} satisfies InsightsSummaryParams)).toEqualTypeOf<Promise<InsightsSummary>>();
+    expectTypeOf<ReturnType<AuditClient['generate']>>().toEqualTypeOf<Promise<Audit>>();
+    expectTypeOf<ReturnType<InsightsClient['getSummary']>>().toEqualTypeOf<Promise<InsightsSummary>>();
     expectTypeOf(securityPolicy.get()).toEqualTypeOf<Promise<SecurityPolicy>>();
     expectTypeOf(
       securityPolicy.update({
@@ -460,11 +475,9 @@ describe('Public API contracts', () => {
         redactionEnforcement: { floor: 'production' },
       } satisfies SecurityPolicyUpdate),
     ).toEqualTypeOf<Promise<SecurityPolicy>>();
-    expectTypeOf(sourceControl.pull({} satisfies PullRequest)).toEqualTypeOf<Promise<SourceControlledFile[]>>();
-    expectTypeOf(discover.get({} satisfies DiscoverParams)).toEqualTypeOf<Promise<DiscoverResponse>>();
-    expectTypeOf(n8nPackage.exportWorkflows({ workflowIds: [] } satisfies ExportWorkflowsRequest)).toEqualTypeOf<
-      Promise<ArrayBuffer>
-    >();
+    expectTypeOf<ReturnType<SourceControlClient['pull']>>().toEqualTypeOf<Promise<SourceControlledFile[]>>();
+    expectTypeOf<ReturnType<DiscoverClient['get']>>().toEqualTypeOf<Promise<DiscoverResponse>>();
+    expectTypeOf<ReturnType<N8nPackageClient['exportWorkflows']>>().toEqualTypeOf<Promise<ArrayBuffer>>();
     expectTypeOf(
       n8nPackage.importPackage(new Blob(['pkg']), { workflowConflictPolicy: 'fail' } satisfies ImportPackageOptions),
     ).toEqualTypeOf<Promise<ImportPackageResponse>>();
@@ -557,6 +570,9 @@ describe('Public API contracts', () => {
       Promise<WorkflowResource>
     >();
     expectTypeOf<ReturnType<ProjectFolderResourceCollection['getResource']>>().toEqualTypeOf<Promise<FolderResource>>();
+    expectTypeOf<ReturnType<ProjectFolderResourceCollection['listResources']>>().toEqualTypeOf<
+      Promise<FolderResourcePage>
+    >();
     expectTypeOf<ReturnType<ProjectFolderResourceCollection['updateResource']>>().toEqualTypeOf<
       Promise<FolderResource>
     >();
@@ -592,29 +608,29 @@ describe('Public API contracts', () => {
     expectTypeOf<ReturnType<WorkflowExecutionResourceCollection['getResource']>>().toEqualTypeOf<
       Promise<ExecutionResource>
     >();
-    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['get']>>().toEqualTypeOf<Promise<Workflow>>();
-    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['create']>>().toEqualTypeOf<Promise<Workflow>>();
-    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['update']>>().toEqualTypeOf<Promise<Workflow>>();
+    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['get']>>().toEqualTypeOf<Promise<WorkflowDetail>>();
+    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['create']>>().toEqualTypeOf<Promise<WorkflowDetail>>();
+    expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['update']>>().toEqualTypeOf<
+      Promise<WorkflowMutationResult>
+    >();
     expectTypeOf<ReturnType<ProjectWorkflowResourceCollection['patch']>>().toEqualTypeOf<Promise<Workflow>>();
     expectTypeOf<ReturnType<ProjectVariableResourceCollection['get']>>().toEqualTypeOf<Promise<Variable>>();
     expectTypeOf<ReturnType<ProjectVariableResourceCollection['patch']>>().toEqualTypeOf<Promise<void>>();
-    expectTypeOf<ReturnType<ProjectFolderResourceCollection['create']>>().toEqualTypeOf<Promise<Folder>>();
-    expectTypeOf<ReturnType<ProjectFolderResourceCollection['update']>>().toEqualTypeOf<Promise<Folder>>();
+    expectTypeOf<ReturnType<ProjectFolderResourceCollection['create']>>().toEqualTypeOf<Promise<FolderCreateResult>>();
+    expectTypeOf<ReturnType<ProjectFolderResourceCollection['update']>>().toEqualTypeOf<Promise<FolderUpdateResult>>();
     expectTypeOf<ReturnType<ProjectFolderResourceCollection['patch']>>().toEqualTypeOf<
-      Promise<Folder | FolderDetail>
+      Promise<Folder | FolderCreateResult | FolderDetail | FolderUpdateResult>
     >();
     expectTypeOf<ReturnType<ProjectDataTableResourceCollection['get']>>().toEqualTypeOf<Promise<DataTable>>();
     expectTypeOf<ReturnType<ProjectDataTableResourceCollection['create']>>().toEqualTypeOf<Promise<DataTable>>();
     expectTypeOf<ReturnType<ProjectDataTableResourceCollection['update']>>().toEqualTypeOf<Promise<DataTable>>();
     expectTypeOf<ReturnType<ProjectDataTableResourceCollection['patch']>>().toEqualTypeOf<Promise<DataTable>>();
     expectTypeOf<ReturnType<ProjectExecutionResourceCollection['get']>>().toEqualTypeOf<Promise<Execution>>();
-    expectTypeOf(project.update({ name: 'Renamed' })).toEqualTypeOf<Promise<ProjectResource>>();
-    expectTypeOf(project.patch({ name: 'Renamed' })).toEqualTypeOf<Promise<ProjectResource>>();
-    expectTypeOf(workflow.activate()).toEqualTypeOf<Promise<WorkflowResource>>();
-    expectTypeOf(workflow.update({ name: 'Updated', nodes: [], connections: {}, settings: {} })).toEqualTypeOf<
-      Promise<WorkflowResource>
-    >();
-    expectTypeOf(workflow.patch({ name: 'Updated' })).toEqualTypeOf<Promise<WorkflowResource>>();
+    expectTypeOf<ReturnType<ProjectResource['update']>>().toEqualTypeOf<Promise<ProjectResource>>();
+    expectTypeOf<ReturnType<ProjectResource['patch']>>().toEqualTypeOf<Promise<ProjectResource>>();
+    expectTypeOf<ReturnType<WorkflowResource['activate']>>().toEqualTypeOf<Promise<WorkflowResource>>();
+    expectTypeOf<ReturnType<WorkflowResource['update']>>().toEqualTypeOf<Promise<WorkflowResource>>();
+    expectTypeOf<ReturnType<WorkflowResource['patch']>>().toEqualTypeOf<Promise<WorkflowResource>>();
   });
 
   test('CredentialResource, FolderResource, TagResource, and UserResource bind single-resource operations', () => {
@@ -660,13 +676,13 @@ describe('Public API contracts', () => {
       mfaEnabled: false,
     });
 
-    expectTypeOf(credential.update({ name: 'Renamed' })).toEqualTypeOf<Promise<CredentialResource>>();
-    expectTypeOf(credential.patch({ name: 'Renamed' })).toEqualTypeOf<Promise<CredentialResource>>();
-    expectTypeOf(folder.update({ name: 'Renamed' })).toEqualTypeOf<Promise<FolderResource>>();
-    expectTypeOf(folder.patch({ name: 'Renamed' })).toEqualTypeOf<Promise<FolderResource>>();
-    expectTypeOf(tag.update({ name: 'Renamed' })).toEqualTypeOf<Promise<TagResource>>();
-    expectTypeOf(tag.patch({ name: 'Renamed' })).toEqualTypeOf<Promise<TagResource>>();
-    expectTypeOf(user.changeRole('global:admin')).toEqualTypeOf<Promise<UserResource>>();
+    expectTypeOf<ReturnType<CredentialResource['update']>>().toEqualTypeOf<Promise<CredentialResource>>();
+    expectTypeOf<ReturnType<CredentialResource['patch']>>().toEqualTypeOf<Promise<CredentialResource>>();
+    expectTypeOf<ReturnType<FolderResource['update']>>().toEqualTypeOf<Promise<FolderResource>>();
+    expectTypeOf<ReturnType<FolderResource['patch']>>().toEqualTypeOf<Promise<FolderResource>>();
+    expectTypeOf<ReturnType<TagResource['update']>>().toEqualTypeOf<Promise<TagResource>>();
+    expectTypeOf<ReturnType<TagResource['patch']>>().toEqualTypeOf<Promise<TagResource>>();
+    expectTypeOf<ReturnType<UserResource['changeRole']>>().toEqualTypeOf<Promise<UserResource>>();
   });
 
   test('ExecutionResource, VariableResource, and DataTableResource bind single-resource operations', () => {
@@ -698,11 +714,11 @@ describe('Public API contracts', () => {
       updatedAt: '',
     });
 
-    expectTypeOf(execution.retry()).toEqualTypeOf<Promise<ExecutionResource>>();
-    expectTypeOf(variable.update({ key: 'KEY', value: 'NEXT' })).toEqualTypeOf<Promise<VariableResource>>();
-    expectTypeOf(variable.patch({ value: 'NEXT' })).toEqualTypeOf<Promise<VariableResource>>();
-    expectTypeOf(dataTable.update({ name: 'Renamed' })).toEqualTypeOf<Promise<DataTableResource>>();
-    expectTypeOf(dataTable.patch({ name: 'Renamed' })).toEqualTypeOf<Promise<DataTableResource>>();
+    expectTypeOf<ReturnType<ExecutionResource['retry']>>().toEqualTypeOf<Promise<ExecutionResource>>();
+    expectTypeOf<ReturnType<VariableResource['update']>>().toEqualTypeOf<Promise<VariableResource>>();
+    expectTypeOf<ReturnType<VariableResource['patch']>>().toEqualTypeOf<Promise<VariableResource>>();
+    expectTypeOf<ReturnType<DataTableResource['update']>>().toEqualTypeOf<Promise<DataTableResource>>();
+    expectTypeOf<ReturnType<DataTableResource['patch']>>().toEqualTypeOf<Promise<DataTableResource>>();
   });
 
   test('CommunityPackageResource binds package-level operations', () => {
@@ -717,8 +733,8 @@ describe('Public API contracts', () => {
       updatedAt: '',
     });
 
-    expectTypeOf(communityPackage.update({ version: '2.0.0' })).toEqualTypeOf<Promise<CommunityPackageResource>>();
-    expectTypeOf(communityPackage.patch({ version: '2.0.0' })).toEqualTypeOf<Promise<CommunityPackageResource>>();
+    expectTypeOf<ReturnType<CommunityPackageResource['update']>>().toEqualTypeOf<Promise<CommunityPackageResource>>();
+    expectTypeOf<ReturnType<CommunityPackageResource['patch']>>().toEqualTypeOf<Promise<CommunityPackageResource>>();
   });
 
   test('resources expose toObject() and keep toJSON() as an alias', () => {
@@ -786,10 +802,15 @@ describe('Public API contracts', () => {
     );
 
     source.name = 'Mutated outside';
+    source.nodes.push({} as never);
+    const publicData = workflow.data;
+    publicData.nodes.push({} as never);
     const cloned = workflow.toObject();
     cloned.name = 'Mutated clone';
+    cloned.nodes.push({} as never);
 
     expect(workflow.name).toBe('Workflow');
     expect(workflow.data.name).toBe('Workflow');
+    expect(workflow.data.nodes).toEqual([]);
   });
 });

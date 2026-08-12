@@ -3,6 +3,7 @@ import ExecutionClient from '../clients/execution.js';
 import WorkflowClient from '../clients/workflow.js';
 import { HttpError } from '../http-client.js';
 import type {
+  Execution,
   ExecutionGetParams,
   ExecutionListParams,
   ExecutionListResponse,
@@ -16,55 +17,87 @@ import type {
 import BaseResource from './base.js';
 import ExecutionResource from './execution.js';
 
-export interface WorkflowExecutionResourceCollection {
-  list(params?: Omit<ExecutionListParams, 'workflowId'>): Promise<ExecutionListResponse>;
-  listResources(params?: Omit<ExecutionListParams, 'workflowId'>): Promise<PaginatedResponse<ExecutionResource>>;
-  get(id: number, params?: ExecutionGetParams): Promise<import('../types.js').Execution>;
-  getResource(id: number, params?: ExecutionGetParams): Promise<ExecutionResource>;
+function hasOwn(record: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+export class WorkflowExecutionResourceCollection {
+  constructor(
+    private readonly workflowId: string,
+    private readonly executionsClient: ExecutionClient,
+    private readonly assertExecutionInWorkflow: (execution: Execution) => void,
+  ) {}
+
+  list(params?: Omit<ExecutionListParams, 'workflowId'>): Promise<ExecutionListResponse> {
+    return this.executionsClient.list({ ...params, workflowId: this.workflowId });
+  }
+
+  listResources(params?: Omit<ExecutionListParams, 'workflowId'>): Promise<PaginatedResponse<ExecutionResource>> {
+    return this.executionsClient.listResources({ ...params, workflowId: this.workflowId });
+  }
+
+  async get(id: number, params?: ExecutionGetParams): Promise<import('../types.js').Execution> {
+    const execution = await this.executionsClient.get(id, params);
+    this.assertExecutionInWorkflow(execution);
+    return execution;
+  }
+
+  async getResource(id: number, params?: ExecutionGetParams): Promise<ExecutionResource> {
+    const execution = await this.executionsClient.get(id, params);
+    this.assertExecutionInWorkflow(execution);
+    return new ExecutionResource(this.executionsClient, execution, params);
+  }
 }
 
 export default class WorkflowResource extends BaseResource<Workflow> {
+  private readonly executionCollection: WorkflowExecutionResourceCollection;
+
   constructor(
     private readonly workflows: WorkflowClient,
     private readonly executionsClient: ExecutionClient,
     workflow: Workflow,
   ) {
     super(workflow);
+    this.executionCollection = new WorkflowExecutionResourceCollection(this.id, this.executionsClient, (execution) =>
+      this.assertExecutionInWorkflow(execution),
+    );
   }
 
   get id(): string {
-    return this.data.id;
+    return this.snapshot.id;
   }
 
   get name(): string {
-    return this.data.name;
+    return this.snapshot.name;
   }
 
   get active(): boolean {
-    return this.data.active;
+    return this.snapshot.active;
   }
 
   get isArchived(): boolean {
-    return this.data.isArchived;
+    return this.snapshot.isArchived;
   }
 
   get versionId(): string {
-    return this.data.versionId;
+    return this.snapshot.versionId;
   }
 
   async update(data: WorkflowUpdate): Promise<this> {
-    return this.replaceSnapshot(await this.workflows.update(this.id, data));
+    return this.mergeSnapshot(await this.workflows.update(this.id, data));
   }
 
   async patch(data: Partial<WorkflowUpdate>): Promise<this> {
+    const snapshot = this.snapshot;
+
     return this.update({
-      name: this.data.name,
-      description: this.data.description,
-      nodes: this.data.nodes,
-      connections: this.data.connections,
-      settings: this.data.settings ?? {},
-      staticData: this.data.staticData,
-      pinData: this.data.pinData,
+      name: snapshot.name,
+      nodes: snapshot.nodes,
+      connections: snapshot.connections,
+      settings: snapshot.settings,
+      ...(hasOwn(snapshot, 'description') ? { description: snapshot.description } : {}),
+      ...(hasOwn(snapshot, 'staticData') ? { staticData: snapshot.staticData } : {}),
+      ...(hasOwn(snapshot, 'pinData') ? { pinData: snapshot.pinData } : {}),
       ...data,
     });
   }
@@ -74,19 +107,19 @@ export default class WorkflowResource extends BaseResource<Workflow> {
   }
 
   async activate(data?: WorkflowActivateRequest): Promise<this> {
-    return this.replaceSnapshot(await this.workflows.activate(this.id, data));
+    return this.mergeSnapshot(await this.workflows.activate(this.id, data));
   }
 
   async deactivate(): Promise<this> {
-    return this.replaceSnapshot(await this.workflows.deactivate(this.id));
+    return this.mergeSnapshot(await this.workflows.deactivate(this.id));
   }
 
   async archive(): Promise<this> {
-    return this.replaceSnapshot(await this.workflows.archive(this.id));
+    return this.mergeSnapshot(await this.workflows.archive(this.id));
   }
 
   async unarchive(): Promise<this> {
-    return this.replaceSnapshot(await this.workflows.unarchive(this.id));
+    return this.mergeSnapshot(await this.workflows.unarchive(this.id));
   }
 
   async transfer(destinationProjectId: string): Promise<void> {
@@ -108,38 +141,17 @@ export default class WorkflowResource extends BaseResource<Workflow> {
   }
 
   executions(): WorkflowExecutionResourceCollection {
-    return {
-      list: (params) => this.executionsClient.list({ ...params, workflowId: this.id }),
-      listResources: (params) => this.executionsClient.listResources({ ...params, workflowId: this.id }),
-      get: async (id, params) => {
-        if (!(await this.hasExecutionInWorkflow(id))) {
-          throw new HttpError(404, `Execution not found in workflow: ${id}`, { id, workflowId: this.id });
-        }
-
-        return this.executionsClient.get(id, params);
-      },
-      getResource: async (id, params) => {
-        if (!(await this.hasExecutionInWorkflow(id))) {
-          throw new HttpError(404, `Execution not found in workflow: ${id}`, { id, workflowId: this.id });
-        }
-
-        return this.executionsClient.getResource(id, params);
-      },
-    };
+    return this.executionCollection;
   }
 
-  private async hasExecutionInWorkflow(id: number): Promise<boolean> {
-    let cursor: string | null | undefined;
+  private assertExecutionInWorkflow(execution: Execution): void {
+    if (String(execution.workflowId) === this.id) {
+      return;
+    }
 
-    do {
-      const response = await this.executionsClient.list({ workflowId: this.id, ...(cursor ? { cursor } : {}) });
-      if (response.data.some((execution) => execution.id === id)) {
-        return true;
-      }
-
-      cursor = response.nextCursor;
-    } while (cursor);
-
-    return false;
+    throw new HttpError(404, `Execution not found in workflow: ${execution.id}`, {
+      id: execution.id,
+      workflowId: this.id,
+    });
   }
 }

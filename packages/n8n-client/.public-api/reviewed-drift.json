@@ -1,0 +1,16 @@
+{
+  "supportedPublicApiVersion": "v1",
+  "supportedSpecVersion": "1.1.1",
+  "reviewedUpstreamOperationsMissingFromCheckedInSpec": [
+    "GET /settings/sso/saml",
+    "PUT /settings/sso/saml",
+    "POST /workflows/{id}/test-runs/{runId}/cancel",
+    "GET /settings/log-streaming/event-types",
+    "GET /settings/log-streaming/destinations",
+    "POST /settings/log-streaming/destinations",
+    "POST /settings/log-streaming/destinations/{id}/test",
+    "GET /settings/log-streaming/destinations/{id}",
+    "PUT /settings/log-streaming/destinations/{id}",
+    "DELETE /settings/log-streaming/destinations/{id}"
+  ]
+}

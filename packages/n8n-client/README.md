@@ -3,12 +3,12 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@egose/n8n-client"><img alt="npm version" src="https://img.shields.io/npm/v/%40egose%2Fn8n-client" /></a>
   <a href="https://www.npmjs.com/package/@egose/n8n-client"><img alt="npm downloads" src="https://img.shields.io/npm/dm/%40egose%2Fn8n-client" /></a>
-  <a href="https://github.com/egose/n8n-client/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/npm/l/%40egose%2Fn8n-client" /></a>
+  <a href="https://github.com/egose/n8n-toolkit/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/npm/l/%40egose%2Fn8n-client" /></a>
   <a href="https://n8n-client.pages.dev/"><img alt="docs" src="https://img.shields.io/badge/docs-online-blue" /></a>
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/egose/n8n-client/main/website/static/img/n8n-client-lockup-dark.png" alt="n8n Client" width="640" />
+  <img src="https://raw.githubusercontent.com/egose/n8n-toolkit/main/website/static/img/n8n-client-lockup-dark.png" alt="n8n Client" width="640" />
 </p>
 
 <p align="center">
@@ -18,14 +18,14 @@
 <p align="center">
   <a href="https://n8n-client.pages.dev">Documentation</a>
   ·
-  <a href="https://github.com/egose/n8n-client">GitHub</a>
+  <a href="https://github.com/egose/n8n-toolkit/tree/main/packages/n8n-client">GitHub</a>
   ·
   <a href="https://www.npmjs.com/package/@egose/n8n-client">npm</a>
 </p>
 
 ## What It Is
 
-`@egose/n8n-client` provides a TypeScript client for the [n8n Public API](https://docs.n8n.io/api/). Instead of manually constructing HTTP requests and parsing responses, you work through resource clients:
+`@egose/n8n-client` provides a TypeScript client for the reviewed [n8n Public API](https://docs.n8n.io/api/) contract. The checked-in contract currently targets n8n Public API `v1` spec `v1.1.1`, and reviewed upstream drift is tracked under `packages/n8n-client/.public-api/`. Instead of manually constructing HTTP requests and parsing responses, you work through resource clients:
 
 ```ts
 const client = new N8nClient({ baseUrl: 'http://localhost:5678', apiKey: 'your-api-key' }); // pragma: allowlist secret
@@ -37,11 +37,20 @@ const executions = await client.executions().list({ workflowId: 'wf-1', status: 
 
 ## Why Use It
 
-- Typed request/response objects for all n8n API endpoints
+- Typed request/response objects for the reviewed n8n Public API `v1.1.1` contract
 - Cursor-based pagination built in
-- Automatic retry on transient server errors (5xx, 429, 408)
+- Automatic retry for `GET`, `HEAD`, and `OPTIONS` requests on `408`, `429`, `500`, `502`, `503`, and `504`
 - Consistent resource client pattern across all resource types
 - Supports both API key and Bearer token authentication
+
+## Supported Contract
+
+- Supported public API generation: `v1`
+- Reviewed checked-in OpenAPI spec: `packages/n8n-client/.public-api/v1.1.1.yml`
+- Reviewed upstream/spec drift record: `packages/n8n-client/.public-api/DIFF-v1.1.1.md`
+- CI-enforced reviewed drift allowlist: `packages/n8n-client/.public-api/reviewed-drift.json`
+
+When upstream n8n changes, update the checked-in spec or diff, review the behavior change, and then update the allowlist deliberately. The client does not claim completeness beyond that reviewed contract.
 
 ## Installation
 
@@ -50,7 +59,7 @@ Requirements:
 - Node.js `>=20`
 
 ```bash
-npm install @egose/n8n-client
+pnpm add @egose/n8n-client
 ```
 
 ## Quick Start
@@ -67,7 +76,7 @@ const client = new N8nClient({
 const { data: workflows, nextCursor } = await client.workflows().list({ limit: 10 });
 
 // Create a workflow
-const workflow = await client.workflows().create({
+const createdWorkflow = await client.workflows().create({
   name: 'My Workflow',
   nodes: [{ name: 'Start', type: 'n8n-nodes-base.start', position: [250, 300] }],
   connections: {},
@@ -75,10 +84,10 @@ const workflow = await client.workflows().create({
 });
 
 // Activate it
-await client.workflows().activate(workflow.id);
+await client.workflows().activate(createdWorkflow.id);
 
 // List executions
-const { data: executions } = await client.executions().list({ workflowId: workflow.id });
+const { data: executions } = await client.executions().list({ workflowId: createdWorkflow.id });
 
 // Create a credential
 const credential = await client.credentials().create({
@@ -92,7 +101,7 @@ const testResult = await client.credentials().test(credential.id);
 
 // Manage tags
 const tag = await client.tags().create({ name: 'production' });
-await client.workflows().updateTags(workflow.id, [{ id: tag.id }]);
+await client.workflows().updateTags(createdWorkflow.id, [{ id: tag.id }]);
 
 // Manage projects
 const projects = await client.projects().list();
@@ -102,8 +111,8 @@ await client.projects().addMembers(projects.data[0].id, [{ userId: 'user-1', rol
 const project = await client.projects().getResource(projects.data[0].id);
 await project.update({ name: 'Production' });
 
-const workflow = await client.workflows().getResource('wf-1');
-await workflow.activate();
+const workflowResource = await client.workflows().getResource('wf-1');
+await workflowResource.activate();
 
 // Insights
 const summary = await client.insights().getSummary({
@@ -134,9 +143,15 @@ const client = new N8nClient({
 });
 ```
 
+`discover()` is the important exception in the reviewed `v1.1.1` contract: n8n's handler reads `X-N8N-API-KEY` directly, so this client only supports `client.discover().get()` when configured with `apiKey`. Bearer-auth clients fail fast with a clear error instead of making a request that supported versions do not authenticate consistently.
+
 ## Resource Clients
 
 Raw collection methods like `list()` and `get()` return plain API response objects.
+
+Workflow endpoints return endpoint-specific workflow shapes: `list()` returns `WorkflowListItem`, `get()` and observed create responses return `WorkflowDetail`, and compact mutation endpoints such as `update()`, `archive()`, and `deactivate()` return `WorkflowMutationResult`. Bound `WorkflowResource` instances merge compact mutation responses over the existing snapshot so omitted enrichment fields do not erase known state.
+
+The same omission-preserving policy applies to other compact endpoints. `tags().update()` and `tags().delete()` return `TagMutationResult` because n8n only returns `id` and `name`. Folder endpoints use `FolderCreateResult`, `FolderListItem`, `FolderDetail`, and `FolderUpdateResult` to reflect the observed shape differences, and folder list operations use offset pagination with numeric `skip`/`take` parameters and `{ count, data }` pages instead of cursor pages. `listResources()` preserves that shape as `FolderResourcePage`. `projects().create()` returns `ProjectCreateResult` so `role` and project-effective `scopes` stay associated with responses that actually include effective permissions. `discover().get()` exposes `data.apiKeyScopes` so API-key authorization data is not confused with project-effective scopes. `DataTable` list items keep column `dataTableId` aligned with the parent table id instead of fabricating `null`.
 
 Opt into bound resource objects when you want instance methods:
 
@@ -147,7 +162,7 @@ await project.update({ name: 'Ops' });
 const workflows = await project.workflows().listResources();
 await workflows.data[0]?.archive();
 
-const folders = await project.folders().listResources({ take: '10' });
+const folders = await project.folders().listResources({ take: 10 });
 await folders.data[0]?.update({ name: 'Archived Workflows' });
 await folders.data[0]?.patch({ parentFolderId: 'archive-root' });
 
@@ -259,9 +274,16 @@ Rule of thumb:
 - `create()` mirrors the underlying API/client return type
 - `createResource()` returns a bound resource instance when the API returns the created entity
 - `updateResource()` returns a bound resource instance when the updated result can be represented honestly, either from the update response itself or from a verified follow-up fetch
-- `patch()` / `patchResource()` are convenience helpers on bound resources and nested collections that merge your partial fields over the current resource snapshot before calling the underlying update path
+- `patch()` / `patchResource()` mirror the underlying endpoint semantics: true partial endpoints forward only the fields you supply, while full-body update endpoints such as workflows and data tables expand the current snapshot to satisfy required request fields
 
 `projects().createResource()` is intentionally not available because `POST /projects` returns no entity or identifier.
+
+Snapshot rule of thumb:
+
+- `VariableResource`, `ProjectResource`, and `UserResource` refresh after void mutations before updating `data`, so their public snapshots stay confirmed instead of optimistic
+- `CredentialResource`, `FolderResource`, and `CommunityPackageResource` treat `update()` and `patch()` as equivalent partial-update helpers and do not resend omitted mutable fields from stale local state
+- `WorkflowResource` and `DataTableResource` keep `patch()` as a convenience wrapper for endpoints that require a complete request body
+- `TagResource`, `FolderResource`, and `WorkflowResource` may merge compact mutation responses over previously confirmed snapshots when the API omits enrichment fields from the latest DTO
 
 ### Workflow
 
@@ -435,8 +457,9 @@ await dataTableApi.deleteColumn('dt-1', 'col-1');
 
 ```ts
 const folderApi = client.folders('proj-1');
+const folderPage = await folderApi.list({ skip: 0, take: 10 });
 
-const { data } = await folderApi.list({ take: '10' });
+const { data } = await folderApi.list({ take: 10 });
 const folder = await folderApi.get('f-1');
 const created = await folderApi.create({ name: 'My Folder' });
 const updated = await folderApi.update('f-1', { name: 'Renamed' });
@@ -483,11 +506,17 @@ const summary = await client.insights().getSummary({
 const files = await client.sourceControl().pull({ force: false, autoPublish: 'none' });
 ```
 
+`sourceControl()` currently implements pull only. It does not expose a "list files" operation.
+
 ### Discover
 
 ```ts
 const capabilities = await client.discover().get({ include: 'schemas' });
+
+console.log(capabilities.data.apiKeyScopes);
 ```
+
+The optional `securityPolicy()` endpoints also need care: a `404` can mean the route is unavailable for the deployed n8n version, feature flag, license state, route registration, or caller privileges. Treat that response as "endpoint unavailable here" unless you have independent deployment context proving a narrower cause.
 
 ## Error Handling
 
@@ -505,7 +534,24 @@ try {
 }
 ```
 
-Transient errors (408, 429, 5xx) are automatically retried up to 3 times with exponential backoff.
+By default, only `GET`, `HEAD`, and `OPTIONS` requests retry. The transport retries up to 3 total attempts for `408`, `429`, `500`, `502`, `503`, and `504`, plus network failures raised by `fetch` before a response is received.
+
+`requestTimeoutMs` is a total deadline for the whole request, not a per-attempt timeout. The 30-second default includes all retries and backoff delays. You can override it per request with `timeoutMs`, disable retries with `retry: false`, force retries for an unsafe request with `retry: true`, and stop the whole operation with a caller `AbortSignal`:
+
+```ts
+const controller = new AbortController();
+
+await client.request({
+  method: 'POST',
+  path: '/workflows',
+  body: { name: 'Create once' },
+  retry: true,
+  timeoutMs: 10_000,
+  signal: controller.signal,
+});
+```
+
+When the server sends `Retry-After` on `429` or `503`, the client honors both delta-seconds and HTTP-date values up to a 30-second cap. Retry delays add bounded positive jitter to avoid stampedes without retrying earlier than the server requested.
 
 ## Main Entry Points
 
@@ -526,6 +572,7 @@ Transient errors (408, 429, 5xx) are automatically retried up to 3 times with ex
 | `audit()`             | `AuditClient`            | Generate security audit                          |
 | `insights()`          | `InsightsClient`         | Execution insights summary                       |
 | `sourceControl()`     | `SourceControlClient`    | Git-based source control pull                    |
+| `securityPolicy()`    | `SecurityPolicyClient`   | Get/update security policy settings              |
 | `discover()`          | `DiscoverClient`         | API capability discovery                         |
 | `n8nPackage()`        | `N8nPackageClient`       | Package export/import (beta)                     |
 
@@ -539,16 +586,18 @@ Transient errors (408, 429, 5xx) are automatically retried up to 3 times with ex
 ## Development
 
 ```bash
-npm install
-npm run build
-npm test
+pnpm install
+pnpm build
+pnpm typecheck
+pnpm test
 ```
 
 ### Test Layers
 
-- `npm run test:unit` — Runs mocked unit tests in `tests/implementation-*.spec.ts`. These verify the client's HTTP method selection, parameter forwarding, and response handling.
-- `npm run test:integration` — Reserved for live integration tests against a running n8n instance.
-- `npm test` — Runs the full suite.
+- `pnpm test:unit` — Runs mocked unit tests in `tests/*.spec.ts` except `tests/integration-*.spec.ts`. These verify the client's HTTP method selection, parameter forwarding, and response handling.
+- `pnpm test:docs` — Builds the package and compiles every TypeScript block in this README against the published `@egose/n8n-client` entrypoint.
+- `pnpm test:integration` — Reserved for live integration tests against a running n8n instance.
+- `pnpm test` — Runs unit tests plus the README documentation compile check.
 
 ## License
 

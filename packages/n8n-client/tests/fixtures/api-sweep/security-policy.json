@@ -1,0 +1,10 @@
+{
+  "personalSpacePublishing": true,
+  "personalSpaceSharing": false,
+  "publishedPersonalWorkflowsCount": 2,
+  "sharedPersonalWorkflowsCount": 1,
+  "sharedPersonalCredentialsCount": 3,
+  "redactionEnforcement": {
+    "floor": "production"
+  }
+}

@@ -4,15 +4,10 @@ import CredentialResource from '../src/resources/credential';
 import { createMockHttpClient } from './test-utils';
 
 const normalizedCredential = <T extends Record<string, unknown>>(credential: T) => ({
-  resolvableAllowFallback: false,
-  resolverId: null,
   ...credential,
 });
 
 const normalizedCredentialSchema = <T extends Record<string, unknown>>(schema: T) => ({
-  additionalProperties: false,
-  properties: {},
-  required: [],
   ...schema,
 });
 
@@ -45,6 +40,32 @@ describe('Implementation Consistency: Credential', () => {
 
     expect(http.get).toHaveBeenCalledWith('/credentials/c-1');
     expect(result).toEqual(normalizedCredential(cred));
+  });
+
+  test('get rejects null credential responses at the response boundary', async () => {
+    const http = createMockHttpClient([{ body: null }]);
+    const handle = new CredentialClient(http);
+
+    await expect(handle.get('c-1')).rejects.toThrow('credential must be an object');
+  });
+
+  test('get rejects credential responses missing mandatory identity fields', async () => {
+    const http = createMockHttpClient([
+      {
+        body: {
+          name: 'GitHub API',
+          type: 'githubApi',
+          isManaged: false,
+          isGlobal: true,
+          isResolvable: true,
+          createdAt: '',
+          updatedAt: '',
+        },
+      },
+    ]);
+    const handle = new CredentialClient(http);
+
+    await expect(handle.get('c-1')).rejects.toThrow('credential.id must be a string');
   });
 
   test('getResource returns a bound credential resource', async () => {
@@ -217,7 +238,12 @@ describe('Implementation Consistency: Credential', () => {
   });
 
   test('getSchema calls GET /credentials/schema/:typeName', async () => {
-    const schema = { type: 'object', properties: { token: { type: 'string' } } };
+    const schema = {
+      additionalProperties: false,
+      type: 'object',
+      properties: { token: { type: 'string' } },
+      required: [],
+    };
     const http = createMockHttpClient([{ body: schema }]);
     const handle = new CredentialClient(http);
 
@@ -240,7 +266,7 @@ describe('Implementation Consistency: Credential', () => {
       createdAt: '',
       updatedAt: '',
     };
-    const schema = { type: 'object' };
+    const schema = { additionalProperties: false, type: 'object', properties: {}, required: [] };
     const http = createMockHttpClient([
       { body: updated },
       { body: { status: 'OK', message: 'Connection successful' } },
@@ -275,7 +301,7 @@ describe('Implementation Consistency: Credential', () => {
     expect(deleted.id).toBe('c-1');
   });
 
-  test('credential resource patch merges writable fields from the current snapshot', async () => {
+  test('credential resource patch forwards only the supplied partial payload', async () => {
     const patched = {
       id: 'c-1',
       name: 'Patched',
@@ -305,12 +331,7 @@ describe('Implementation Consistency: Credential', () => {
 
     await resource.patch({ name: 'Patched' });
 
-    expect(http.patch).toHaveBeenCalledWith('/credentials/c-1', {
-      name: 'Patched',
-      type: 'githubApi',
-      isGlobal: true,
-      isResolvable: true,
-    });
+    expect(http.patch).toHaveBeenCalledWith('/credentials/c-1', { name: 'Patched' });
     expect(resource.name).toBe('Patched');
   });
 });

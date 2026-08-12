@@ -1,5 +1,6 @@
 import type { PaginatedResponse } from '../pagination.js';
 import type { HttpClient } from '../http-client.js';
+import { encodePathSegment } from '../path.js';
 import type {
   Credential,
   CredentialCreate,
@@ -24,7 +25,7 @@ export default class CredentialClient extends BaseClient {
   }
 
   async get(id: string): Promise<CredentialDetail> {
-    return normalizeCredentialDetail(await this.http.get<CredentialDetail>(`/credentials/${id}`));
+    return normalizeCredentialDetail(await this.http.get<CredentialDetail>(`/credentials/${encodePathSegment(id)}`));
   }
 
   async getResource(id: string): Promise<CredentialResource> {
@@ -49,7 +50,9 @@ export default class CredentialClient extends BaseClient {
   }
 
   async update(id: string, data: CredentialUpdate): Promise<CredentialDetail> {
-    return normalizeCredentialDetail(await this.http.patch<CredentialDetail>(`/credentials/${id}`, data));
+    return normalizeCredentialDetail(
+      await this.http.patch<CredentialDetail>(`/credentials/${encodePathSegment(id)}`, data),
+    );
   }
 
   async updateResource(id: string, data: CredentialUpdate): Promise<CredentialResource> {
@@ -57,20 +60,20 @@ export default class CredentialClient extends BaseClient {
   }
 
   async delete(id: string): Promise<Credential> {
-    return this.http.delete<Credential>(`/credentials/${id}`);
+    return this.http.delete<Credential>(`/credentials/${encodePathSegment(id)}`);
   }
 
   async test(id: string): Promise<CredentialTestResponse> {
-    return this.http.post<CredentialTestResponse>(`/credentials/${id}/test`);
+    return this.http.post<CredentialTestResponse>(`/credentials/${encodePathSegment(id)}/test`);
   }
 
   async transfer(id: string, destinationProjectId: string): Promise<void> {
-    await this.http.put<void>(`/credentials/${id}/transfer`, { destinationProjectId });
+    await this.http.put<void>(`/credentials/${encodePathSegment(id)}/transfer`, { destinationProjectId });
   }
 
   async getSchema(credentialTypeName: string): Promise<CredentialSchema> {
     return normalizeCredentialSchema(
-      await this.http.get<CredentialSchema>(`/credentials/schema/${credentialTypeName}`),
+      await this.http.get<CredentialSchema>(`/credentials/schema/${encodePathSegment(credentialTypeName)}`),
     );
   }
 }

@@ -16,10 +16,18 @@ import InsightsClient from './clients/insights.js';
 import SourceControlClient from './clients/source-control.js';
 import DiscoverClient from './clients/discover.js';
 import N8nPackageClient from './clients/n8n-package.js';
+import {
+  SUPPORTED_DISCOVER_AUTH,
+  SUPPORTED_PUBLIC_API_SPEC_VERSION,
+  SUPPORTED_PUBLIC_API_VERSION,
+} from './public-api-contract.js';
 import SecurityPolicyClient from './clients/security-policy.js';
 
 /**
- * Root client for the n8n Public API v1.
+ * Root client for the reviewed n8n Public API contract.
+ *
+ * The checked-in OpenAPI contract is `v1.1.1` for n8n Public API `v1`.
+ * Reviewed upstream drift is tracked under `.public-api/`.
  *
  * Creates an HTTP client and provides access to all 16 resource clients.
  *
@@ -52,7 +60,6 @@ export default class N8nClient {
   readonly #securityPolicy: SecurityPolicyClient;
   readonly #discover: DiscoverClient;
   readonly #n8nPackage: N8nPackageClient;
-  readonly #folders = new Map<string, FolderClient>();
 
   /**
    * Create a new client instance.
@@ -75,7 +82,7 @@ export default class N8nClient {
     this.#insights = new InsightsClient(this.#http);
     this.#sourceControl = new SourceControlClient(this.#http);
     this.#securityPolicy = new SecurityPolicyClient(this.#http);
-    this.#discover = new DiscoverClient(this.#http);
+    this.#discover = new DiscoverClient(this.#http, config.apiKey ? SUPPORTED_DISCOVER_AUTH : 'bearerToken');
     this.#n8nPackage = new N8nPackageClient(this.#http);
   }
 
@@ -165,13 +172,7 @@ export default class N8nClient {
    * ```
    */
   folders(projectId: string) {
-    let folders = this.#folders.get(projectId);
-    if (!folders) {
-      folders = new FolderClient(this.#http, projectId);
-      this.#folders.set(projectId, folders);
-    }
-
-    return folders;
+    return new FolderClient(this.#http, projectId);
   }
 
   /** Community package management — list, install, update, uninstall. */
@@ -189,7 +190,7 @@ export default class N8nClient {
     return this.#insights;
   }
 
-  /** Source control operations — pull, list files (singleton). */
+  /** Source control operations — pull only (singleton). */
   sourceControl() {
     return this.#sourceControl;
   }
@@ -199,7 +200,7 @@ export default class N8nClient {
     return this.#securityPolicy;
   }
 
-  /** Resource discovery — list available API resources, operations, and filters (singleton). */
+  /** Resource discovery — API-key auth only in the reviewed contract (singleton). */
   discover() {
     return this.#discover;
   }
@@ -212,22 +213,47 @@ export default class N8nClient {
 
 export { HttpClient } from './http-client.js';
 export { HttpError } from './http-client.js';
+export {
+  SUPPORTED_DISCOVER_AUTH,
+  SUPPORTED_PUBLIC_API_SPEC_VERSION,
+  SUPPORTED_PUBLIC_API_VERSION,
+} from './public-api-contract.js';
+export { default as AuditClient } from './clients/audit.js';
+export { default as CommunityPackageClient } from './clients/community-package.js';
+export { default as CredentialClient } from './clients/credential.js';
+export { default as DataTableClient } from './clients/data-table.js';
+export { default as DiscoverClient } from './clients/discover.js';
+export { default as ExecutionClient } from './clients/execution.js';
+export { default as FolderClient } from './clients/folder.js';
+export { default as InsightsClient } from './clients/insights.js';
+export { default as N8nPackageClient } from './clients/n8n-package.js';
+export { default as ProjectClient } from './clients/project.js';
+export { default as SecurityPolicyClient } from './clients/security-policy.js';
+export { default as SourceControlClient } from './clients/source-control.js';
+export { default as TagClient } from './clients/tag.js';
+export { default as UserClient } from './clients/user.js';
+export { default as VariableClient } from './clients/variable.js';
+export { default as WorkflowClient } from './clients/workflow.js';
+export type { FolderResourcePage } from './clients/folder.js';
 export { default as CredentialResource } from './resources/credential.js';
 export { default as CommunityPackageResource } from './resources/community-package.js';
 export { default as DataTableResource } from './resources/data-table.js';
 export { default as ExecutionResource } from './resources/execution.js';
 export { default as FolderResource } from './resources/folder.js';
 export { default as ProjectResource } from './resources/project.js';
-export type { ProjectDataTableResourceCollection } from './resources/project.js';
-export type { ProjectExecutionResourceCollection } from './resources/project.js';
-export type { ProjectFolderResourceCollection } from './resources/project.js';
-export type { ProjectVariableResourceCollection } from './resources/project.js';
-export type { ProjectWorkflowResourceCollection } from './resources/project.js';
+export {
+  ProjectDataTableResourceCollection,
+  ProjectExecutionResourceCollection,
+  ProjectFolderResourceCollection,
+  ProjectVariableResourceCollection,
+  ProjectWorkflowResourceCollection,
+} from './resources/project.js';
 export { default as TagResource } from './resources/tag.js';
 export { default as UserResource } from './resources/user.js';
 export { default as VariableResource } from './resources/variable.js';
-export type { WorkflowExecutionResourceCollection } from './resources/workflow.js';
+export { WorkflowExecutionResourceCollection } from './resources/workflow.js';
 export { default as WorkflowResource } from './resources/workflow.js';
-export type { RequestOptions } from './http-client.js';
+export type { QueryParams, QueryPrimitive, QueryValue, RequestOptions } from './http-client.js';
+export type { N8nClientConfig } from './types.js';
 export type * from './types.js';
 export type { PaginationParams, PaginatedResponse } from './pagination.js';

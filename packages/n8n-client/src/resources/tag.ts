@@ -1,30 +1,32 @@
 import TagClient from '../clients/tag.js';
-import type { Tag, TagMutation } from '../types.js';
+import type { Tag, TagMutation, TagMutationResult } from '../types.js';
 import BaseResource from './base.js';
 
-export default class TagResource extends BaseResource<Tag> {
+export default class TagResource extends BaseResource<Tag | TagMutationResult> {
   constructor(
     private readonly tags: TagClient,
-    tag: Tag,
+    tag: Tag | TagMutationResult,
   ) {
     super(tag);
   }
 
   get id(): string {
-    return this.data.id;
+    return this.snapshot.id;
   }
 
   get name(): string {
-    return this.data.name;
+    return this.snapshot.name;
   }
 
   async update(data: TagMutation): Promise<this> {
-    return this.replaceSnapshot(await this.tags.update(this.id, data));
+    return this.mergeSnapshot(await this.tags.update(this.id, data));
   }
 
   async patch(data: Partial<TagMutation>): Promise<this> {
+    const snapshot = this.snapshot;
+
     return this.update({
-      name: this.data.name,
+      name: snapshot.name,
       ...data,
     });
   }

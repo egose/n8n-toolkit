@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "id": "testcase_observed_01",
+      "status": "success",
+      "runAt": "2026-07-22T00:42:01.000Z",
+      "completedAt": "2026-07-22T00:42:04.000Z",
+      "metrics": {
+        "assertions": 3,
+        "warnings": 0
+      },
+      "errorCode": null,
+      "errorDetails": null,
+      "inputs": {
+        "event": "synthetic"
+      },
+      "outputs": {
+        "ok": true
+      },
+      "executionId": "execution_observed_01"
+    }
+  ],
+  "nextCursor": null
+}

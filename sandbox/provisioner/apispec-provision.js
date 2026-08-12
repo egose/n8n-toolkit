@@ -9,8 +9,8 @@
  *      (only when N8N_LICENSE_ACTIVATION_KEY is non-empty; skipped otherwise
  *      so the sweep can still run against an unlicensed community instance and
  *      record 403s for license-gated endpoints)
- *   4. POST /rest/api-keys {label, scopes}  → returns rawApiKey
- *   5. write { baseUrl, apiKey } to /secrets/apispec-key.json
+ *   4. POST /rest/api-keys {label, scopes}  → returns rawApiKey for owner + restricted profiles
+ *   5. write a report-friendly auth profile payload to /secrets/apispec-key.json
  *
  * Usage: node apispec-provision.js <output-json-path>
  */
@@ -22,9 +22,40 @@ const {
   authenticate,
   createLogger,
   provisionApiKey,
+  readLicenseInfo,
+  readServerSettings,
+  resolveApiKeyScopes,
   waitForHealth,
   writeJsonFile,
 } = require('./common.js');
+
+const RESTRICTED_SCOPE_ALLOWLIST = new Set([
+  'workflow:read',
+  'workflow:list',
+  'workflowTags:list',
+  'execution:read',
+  'execution:list',
+  'executionTags:list',
+  'testRun:read',
+  'testRun:list',
+  'credential:list',
+  'tag:read',
+  'tag:list',
+  'user:read',
+  'user:list',
+  'variable:list',
+  'project:list',
+  'dataTable:read',
+  'dataTable:list',
+  'dataTableColumn:read',
+  'folder:read',
+  'folder:list',
+  'insights:read',
+]);
+
+function selectRestrictedScopes(allowedScopes) {
+  return [...new Set(allowedScopes.filter((scope) => RESTRICTED_SCOPE_ALLOWLIST.has(scope)))];
+}
 
 const TIMEOUT_MS = Number(process.env.PROVISION_TIMEOUT_MS ?? 180_000);
 const POLL_INTERVAL_MS = 1500;
@@ -58,9 +89,52 @@ async function main() {
     log,
   });
   await activateLicense(N8N_URL, cookieJar, LICENSE_ACTIVATION_KEY, { log });
-  const apiKey = await provisionApiKey(N8N_URL, cookieJar, { label: API_KEY_LABEL, log });
+  const scopeResolution = await resolveApiKeyScopes(N8N_URL, cookieJar, { log });
+  const ownerScopes = scopeResolution.scopes;
+  const restrictedScopes = selectRestrictedScopes(ownerScopes);
+  const ownerApiKey = await provisionApiKey(N8N_URL, cookieJar, {
+    label: `${API_KEY_LABEL}-owner`,
+    log,
+    scopes: ownerScopes,
+  });
+  const restrictedApiKey = await provisionApiKey(N8N_URL, cookieJar, {
+    label: `${API_KEY_LABEL}-restricted`,
+    log,
+    scopes: restrictedScopes,
+  });
+  const server = await readServerSettings(N8N_URL, cookieJar);
+  const license = await readLicenseInfo(N8N_URL, cookieJar);
 
-  const payload = { baseUrl: N8N_PUBLISHED_URL, apiKey };
+  const payload = {
+    baseUrl: N8N_PUBLISHED_URL,
+    authProfiles: {
+      owner: {
+        apiKey: ownerApiKey,
+        authMode: 'apiKey',
+        role: 'global owner API key',
+        requestedScopes: ownerScopes,
+      },
+      restricted: {
+        apiKey: restrictedApiKey,
+        authMode: 'apiKey',
+        role: 'owner user with reduced API scopes',
+        requestedScopes: restrictedScopes,
+      },
+    },
+    provisioning: {
+      licenseActivationRequested: Boolean(LICENSE_ACTIVATION_KEY),
+      apiKeyScopesSource: scopeResolution.source,
+      apiKeyScopesStatus: scopeResolution.status,
+      restrictedScopeCount: restrictedScopes.length,
+    },
+    server: {
+      version: server.version,
+      settingsStatus: server.status,
+      licenseInfoStatus: license.status,
+      licensePlanName: license.planName,
+      licenseFeatureKeys: license.featureKeys,
+    },
+  };
   await writeJsonFile(outPath, payload, { log });
   console.log(JSON.stringify(payload));
 }

@@ -5,7 +5,11 @@ import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const OPENAPI_PATH = join(REPO_ROOT, '.public-api/v1.1.1.yml');
+const REVIEWED_DRIFT_PATH = join(REPO_ROOT, '.public-api/reviewed-drift.json');
+
+interface ReviewedDriftDocument {
+  supportedSpecVersion: string;
+}
 
 interface SchemaDoc {
   $ref?: string;
@@ -27,6 +31,13 @@ interface OpenApiDocument {
 function loadYaml<T>(filePath: string): T {
   return parseYaml(readFileSync(filePath, 'utf8')) as T;
 }
+
+function loadJson<T>(filePath: string): T {
+  return JSON.parse(readFileSync(filePath, 'utf8')) as T;
+}
+
+const REVIEWED_DRIFT = loadJson<ReviewedDriftDocument>(REVIEWED_DRIFT_PATH);
+const OPENAPI_PATH = join(REPO_ROOT, `.public-api/v${REVIEWED_DRIFT.supportedSpecVersion}.yml`);
 
 const OPENAPI = loadYaml<OpenApiDocument>(OPENAPI_PATH);
 const SCHEMAS = OPENAPI.components?.schemas ?? {};

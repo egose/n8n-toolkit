@@ -1,3 +1,15 @@
+## Unreleased
+
+### Bug Fixes
+
+* **n8n-client:** serialize structured data-table delete filters before transport and validate column names locally
+* **n8n-client:** preserve known workflow enrichment on compact mutation responses and validate workflow core fields at the response boundary
+
+### Breaking Changes
+
+* **n8n-client:** `DataTableClient.deleteRows()` and `DataTableResource.deleteRows()` now require a structured `DataTableFilter` instead of a pre-serialized JSON string
+* **n8n-client:** workflow endpoints now expose endpoint-specific response types: `list()` returns `WorkflowListItem`, `get()`/observed create responses return `WorkflowDetail`, compact workflow mutations return `WorkflowMutationResult`, and `SharedWorkflow.project` is optional when the API omits project enrichment
+
 ## [0.5.0](https://github.com/egose/n8n-client/compare/v0.4.5...v0.5.0) (2026-07-08)
 
 ### Features

@@ -1,0 +1,16 @@
+{
+  "id": "testrun_observed_01",
+  "status": "completed",
+  "runAt": "2026-07-22T00:42:00.000Z",
+  "completedAt": "2026-07-22T00:42:07.000Z",
+  "metrics": {
+    "passed": 1,
+    "warnings": 0
+  },
+  "errorCode": null,
+  "errorDetails": null,
+  "finalResult": "success",
+  "testCaseCount": 1,
+  "createdAt": "2026-07-22T00:41:59.000Z",
+  "updatedAt": "2026-07-22T00:42:07.000Z"
+}

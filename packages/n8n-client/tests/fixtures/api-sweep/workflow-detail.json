@@ -1,0 +1,52 @@
+{
+  "id": "wf_observed_redacted",
+  "name": "observed-contract-workflow",
+  "description": null,
+  "active": false,
+  "createdAt": "2026-07-22T00:30:39.354Z",
+  "updatedAt": "2026-07-22T00:30:39.354Z",
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "node_observed_start",
+      "name": "When clicking Execute",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {}
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": null,
+  "versionId": "version_observed_1",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "shared": [
+    {
+      "createdAt": "2026-07-22T00:30:39.354Z",
+      "updatedAt": "2026-07-22T00:30:39.354Z",
+      "role": "workflow:owner",
+      "workflowId": "wf_observed_redacted",
+      "projectId": "proj_observed_owner",
+      "project": {
+        "createdAt": "2026-07-22T00:30:37.175Z",
+        "updatedAt": "2026-07-22T00:30:37.175Z",
+        "id": "proj_observed_owner",
+        "name": "Owner User <redacted-email>",
+        "type": "personal",
+        "creatorId": "user_observed_owner"
+      }
+    }
+  ],
+  "tags": [],
+  "parentFolder": null,
+  "activeVersion": null
+}

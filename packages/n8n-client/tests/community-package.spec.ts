@@ -185,7 +185,7 @@ describe('Implementation Consistency: CommunityPackage', () => {
     expect(http.delete).toHaveBeenCalledWith('/community-packages/n8n-nodes-foo');
   });
 
-  test('community package resource patch uses the installed version as the base payload', async () => {
+  test('community package resource patch forwards only the supplied partial payload', async () => {
     const patched = {
       packageName: 'n8n-nodes-foo',
       installedVersion: '1.0.0',
@@ -201,10 +201,35 @@ describe('Implementation Consistency: CommunityPackage', () => {
 
     await resource.patch({ verify: true });
 
-    expect(http.patch).toHaveBeenCalledWith('/community-packages/n8n-nodes-foo', {
-      version: '1.0.0',
-      verify: true,
-    });
+    expect(http.patch).toHaveBeenCalledWith('/community-packages/n8n-nodes-foo', { verify: true });
     expect(resource.installedVersion).toBe('1.0.0');
+  });
+
+  test('community package resource patch preserves the latest-version default when called without a payload', async () => {
+    const updated = {
+      packageName: 'n8n-nodes-foo',
+      installedVersion: '2.0.0',
+      authorName: '',
+      authorEmail: '',
+      installedNodes: [],
+      createdAt: '',
+      updatedAt: '',
+    };
+    const http = createMockHttpClient([{ body: updated }]);
+    const handle = new CommunityPackageClient(http);
+    const resource = new CommunityPackageResource(handle, {
+      packageName: 'n8n-nodes-foo',
+      installedVersion: '1.0.0',
+      authorName: '',
+      authorEmail: '',
+      installedNodes: [],
+      createdAt: '',
+      updatedAt: '',
+    });
+
+    await resource.patch();
+
+    expect(http.patch).toHaveBeenCalledWith('/community-packages/n8n-nodes-foo', undefined);
+    expect(resource.installedVersion).toBe('2.0.0');
   });
 });

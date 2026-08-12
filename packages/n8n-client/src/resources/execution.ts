@@ -12,11 +12,11 @@ export default class ExecutionResource extends BaseResource<Execution> {
   }
 
   get id(): number {
-    return this.data.id;
+    return this.snapshot.id;
   }
 
   get status(): Execution['status'] {
-    return this.data.status;
+    return this.snapshot.status;
   }
 
   async refresh(): Promise<this> {

@@ -6,7 +6,7 @@ export default class VariableResource extends BaseResource<Variable> {
   constructor(
     private readonly variables: VariableClient,
     variable: Variable,
-    private readonly params?: VariableListParams,
+    private readonly scope?: Pick<VariableListParams, 'projectId'>,
   ) {
     super(variable);
   }
@@ -24,15 +24,13 @@ export default class VariableResource extends BaseResource<Variable> {
   }
 
   async refresh(): Promise<this> {
-    return this.replaceSnapshot((await this.variables.getResource(this.id, this.params)).data);
+    return this.replaceSnapshot((await this.variables.getResource(this.id, this.scope)).snapshot);
   }
 
   async update(data: VariableUpdate): Promise<this> {
-    const scopedData = this.params?.projectId !== undefined ? { ...data, projectId: this.params.projectId } : data;
+    const scopedData = this.scope?.projectId !== undefined ? { ...data, projectId: this.scope.projectId } : data;
     await this.variables.update(this.id, scopedData);
-    const { projectId: _projectId, ...snapshotPatch } = scopedData;
-    void _projectId;
-    return this.mergeSnapshot(snapshotPatch);
+    return this.refresh();
   }
 
   async patch(data: VariableUpdate): Promise<this> {

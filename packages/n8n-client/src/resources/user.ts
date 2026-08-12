@@ -12,11 +12,11 @@ export default class UserResource extends BaseResource<User> {
   }
 
   get id(): string {
-    return this.data.id;
+    return this.snapshot.id;
   }
 
   get email(): string {
-    return this.data.email;
+    return this.snapshot.email;
   }
 
   async refresh(): Promise<this> {
@@ -29,6 +29,6 @@ export default class UserResource extends BaseResource<User> {
 
   async changeRole(newRoleName: string): Promise<this> {
     await this.users.changeRole(this.id, newRoleName);
-    return this.mergeSnapshot({ role: newRoleName });
+    return this.refresh();
   }
 }

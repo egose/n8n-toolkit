@@ -17,15 +17,15 @@ export default class CredentialResource extends BaseResource<Credential | Creden
   }
 
   get id(): string {
-    return this.data.id;
+    return this.snapshot.id;
   }
 
   get name(): string {
-    return this.data.name;
+    return this.snapshot.name;
   }
 
   get type(): string {
-    return this.data.type;
+    return this.snapshot.type;
   }
 
   async update(data: CredentialUpdate): Promise<this> {
@@ -33,14 +33,7 @@ export default class CredentialResource extends BaseResource<Credential | Creden
   }
 
   async patch(data: CredentialUpdate): Promise<this> {
-    return this.update({
-      name: this.data.name,
-      type: this.data.type,
-      ...('data' in this.data && this.data.data ? { data: this.data.data } : {}),
-      ...('isGlobal' in this.data ? { isGlobal: this.data.isGlobal } : {}),
-      ...(this.data.isResolvable !== undefined ? { isResolvable: this.data.isResolvable } : {}),
-      ...data,
-    });
+    return this.update(data);
   }
 
   async delete(): Promise<Credential> {

@@ -1,4 +1,5 @@
 import type { PaginatedResponse } from '../pagination.js';
+import { encodePathSegment } from '../path.js';
 import type {
   Execution,
   ExecutionListResponse,
@@ -20,7 +21,7 @@ export default class ExecutionClient extends BaseClient {
   }
 
   async get(id: number, params?: ExecutionGetParams): Promise<Execution> {
-    return this.http.get<Execution>(`/executions/${id}`, params);
+    return this.http.get<Execution>(`/executions/${encodePathSegment(id)}`, params);
   }
 
   async getResource(id: number, params?: ExecutionGetParams): Promise<ExecutionResource> {
@@ -43,15 +44,15 @@ export default class ExecutionClient extends BaseClient {
   }
 
   async delete(id: number): Promise<Execution> {
-    return this.http.delete<Execution>(`/executions/${id}`);
+    return this.http.delete<Execution>(`/executions/${encodePathSegment(id)}`);
   }
 
   async retry(id: number, data?: ExecutionRetryRequest): Promise<Execution> {
-    return this.http.post<Execution>(`/executions/${id}/retry`, data);
+    return this.http.post<Execution>(`/executions/${encodePathSegment(id)}/retry`, data);
   }
 
   async stop(id: number): Promise<Execution> {
-    return this.http.post<Execution>(`/executions/${id}/stop`);
+    return this.http.post<Execution>(`/executions/${encodePathSegment(id)}/stop`);
   }
 
   async stopMany(data: StopManyExecutionsRequest): Promise<StopManyExecutionsResponse> {
@@ -59,10 +60,10 @@ export default class ExecutionClient extends BaseClient {
   }
 
   async getTags(id: number): Promise<Tag[]> {
-    return ((await this.http.get<Tag[]>(`/executions/${id}/tags`)) ?? []).map(normalizeTag);
+    return ((await this.http.get<Tag[]>(`/executions/${encodePathSegment(id)}/tags`)) ?? []).map(normalizeTag);
   }
 
   async updateTags(id: number, tags: TagId[]): Promise<Tag[]> {
-    return ((await this.http.put<Tag[]>(`/executions/${id}/tags`, tags)) ?? []).map(normalizeTag);
+    return ((await this.http.put<Tag[]>(`/executions/${encodePathSegment(id)}/tags`, tags)) ?? []).map(normalizeTag);
   }
 }
