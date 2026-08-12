@@ -2,6 +2,22 @@ import type { PaginationParams } from './pagination.js';
 
 export type { PaginationParams, PaginatedResponse } from './pagination.js';
 
+export type HttpFetch = typeof globalThis.fetch;
+export type HttpSleep = (delayMs: number, signal: AbortSignal) => Promise<void>;
+export type HttpClock = () => number;
+export type HttpRandom = () => number;
+
+export interface HttpTransportConfig {
+  /** Override `fetch` for tests or custom runtimes. Defaults to the global `fetch`. */
+  fetch?: HttpFetch;
+  /** Override the retry/backoff sleeper for deterministic tests. */
+  sleep?: HttpSleep;
+  /** Override the clock used for deadline and `Retry-After` calculations. Defaults to `Date.now`. */
+  now?: HttpClock;
+  /** Override jitter generation for deterministic tests. Defaults to `Math.random`. */
+  random?: HttpRandom;
+}
+
 /** JSON primitive value — string, number, boolean, or null. */
 export type JsonPrimitive = string | number | boolean | null;
 /** Any valid JSON value — primitives, objects, or arrays. */
@@ -27,8 +43,10 @@ export type JsonArray = JsonValue[];
 export type N8nClientConfig = {
   /** Base URL of the n8n instance (e.g. `http://localhost:5678`). */
   baseUrl: string;
-  /** Default per-request timeout in milliseconds. Defaults to `30000`. */
+  /** Total request deadline in milliseconds, including retries and backoff. Defaults to `30000`. */
   requestTimeoutMs?: number;
+  /** Optional transport overrides for deterministic tests or custom runtimes. */
+  transport?: HttpTransportConfig;
 } & (
   | {
       /** n8n API key — sent as `X-N8N-API-KEY` header. Mutually exclusive with `bearerToken`. */
@@ -56,21 +74,19 @@ export interface N8nApiError extends Error {
   data: unknown;
 }
 
+declare const apiKeyScopeBrand: unique symbol;
+export type ApiKeyScope = string & { readonly [apiKeyScopeBrand]: 'ApiKeyScope' }; // pragma: allowlist secret
+
+declare const projectEffectiveScopeBrand: unique symbol;
+export type ProjectEffectiveScope = string & { readonly [projectEffectiveScopeBrand]: 'ProjectEffectiveScope' };
+
 // ─── Workflow ────────────────────────────────────────────────────────────────
 
-/**
- * Full workflow object returned by the n8n API.
- *
- * This is a read-only representation. For creating or updating workflows,
- * use `WorkflowCreate` or `WorkflowUpdate`.
- */
-export interface Workflow {
+interface WorkflowCoreFields {
   /** Unique workflow identifier. */
   id: string;
   /** Display name of the workflow. */
   name: string;
-  /** Optional description. */
-  description: string | null;
   /** Whether the workflow is currently active (has active triggers). */
   active: boolean;
   /** ISO 8601 timestamp of creation. */
@@ -100,17 +116,60 @@ export interface Workflow {
   /** Active version identifier when workflow versioning is enabled. */
   activeVersionId: string | null;
   /** Monotonic workflow save counter. */
-  versionCounter: number | null;
+  versionCounter?: number | null;
   /** Source workflow when created from another workflow or template. */
+  sourceWorkflowId?: string | null;
+}
+
+/**
+ * Workflow object returned by the n8n API.
+ *
+ * Workflow endpoints are not shape-identical. Core identity and graph fields are
+ * always present, while enrichment fields such as sharing, tags, folders, and
+ * some metadata only appear on specific endpoints.
+ *
+ * For creating or updating workflows, use `WorkflowCreate` or `WorkflowUpdate`.
+ */
+export interface Workflow extends WorkflowCoreFields {
+  /** Optional description. List endpoints may omit it entirely. */
+  description?: string | null;
+  /** Tags attached to the workflow when the endpoint includes them. */
+  tags?: Tag[];
+  /** Projects this workflow is shared with when the endpoint includes them. */
+  shared?: SharedWorkflow[];
+  /** Parent folder when the endpoint includes it. */
+  parentFolder?: Folder | null;
+  /** Active version details, if versioning is enabled and included by the endpoint. */
+  activeVersion?: ActiveVersion | null;
+}
+
+/** Workflow item returned by `list()` endpoints. */
+export type WorkflowListItem = Workflow;
+
+/**
+ * Detailed workflow returned by `get()` and observed create responses.
+ *
+ * `parentFolder` remains optional because the API can omit it entirely when the
+ * workflow is not folder-scoped.
+ */
+export interface WorkflowDetail extends Workflow {
+  description: string | null;
+  versionCounter: number | null;
   sourceWorkflowId: string | null;
-  /** Tags attached to the workflow. */
   tags: Tag[];
-  /** Projects this workflow is shared with. */
   shared: SharedWorkflow[];
-  /** Parent folder when the workflow is placed in one. */
-  parentFolder: Folder | null;
-  /** Active version details, if versioning is enabled. */
   activeVersion: ActiveVersion | null;
+}
+
+/**
+ * Compact workflow returned by mutation endpoints such as update/archive.
+ *
+ * Omitted enrichment fields are unknown, not authoritative clears.
+ */
+export interface WorkflowMutationResult extends Workflow {
+  description: string | null;
+  versionCounter: number | null;
+  sourceWorkflowId: string | null;
 }
 
 export interface ActiveVersion {
@@ -180,7 +239,7 @@ export interface WorkflowUpdate {
   /** Display name for the workflow. */
   name: string;
   /** Optional description. */
-  description?: string;
+  description?: string | null;
   /** Array of workflow nodes (steps). */
   nodes: WorkflowNode[];
   /** Node connection graph. */
@@ -346,7 +405,7 @@ export interface SharedWorkflow {
   role: string;
   workflowId: string;
   projectId: string;
-  project: SharedWorkflowProject | null;
+  project?: SharedWorkflowProject | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -366,7 +425,7 @@ export interface WorkflowVersion {
 }
 
 export interface WorkflowListResponse {
-  data: Workflow[];
+  data: WorkflowListItem[];
   nextCursor: string | null;
 }
 
@@ -420,7 +479,7 @@ export interface TestCaseExecution {
 
 export interface TestCaseExecutionListResponse {
   data: TestCaseExecution[];
-  nextCursor?: string;
+  nextCursor: string | null;
 }
 
 export interface WorkflowActivateRequest {
@@ -598,8 +657,8 @@ export interface CredentialDetail {
   isManaged: boolean;
   isGlobal: boolean;
   isResolvable: boolean;
-  resolvableAllowFallback: boolean;
-  resolverId: string | null;
+  resolvableAllowFallback?: boolean;
+  resolverId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -612,7 +671,7 @@ export interface CredentialSummary {
   type: string;
   createdAt: string;
   updatedAt: string;
-  shared: CredentialSharedItem[];
+  shared?: CredentialSharedItem[];
 }
 
 export type CredentialListItem = CredentialSummary;
@@ -649,11 +708,16 @@ export interface CredentialListResponse {
 
 // ─── Tag ─────────────────────────────────────────────────────────────────────
 
+export interface TagSummary {
+  id: string;
+  name: string;
+}
+
 export interface Tag {
   id: string;
   name: string;
-  createdAt: string | null;
-  updatedAt: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface TagId {
@@ -665,6 +729,8 @@ export interface TagListResponse {
   nextCursor: string | null;
 }
 
+export type TagMutationResult = TagSummary;
+
 export interface TagMutation {
   name: string;
 }
@@ -674,13 +740,13 @@ export interface TagMutation {
 export interface User {
   id: string;
   email: string;
-  firstName: string | null;
-  lastName: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   isPending: boolean;
   createdAt: string;
   updatedAt: string;
-  role: string | null;
-  mfaEnabled: boolean;
+  role?: string | null;
+  mfaEnabled?: boolean;
 }
 
 export interface UserCreate {
@@ -691,14 +757,14 @@ export interface UserCreate {
 export interface UserInvite {
   id: string;
   email: string;
-  inviteAcceptUrl: string | null;
-  emailSent: boolean;
-  role: string | null;
+  inviteAcceptUrl?: string | null;
+  emailSent?: boolean;
+  role?: string | null;
 }
 
 export interface UserCreateResult {
   user: UserInvite;
-  error: string;
+  error?: string;
 }
 
 export type UserCreateResponse = UserCreateResult[];
@@ -739,9 +805,9 @@ export interface Variable {
   /** Variable value as stored by n8n. */
   value: string;
   /** Optional variable type metadata from the API. */
-  type: string | null;
+  type?: string | null;
   /** Owning project, when included by the API response. */
-  project: ProjectSummary | null;
+  project?: ProjectSummary | null;
 }
 
 /** Payload for creating or replacing a variable. */
@@ -819,11 +885,11 @@ export interface ProjectSummary {
   /** Creator user id. */
   creatorId: string;
   /** Optional project icon, or `null` when unset. */
-  icon: ProjectIcon | null;
+  icon?: ProjectIcon | null;
   /** Optional free-text project description, or `null` when unset. */
-  description: string | null;
+  description?: string | null;
   /** Custom telemetry span attributes returned by the API. */
-  customTelemetryTags: ProjectCustomTelemetryTag[];
+  customTelemetryTags?: ProjectCustomTelemetryTag[];
   /** ISO 8601 timestamp of creation. */
   createdAt: string;
   /** ISO 8601 timestamp of last update. */
@@ -835,17 +901,26 @@ export type ProjectListItem = ProjectSummary;
 /** Full project payload returned by create/enriched project endpoints. */
 export interface Project extends ProjectSummary {
   /** Current caller role on this project. */
-  role: string;
+  role?: string;
   /** Effective scopes for the current caller on this project. */
-  scopes: string[];
+  scopes?: ProjectEffectiveScope[];
 }
+
+/** Project response that includes the caller's effective permissions. */
+export interface ProjectWithPermissions extends ProjectSummary {
+  role: string;
+  scopes: ProjectEffectiveScope[];
+}
+
+/** Result returned by project create endpoints, with permissions only when the API includes them. */
+export type ProjectCreateResult = ProjectSummary | ProjectWithPermissions;
 
 /** Member of a project with the resolved project role. */
 export interface ProjectMember {
   id: string;
   email: string;
-  firstName: string | null;
-  lastName: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   createdAt: string;
   updatedAt: string;
   role: string;
@@ -939,19 +1014,19 @@ export interface DataTable {
 export interface DataTableColumn {
   id: string;
   name: string;
-  dataTableId: string | null;
+  dataTableId?: string | null;
   /** Column type returned by the current public API. */
   type: 'string' | 'number' | 'boolean' | 'date';
   index: number;
-  createdAt: string | null;
-  updatedAt: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 /** Single row in a data table. Additional fields are dynamic column values. */
 export interface DataTableRow {
   id: number;
-  createdAt: string | null;
-  updatedAt: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   [key: string]: JsonValue | undefined;
 }
 
@@ -981,6 +1056,7 @@ export interface ClearRowsResponse {
 
 /** Payload for adding a new column to a data table. */
 export interface CreateColumnRequest {
+  /** Column name. Must match `^[a-zA-Z][a-zA-Z0-9_]*$`. */
   name: string;
   type: 'string' | 'number' | 'boolean' | 'date';
   /** Optional insertion index. */
@@ -989,18 +1065,31 @@ export interface CreateColumnRequest {
 
 /** Payload for updating a column name or order. */
 export interface UpdateColumnRequest {
+  /** Column name. Must match `^[a-zA-Z][a-zA-Z0-9_]*$`. */
   name?: string;
   index?: number;
 }
 
 /** Filters for listing data tables. */
 export interface DataTableListParams extends PaginationParams {
+  /**
+   * Serialized filter string accepted by the list endpoint.
+   *
+   * This remains a raw string until the endpoint contract is confirmed to
+   * accept structured filters.
+   */
   filter?: string;
   sortBy?: string;
 }
 
 /** Filters for listing rows within a data table. */
 export interface DataTableRowListParams extends PaginationParams {
+  /**
+   * Serialized filter string accepted by the row-list endpoint.
+   *
+   * This remains a raw string until the endpoint contract is confirmed to
+   * accept structured filters.
+   */
   filter?: string;
   sortBy?: string;
   search?: string;
@@ -1086,7 +1175,7 @@ export interface UpsertRowDataRequest extends UpsertRowRequest {
 }
 
 export interface DeleteRowsParams {
-  filter: string;
+  filter: DataTableFilter;
   returnData?: boolean;
   dryRun?: boolean;
   [key: string]: unknown;
@@ -1114,30 +1203,43 @@ export interface DataTableRowListResponse {
 // ─── Folder ──────────────────────────────────────────────────────────────────
 
 /** Project-scoped folder used to organize workflows. */
-export interface Folder {
+interface FolderCoreFields {
   id: string;
   name: string;
   /** Parent folder ID when nested. */
-  parentFolderId: string | null;
-  /** Parent folder details when included by the API. */
-  parentFolder: Folder | null;
-  /** Owning project summary when included by list endpoints. */
-  homeProject: FolderHomeProject | null;
-  /** Tags attached to this folder. */
-  tags: Tag[];
-  /** Workflow count returned by list endpoints. */
-  workflowCount: number | null;
-  /** Sub-folder count returned by list endpoints. */
-  subFolderCount: number | null;
+  parentFolderId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+/** Project-scoped folder used to organize workflows. */
+export interface Folder extends FolderCoreFields {
+  /** Parent folder details when included by the API. */
+  parentFolder?: Folder | null;
+  /** Owning project summary when included by list endpoints. */
+  homeProject?: FolderHomeProject | null;
+  /** Tags attached to this folder. */
+  tags?: Tag[];
+  /** Workflow count returned by list endpoints. */
+  workflowCount?: number | null;
+  /** Sub-folder count returned by list endpoints. */
+  subFolderCount?: number | null;
+}
+
+export interface FolderCreateResult extends FolderCoreFields {
+  /** Parent folder details when the create response includes them. */
+  parentFolder?: Folder | null;
+}
+
+export type FolderListItem = Folder;
+
+export type FolderUpdateResult = FolderCoreFields;
 
 export interface FolderHomeProject {
   id: string;
   name: string;
   type: 'personal' | 'team';
-  icon: ProjectIcon | null;
+  icon?: ProjectIcon | null;
 }
 
 /** Payload for creating a folder. */
@@ -1155,22 +1257,22 @@ export interface FolderUpdate {
 /** Folder list response for project-scoped folder endpoints. */
 export interface FolderListResponse {
   count: number;
-  data: Folder[];
+  data: FolderListItem[];
 }
 
 /** Extended folder response with aggregate counts. */
-export interface FolderDetail extends Folder {
+export interface FolderDetail extends FolderCoreFields {
   totalSubFolders: number;
   totalWorkflows: number;
 }
 
 /** Filters for listing folders inside a project. */
-export interface FolderListParams extends PaginationParams {
+export interface FolderListParams {
   filter?: string;
   select?: string;
   sortBy?: 'name:asc' | 'name:desc' | 'createdAt:asc' | 'createdAt:desc' | 'updatedAt:asc' | 'updatedAt:desc';
-  skip?: string;
-  take?: string;
+  skip?: number;
+  take?: number;
 }
 
 // ─── Community Package ───────────────────────────────────────────────────────
@@ -1371,7 +1473,8 @@ export interface DiscoverFilter {
 
 export interface DiscoverResponse {
   data: {
-    scopes: string[];
+    /** API-key scopes returned by `/discover`; these are not project-effective scopes. */
+    apiKeyScopes: ApiKeyScope[];
     resources: Record<string, DiscoverResource>;
     filters: Record<string, DiscoverFilter>;
     specUrl: string;

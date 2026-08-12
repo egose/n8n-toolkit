@@ -11,15 +11,15 @@ export default class CommunityPackageResource extends BaseResource<CommunityPack
   }
 
   get packageName(): string {
-    return this.data.packageName;
+    return this.snapshot.packageName;
   }
 
   get installedVersion(): string {
-    return this.data.installedVersion;
+    return this.snapshot.installedVersion;
   }
 
   async refresh(): Promise<this> {
-    return this.replaceSnapshot((await this.communityPackages.getResource(this.packageName)).data);
+    return this.replaceSnapshot((await this.communityPackages.getResource(this.packageName)).snapshot);
   }
 
   async update(data?: UpdateCommunityPackageRequest): Promise<this> {
@@ -27,10 +27,7 @@ export default class CommunityPackageResource extends BaseResource<CommunityPack
   }
 
   async patch(data?: UpdateCommunityPackageRequest): Promise<this> {
-    return this.update({
-      version: this.data.installedVersion,
-      ...data,
-    });
+    return this.update(data);
   }
 
   async uninstall(): Promise<void> {

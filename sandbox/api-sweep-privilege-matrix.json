@@ -1,0 +1,31 @@
+{
+  "profiles": [
+    {
+      "name": "owner",
+      "authMode": "apiKey",
+      "role": "global owner API key",
+      "probeStrategy": "all",
+      "probeOps": ["*"]
+    },
+    {
+      "name": "restricted",
+      "authMode": "apiKey",
+      "role": "owner user with reduced API scopes",
+      "probeStrategy": "read-only",
+      "probeOps": [
+        "discover.get",
+        "workflows.list",
+        "workflows.get",
+        "workflows.getTags",
+        "workflows.listTestRuns",
+        "executions.list",
+        "tags.list",
+        "users.list",
+        "variables.list",
+        "projects.list",
+        "dataTables.list",
+        "communityPackages.list"
+      ]
+    }
+  ]
+}

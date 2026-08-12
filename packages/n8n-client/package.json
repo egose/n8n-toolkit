@@ -1,11 +1,15 @@
 {
   "name": "@egose/n8n-client",
   "description": "TypeScript client for the n8n Public API with cursor-based pagination and typed resource handles.",
-  "version": "0.0.0-PLACEHOLDER",
-  "license": "PLACEHOLDER",
+  "version": "0.5.0",
+  "license": "Apache-2.0",
   "sideEffects": false,
-  "repository": "PLACEHOLDER",
-  "author": "PLACEHOLDER",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/egose/n8n-toolkit.git",
+    "directory": "packages/n8n-client"
+  },
+  "author": "Junmin Ahn",
   "keywords": [
     "n8n",
     "n8n-api",
@@ -17,20 +21,36 @@
   ],
   "scripts": {
     "build": "tsup --config tsup.config.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
-    "test": "pnpm test:unit",
+    "prepack": "npm run build",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json && pnpm build && pnpm typecheck:consumers && pnpm docs:check",
+    "typecheck:consumers": "tsc --noEmit -p tests/fixtures/consumer-esm/tsconfig.json && tsc --noEmit -p tests/fixtures/consumer-cjs/tsconfig.json",
+    "docs:check": "node scripts/check-readme-examples.mjs",
+    "pack:verify": "node scripts/verify-package.mjs",
+    "test": "pnpm test:unit && pnpm docs:check",
+    "test:docs": "pnpm build && pnpm docs:check",
     "test:unit": "pnpm --filter @egose/n8n-client... build && vitest run --no-cache --config vitest.unit.config.ts",
     "test:integration": "pnpm --filter @egose/n8n-client... build && vitest run --no-cache --config vitest.integration.config.ts"
   },
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      },
+      "default": "./dist/index.js"
     }
   },
   "bugs": {
@@ -41,6 +61,8 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
+    "publint": "^0.3.15",
     "yaml": "^2.9.0"
   }
 }

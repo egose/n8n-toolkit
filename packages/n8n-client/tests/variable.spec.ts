@@ -43,6 +43,19 @@ describe('Implementation Consistency: Variable', () => {
     expect(result.id).toBe('v-2');
   });
 
+  test('get preserves omitted project and type metadata instead of inventing nulls', async () => {
+    const http = createMockHttpClient([
+      { body: { data: [{ id: 'v-2', key: 'SECOND', value: 'two' }], nextCursor: undefined } },
+    ]);
+    const handle = new VariableClient(http);
+
+    const result = await handle.get('v-2');
+
+    expect(result).toEqual({ id: 'v-2', key: 'SECOND', value: 'two' });
+    expect('project' in result).toBe(false);
+    expect('type' in result).toBe(false);
+  });
+
   test('listResources wraps variables as resources', async () => {
     const http = createMockHttpClient([
       { body: { data: [{ id: 'v-1', key: 'FIRST', value: 'one' }], nextCursor: undefined } },
@@ -102,15 +115,22 @@ describe('Implementation Consistency: Variable', () => {
     });
 
     await resource.update({ key: 'MY_API_KEY', value: 'newsecret' });
-    await resource.refresh();
     await resource.delete();
 
     expect(resource.value).toBe('newsecret');
     expect(http.delete).toHaveBeenCalledWith('/variables/v-1');
   });
 
-  test('variable resource patch sends only the partial payload (handler accepts partial updates)', async () => {
-    const http = createMockHttpClient([{ body: undefined }]);
+  test('variable resource patch sends only the partial payload and refreshes the confirmed snapshot', async () => {
+    const http = createMockHttpClient([
+      { body: undefined },
+      {
+        body: {
+          data: [{ id: 'v-1', key: 'MY_API_KEY', value: 'newsecret', type: 'string', project: null }],
+          nextCursor: null,
+        },
+      },
+    ]);
     const handle = new VariableClient(http);
     const resource = new VariableResource(handle, {
       id: 'v-1',
@@ -123,6 +143,49 @@ describe('Implementation Consistency: Variable', () => {
     await resource.patch({ value: 'newsecret' });
 
     expect(http.put).toHaveBeenCalledWith('/variables/v-1', { value: 'newsecret' });
+    expect(http.get).toHaveBeenCalledWith('/variables', { cursor: undefined });
     expect(resource.value).toBe('newsecret');
+  });
+
+  test('variable resource refresh discards transient list filters and restarts from the first scoped page', async () => {
+    const http = createMockHttpClient([
+      {
+        body: {
+          data: [{ id: 'v-1', key: 'MY_API_KEY', value: 'secret123', type: 'string', project: null }],
+          nextCursor: null,
+        },
+      },
+      {
+        body: {
+          data: [{ id: 'v-2', key: 'OTHER_KEY', value: 'other', type: 'string', project: null }],
+          nextCursor: 'next-page',
+        },
+      },
+      {
+        body: {
+          data: [{ id: 'v-1', key: 'MY_API_KEY', value: 'refreshed', type: 'string', project: null }],
+          nextCursor: null,
+        },
+      },
+    ]);
+    const handle = new VariableClient(http);
+
+    const resource = await handle.getResource('v-1', {
+      projectId: 'p-1',
+      state: 'empty',
+      limit: 1,
+      cursor: 'filtered-page',
+    });
+    await resource.refresh();
+
+    expect(http.get).toHaveBeenNthCalledWith(1, '/variables', {
+      projectId: 'p-1',
+      state: 'empty',
+      limit: 1,
+      cursor: 'filtered-page',
+    });
+    expect(http.get).toHaveBeenNthCalledWith(2, '/variables', { projectId: 'p-1', cursor: undefined });
+    expect(http.get).toHaveBeenNthCalledWith(3, '/variables', { projectId: 'p-1', cursor: 'next-page' });
+    expect(resource.value).toBe('refreshed');
   });
 });

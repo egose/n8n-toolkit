@@ -235,25 +235,29 @@ async function findApiKeyByLabel(baseUrl, cookieJar, label) {
 }
 
 async function getAllowedApiKeyScopes(baseUrl, cookieJar, options = {}) {
+  return (await resolveApiKeyScopes(baseUrl, cookieJar, options)).scopes;
+}
+
+async function resolveApiKeyScopes(baseUrl, cookieJar, options = {}) {
   const { log = () => {}, fallbackScopes = FALLBACK_OWNER_API_KEY_SCOPES } = options;
   const res = await sendWithCookie('GET', `${baseUrl}/rest/api-keys/scopes`, cookieJar);
   if (res.status !== 200) {
     log(`api-keys/scopes returned ${res.status}; falling back to bundled owner scope list`);
-    return fallbackScopes;
+    return { scopes: fallbackScopes, source: 'fallback', status: res.status };
   }
 
   const scopes = res.json?.data ?? res.json;
   if (!Array.isArray(scopes) || scopes.length === 0) {
     log('api-keys/scopes returned an empty or invalid payload; falling back to bundled owner scope list');
-    return fallbackScopes;
+    return { scopes: fallbackScopes, source: 'fallback', status: res.status };
   }
 
   log(`resolved ${scopes.length} allowed API key scopes from ${baseUrl}`);
-  return scopes;
+  return { scopes, source: 'server', status: res.status };
 }
 
 async function provisionApiKey(baseUrl, cookieJar, options) {
-  const { label, log, fallbackScopes = FALLBACK_OWNER_API_KEY_SCOPES } = options;
+  const { label, log, fallbackScopes = FALLBACK_OWNER_API_KEY_SCOPES, scopes: requestedScopes } = options;
 
   const existing = await findApiKeyByLabel(baseUrl, cookieJar, label);
   if (existing?.id) {
@@ -269,7 +273,7 @@ async function provisionApiKey(baseUrl, cookieJar, options) {
     return key;
   }
 
-  const scopes = await getAllowedApiKeyScopes(baseUrl, cookieJar, { log, fallbackScopes });
+  const scopes = requestedScopes ?? (await getAllowedApiKeyScopes(baseUrl, cookieJar, { log, fallbackScopes }));
 
   log(`creating API key "${label}" on ${baseUrl}`);
   const expiresAt = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60;
@@ -289,6 +293,28 @@ async function provisionApiKey(baseUrl, cookieJar, options) {
   return key;
 }
 
+async function readServerSettings(baseUrl, cookieJar) {
+  const res = await sendWithCookie('GET', `${baseUrl}/rest/settings`, cookieJar);
+  const body = res.json?.data ?? res.json;
+
+  return {
+    status: res.status,
+    version: body?.versionCli ?? body?.version ?? body?.n8nVersion ?? null,
+  };
+}
+
+async function readLicenseInfo(baseUrl, cookieJar) {
+  const res = await sendWithCookie('GET', `${baseUrl}/rest/license/info`, cookieJar);
+  const body = res.json?.data ?? res.json;
+  const featureValues = body?.featureValues ?? body?.features ?? {};
+
+  return {
+    status: res.status,
+    planName: body?.planName ?? body?.licenseType ?? null,
+    featureKeys: featureValues && typeof featureValues === 'object' ? Object.keys(featureValues).sort() : [],
+  };
+}
+
 async function writeJsonFile(outPath, payload, options = {}) {
   const { log = () => {} } = options;
   await fs.promises.mkdir(path.dirname(outPath), { recursive: true });
@@ -303,8 +329,11 @@ module.exports = {
   createLogger,
   findApiKeyByLabel,
   getAllowedApiKeyScopes,
+  resolveApiKeyScopes,
   http,
   provisionApiKey,
+  readLicenseInfo,
+  readServerSettings,
   sendWithCookie,
   sleep,
   waitForHealth,

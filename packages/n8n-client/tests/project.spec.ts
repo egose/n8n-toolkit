@@ -10,6 +10,7 @@ import ExecutionResource from '../src/resources/execution';
 import FolderResource from '../src/resources/folder';
 import ProjectResource from '../src/resources/project';
 import VariableResource from '../src/resources/variable';
+import type { ProjectEffectiveScope } from '../src/types';
 import WorkflowResource from '../src/resources/workflow';
 import { createMockHttpClient } from './test-utils';
 
@@ -52,13 +53,64 @@ function projectDetail(
     createdAt: string;
     updatedAt: string;
     role: string;
-    scopes: string[];
+    scopes: ProjectEffectiveScope[];
   }> = {},
 ) {
   return {
     ...projectListItem(overrides),
     role: 'project:admin',
-    scopes: ['project:create', 'project:read', 'project:update', 'project:delete', 'project:list'],
+    scopes: [
+      'project:create',
+      'project:read',
+      'project:update',
+      'project:delete',
+      'project:list',
+    ] as ProjectEffectiveScope[],
+    ...overrides,
+  };
+}
+
+function workflowListItem(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: 'wf-1',
+    name: 'Workflow',
+    active: false,
+    createdAt: '',
+    updatedAt: '',
+    isArchived: false,
+    versionId: 'v1',
+    triggerCount: 0,
+    nodes: [],
+    connections: {},
+    settings: {},
+    staticData: null,
+    pinData: null,
+    meta: null,
+    nodeGroups: [],
+    activeVersionId: null,
+    ...overrides,
+  };
+}
+
+function workflowDetail(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    ...workflowListItem(),
+    description: null,
+    versionCounter: null,
+    sourceWorkflowId: null,
+    tags: [],
+    shared: [],
+    activeVersion: null,
+    ...overrides,
+  };
+}
+
+function workflowMutation(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    ...workflowListItem(),
+    description: null,
+    versionCounter: null,
+    sourceWorkflowId: null,
     ...overrides,
   };
 }
@@ -113,6 +165,18 @@ describe('Implementation Consistency: Project', () => {
     expect(result).toEqual(created);
   });
 
+  test('create preserves omitted role and scopes instead of inventing empty permission data', async () => {
+    const created = projectListItem({ id: 'p-2', name: 'New Project' });
+    const http = createMockHttpClient([{ body: created }]);
+    const handle = new ProjectClient(http);
+
+    const result = await handle.create({ name: 'New Project' });
+
+    expect(result).toEqual(created);
+    expect('role' in result).toBe(false);
+    expect('scopes' in result).toBe(false);
+  });
+
   test('createResource wraps the created project as a resource', async () => {
     const created = projectDetail({ id: 'p-2', name: 'New Project' });
     const http = createMockHttpClient([{ body: created }]);
@@ -147,6 +211,33 @@ describe('Implementation Consistency: Project', () => {
     expect(http.get).toHaveBeenNthCalledWith(1, '/projects', undefined);
     expect(result).toBeInstanceOf(ProjectResource);
     expect(result.name).toBe('Updated Project');
+  });
+
+  test('project resource update refreshes from the server instead of preserving optimistic permission fields', async () => {
+    const http = createMockHttpClient([
+      { body: undefined },
+      { body: { data: [projectListItem({ id: 'p-1', name: 'Project Renamed' })], nextCursor: null } },
+    ]);
+    const resource = new ProjectResource(
+      new ProjectClient(http),
+      new WorkflowClient(http),
+      new FolderClient(http, 'p-1'),
+      new VariableClient(http),
+      new DataTableClient(http),
+      new ExecutionClient(http),
+      projectDetail({
+        id: 'p-1',
+        name: 'Project One',
+        role: 'project:admin',
+        scopes: ['project:read', 'project:update'] as ProjectEffectiveScope[],
+      }),
+    );
+
+    await resource.update({ name: 'Project Renamed' });
+
+    expect(resource.data).toEqual(projectListItem({ id: 'p-1', name: 'Project Renamed' }));
+    expect('role' in resource.data).toBe(false);
+    expect('scopes' in resource.data).toBe(false);
   });
 
   test('delete calls DELETE /projects/:id', async () => {
@@ -206,18 +297,37 @@ describe('Implementation Consistency: Project', () => {
     expect(http.patch).toHaveBeenCalledWith('/projects/p-1/users/u-1', { role: 'project:editor' });
   });
 
+  test('project resource reuses scoped collection handles', () => {
+    const http = createMockHttpClient();
+    const resource = new ProjectResource(
+      new ProjectClient(http),
+      new WorkflowClient(http),
+      new FolderClient(http, 'p-1'),
+      new VariableClient(http),
+      new DataTableClient(http),
+      new ExecutionClient(http),
+      projectListItem(),
+    );
+
+    expect(resource.workflows()).toBe(resource.workflows());
+    expect(resource.folders()).toBe(resource.folders());
+    expect(resource.variables()).toBe(resource.variables());
+    expect(resource.dataTables()).toBe(resource.dataTables());
+    expect(resource.executions()).toBe(resource.executions());
+  });
+
   test('project resource workflow helpers inject projectId', async () => {
     const http = createMockHttpClient([
       {
         body: {
-          data: [{ id: 'wf-1', name: 'One', active: false, isArchived: false, versionId: 'v1' }],
+          data: [workflowListItem({ id: 'wf-1', name: 'One' })],
           nextCursor: undefined,
         },
       },
-      { body: { id: 'wf-2', name: 'Two', active: false, isArchived: false, versionId: 'v1' } },
+      { body: workflowDetail({ id: 'wf-2', name: 'Two' }) },
       {
         body: {
-          data: [{ id: 'wf-3', name: 'Three', active: true, isArchived: false, versionId: 'v2' }],
+          data: [workflowListItem({ id: 'wf-3', name: 'Three', active: true, versionId: 'v2' })],
           nextCursor: 'next',
         },
       },
@@ -253,14 +363,13 @@ describe('Implementation Consistency: Project', () => {
 
   test('project resource workflow getResource returns a bound workflow resource', async () => {
     const http = createMockHttpClient([
-      { body: { data: [], nextCursor: 'next-page' } },
       {
-        body: {
-          data: [{ id: 'wf-1', name: 'One', active: false, isArchived: false, versionId: 'v1' }],
-          nextCursor: undefined,
-        },
+        body: workflowDetail({
+          id: 'wf-1',
+          name: 'One',
+          shared: [{ role: 'workflow:owner', workflowId: 'wf-1', projectId: 'p-1', createdAt: '', updatedAt: '' }],
+        }),
       },
-      { body: { id: 'wf-1', name: 'One', active: false, isArchived: false, versionId: 'v1' } },
     ]);
     const handle = new ProjectClient(http);
     const resource = new ProjectResource(
@@ -275,35 +384,46 @@ describe('Implementation Consistency: Project', () => {
 
     const workflow = await resource.workflows().getResource('wf-1');
 
-    expect(http.get).toHaveBeenNthCalledWith(1, '/workflows', { projectId: 'p-1', cursor: undefined });
-    expect(http.get).toHaveBeenNthCalledWith(2, '/workflows', { projectId: 'p-1', cursor: 'next-page' });
-    expect(http.get).toHaveBeenNthCalledWith(3, '/workflows/wf-1', undefined);
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get).toHaveBeenNthCalledWith(1, '/workflows/wf-1', undefined);
     expect(workflow).toBeInstanceOf(WorkflowResource);
   });
 
   test('project resource workflow get/update helpers return raw and resource variants', async () => {
     const http = createMockHttpClient([
       {
-        body: {
-          data: [{ id: 'wf-1', name: 'One', active: false, isArchived: false, versionId: 'v1' }],
-          nextCursor: undefined,
-        },
+        body: workflowDetail({
+          id: 'wf-1',
+          name: 'One',
+          shared: [{ role: 'workflow:owner', workflowId: 'wf-1', projectId: 'p-1', createdAt: '', updatedAt: '' }],
+        }),
       },
-      { body: { id: 'wf-1', name: 'One', active: false, isArchived: false, versionId: 'v1' } },
       {
-        body: {
-          data: [{ id: 'wf-1', name: 'One', active: false, isArchived: false, versionId: 'v1' }],
-          nextCursor: undefined,
-        },
+        body: workflowDetail({
+          id: 'wf-1',
+          name: 'One',
+          shared: [{ role: 'workflow:owner', workflowId: 'wf-1', projectId: 'p-1', createdAt: '', updatedAt: '' }],
+        }),
       },
-      { body: { id: 'wf-1', name: 'Updated', active: false, isArchived: false, versionId: 'v2' } },
+      { body: workflowMutation({ id: 'wf-1', name: 'Updated', versionId: 'v2' }) },
       {
-        body: {
-          data: [{ id: 'wf-1', name: 'Updated', active: false, isArchived: false, versionId: 'v2' }],
-          nextCursor: undefined,
-        },
+        body: workflowDetail({
+          id: 'wf-1',
+          name: 'Updated',
+          versionId: 'v2',
+          shared: [{ role: 'workflow:owner', workflowId: 'wf-1', projectId: 'p-1', createdAt: '', updatedAt: '' }],
+        }),
       },
-      { body: { id: 'wf-1', name: 'Updated Again', active: true, isArchived: false, versionId: 'v3' } },
+      { body: workflowMutation({ id: 'wf-1', name: 'Updated Again', active: true, versionId: 'v3' }) },
+      {
+        body: workflowDetail({
+          id: 'wf-1',
+          name: 'Updated Again',
+          active: true,
+          versionId: 'v3',
+          shared: [{ role: 'workflow:owner', workflowId: 'wf-1', projectId: 'p-1', createdAt: '', updatedAt: '' }],
+        }),
+      },
     ]);
     const handle = new ProjectClient(http);
     const resource = new ProjectResource(
@@ -324,49 +444,40 @@ describe('Implementation Consistency: Project', () => {
       .workflows()
       .updateResource('wf-1', { name: 'Updated Again', nodes: [], connections: {}, settings: {} });
 
-    expect(http.get).toHaveBeenNthCalledWith(1, '/workflows', { projectId: 'p-1', cursor: undefined });
+    expect(http.get).toHaveBeenNthCalledWith(1, '/workflows/wf-1', undefined);
     expect(http.get).toHaveBeenNthCalledWith(2, '/workflows/wf-1', undefined);
-    expect(http.get).toHaveBeenNthCalledWith(3, '/workflows', { projectId: 'p-1', cursor: undefined });
     expect(http.put).toHaveBeenNthCalledWith(1, '/workflows/wf-1', {
       name: 'Updated',
       nodes: [],
       connections: {},
       settings: {},
     });
-    expect(http.get).toHaveBeenNthCalledWith(4, '/workflows', { projectId: 'p-1', cursor: undefined });
+    expect(http.get).toHaveBeenNthCalledWith(3, '/workflows/wf-1', undefined);
     expect(http.put).toHaveBeenNthCalledWith(2, '/workflows/wf-1', {
       name: 'Updated Again',
       nodes: [],
       connections: {},
       settings: {},
     });
+    expect(http.get).toHaveBeenNthCalledWith(4, '/workflows/wf-1', undefined);
     expect(workflow.id).toBe('wf-1');
     expect(updated.name).toBe('Updated');
     expect(updatedResource).toBeInstanceOf(WorkflowResource);
   });
 
   test('project resource workflow patch helpers merge partial changes', async () => {
-    const workflow = {
+    const workflow = workflowDetail({
       id: 'wf-1',
       name: 'One',
       description: 'Original',
-      active: false,
-      createdAt: '',
-      updatedAt: '',
-      isArchived: false,
-      versionId: 'v1',
-      triggerCount: 0,
-      nodes: [],
-      connections: {},
       settings: { executionOrder: 'v1' },
-    };
+      shared: [{ role: 'workflow:owner', workflowId: 'wf-1', projectId: 'p-1', createdAt: '', updatedAt: '' }],
+    });
     const http = createMockHttpClient([
-      { body: { data: [workflow], nextCursor: undefined } },
       { body: workflow },
-      { body: { ...workflow, name: 'Patched', versionId: 'v2' } },
-      { body: { data: [{ ...workflow, name: 'Patched', versionId: 'v2' }], nextCursor: undefined } },
-      { body: { ...workflow, name: 'Patched', versionId: 'v2' } },
-      { body: { ...workflow, name: 'Patched Again', versionId: 'v3' } },
+      { body: workflowMutation({ ...workflow, name: 'Patched', versionId: 'v2' }) },
+      { body: workflowDetail({ ...workflow, name: 'Patched', versionId: 'v2' }) },
+      { body: workflowMutation({ ...workflow, name: 'Patched Again', versionId: 'v3' }) },
     ]);
     const resource = new ProjectResource(
       new ProjectClient(http),
@@ -404,8 +515,39 @@ describe('Implementation Consistency: Project', () => {
     expect(patchedResource.name).toBe('Patched Again');
   });
 
-  test('project resource update mutates local snapshot', async () => {
-    const http = createMockHttpClient([{ body: undefined }]);
+  test('project resource workflow get returns 404 when direct workflow detail belongs to another project', async () => {
+    const http = createMockHttpClient([
+      {
+        body: workflowDetail({
+          id: 'wf-1',
+          name: 'One',
+          shared: [{ role: 'workflow:owner', workflowId: 'wf-1', projectId: 'p-2', createdAt: '', updatedAt: '' }],
+        }),
+      },
+    ]);
+    const resource = new ProjectResource(
+      new ProjectClient(http),
+      new WorkflowClient(http),
+      new FolderClient(http, 'p-1'),
+      new VariableClient(http),
+      new DataTableClient(http),
+      new ExecutionClient(http),
+      projectListItem(),
+    );
+
+    await expect(resource.workflows().get('wf-1')).rejects.toMatchObject({
+      status: 404,
+      data: { id: 'wf-1', projectId: 'p-1' },
+    });
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get).toHaveBeenCalledWith('/workflows/wf-1', undefined);
+  });
+
+  test('project resource update refreshes the confirmed snapshot and excludes request-only fields', async () => {
+    const http = createMockHttpClient([
+      { body: undefined },
+      { body: { data: [projectListItem({ name: 'New Name' })], nextCursor: null } },
+    ]);
     const handle = new ProjectClient(http);
     const resource = new ProjectResource(
       handle,
@@ -417,14 +559,23 @@ describe('Implementation Consistency: Project', () => {
       projectListItem({ name: 'Old Name' }),
     );
 
-    await resource.update({ name: 'New Name' });
+    await resource.update({ name: 'New Name', relations: [{ userId: 'user-1', role: 'project:editor' }] });
 
+    expect(http.put).toHaveBeenCalledWith('/projects/p-1', {
+      name: 'New Name',
+      relations: [{ userId: 'user-1', role: 'project:editor' }],
+    });
+    expect(http.get).toHaveBeenCalledWith('/projects', undefined);
     expect(resource.name).toBe('New Name');
     expect(resource.data).toEqual(projectListItem({ name: 'New Name' }));
+    expect('relations' in resource.data).toBe(false);
   });
 
   test('project resource patch sends only the partial payload', async () => {
-    const http = createMockHttpClient([{ body: undefined }]);
+    const http = createMockHttpClient([
+      { body: undefined },
+      { body: { data: [projectListItem({ name: 'Existing Name' })], nextCursor: null } },
+    ]);
     const handle = new ProjectClient(http);
     const resource = new ProjectResource(
       handle,
@@ -439,16 +590,30 @@ describe('Implementation Consistency: Project', () => {
     await resource.patch({ description: 'Updated description' });
 
     expect(http.put).toHaveBeenCalledWith('/projects/p-1', { description: 'Updated description' });
+    expect(http.get).toHaveBeenCalledWith('/projects', undefined);
     expect(resource.name).toBe('Existing Name');
   });
 
   test('project resource folder helpers use project-scoped folder client', async () => {
     const http = createMockHttpClient([
       { body: { count: 1, data: [{ id: 'f-1', name: 'One', createdAt: '', updatedAt: '' }] } },
-      { body: { id: 'f-2', name: 'Two', createdAt: '', updatedAt: '' } },
+      { body: { id: 'f-2', name: 'Two', createdAt: '', updatedAt: '', totalSubFolders: 0, totalWorkflows: 0 } },
       { body: { count: 1, data: [{ id: 'f-3', name: 'Three', createdAt: '', updatedAt: '' }] } },
-      { body: { id: 'f-4', name: 'Four', createdAt: '', updatedAt: '' } },
-      { body: { id: 'f-5', name: 'Five', createdAt: '', updatedAt: '' } },
+      { body: { id: 'f-4', name: 'Four', createdAt: '', updatedAt: '', totalSubFolders: 0, totalWorkflows: 0 } },
+      { body: { id: 'f-5', name: 'Five', createdAt: '', updatedAt: '', totalSubFolders: 0, totalWorkflows: 0 } },
+      {
+        body: { id: 'f-5', name: 'Five Updated', createdAt: '', updatedAt: '', totalSubFolders: 0, totalWorkflows: 0 },
+      },
+      {
+        body: {
+          id: 'f-5',
+          name: 'Five Updated Again',
+          createdAt: '',
+          updatedAt: '',
+          totalSubFolders: 0,
+          totalWorkflows: 0,
+        },
+      },
       { body: undefined },
     ]);
     const handle = new ProjectClient(http);
@@ -462,35 +627,77 @@ describe('Implementation Consistency: Project', () => {
       projectListItem(),
     );
 
-    const listed = await resource.folders().list({ take: '10' });
+    const listed = await resource.folders().list({ skip: 0, take: 10 });
     const created = await resource.folders().create({ name: 'Two' });
-    const listedResources = await resource.folders().listResources({ take: '5' });
+    const listedResources = await resource.folders().listResources({ skip: 1, take: 5 });
     const fetched = await resource.folders().getResource('f-4');
     const updated = await resource.folders().update('f-5', { name: 'Five Updated' });
     const updatedResource = await resource.folders().updateResource('f-5', { name: 'Five Updated Again' });
     await resource.folders().delete('f-5', 'f-1');
 
-    expect(http.get).toHaveBeenNthCalledWith(1, '/projects/p-1/folders', { take: '10' });
+    expect(http.get).toHaveBeenNthCalledWith(1, '/projects/p-1/folders', { skip: 0, take: 10 });
     expect(http.post).toHaveBeenCalledWith('/projects/p-1/folders', { name: 'Two' });
-    expect(http.get).toHaveBeenNthCalledWith(2, '/projects/p-1/folders', { take: '5' });
+    expect(http.get).toHaveBeenNthCalledWith(2, '/projects/p-1/folders', { skip: 1, take: 5 });
     expect(http.get).toHaveBeenNthCalledWith(3, '/projects/p-1/folders/f-4');
+    expect(http.get).toHaveBeenNthCalledWith(4, '/projects/p-1/folders/f-5');
     expect(http.patch).toHaveBeenNthCalledWith(1, '/projects/p-1/folders/f-5', { name: 'Five Updated' });
     expect(http.patch).toHaveBeenNthCalledWith(2, '/projects/p-1/folders/f-5', { name: 'Five Updated Again' });
     expect(http.delete).toHaveBeenCalledWith('/projects/p-1/folders/f-5', { transferToFolderId: 'f-1' });
     expect(listed.data[0].id).toBe('f-1');
     expect(created.id).toBe('f-2');
+    expect(listedResources.count).toBe(1);
     expect(listedResources.data[0]).toBeInstanceOf(FolderResource);
     expect(fetched).toBeInstanceOf(FolderResource);
     expect(updated.id).toBe('f-5');
     expect(updatedResource).toBeInstanceOf(FolderResource);
   });
 
-  test('project resource folder patch helpers merge partial changes', async () => {
+  test('project resource folder patch helpers forward only partial changes', async () => {
     const http = createMockHttpClient([
-      { body: { id: 'f-1', name: 'Folder One', parentFolderId: 'parent-1', createdAt: '', updatedAt: '' } },
-      { body: { id: 'f-1', name: 'Folder One', parentFolderId: 'parent-2', createdAt: '', updatedAt: '' } },
-      { body: { id: 'f-1', name: 'Folder One', parentFolderId: 'parent-2', createdAt: '', updatedAt: '' } },
-      { body: { id: 'f-1', name: 'Folder Renamed', parentFolderId: 'parent-2', createdAt: '', updatedAt: '' } },
+      {
+        body: {
+          id: 'f-1',
+          name: 'Folder One',
+          parentFolderId: 'parent-1',
+          createdAt: '',
+          updatedAt: '',
+          totalSubFolders: 0,
+          totalWorkflows: 0,
+        },
+      },
+      {
+        body: {
+          id: 'f-1',
+          name: 'Folder One',
+          parentFolderId: 'parent-2',
+          createdAt: '',
+          updatedAt: '',
+          totalSubFolders: 0,
+          totalWorkflows: 0,
+        },
+      },
+      {
+        body: {
+          id: 'f-1',
+          name: 'Folder One',
+          parentFolderId: 'parent-2',
+          createdAt: '',
+          updatedAt: '',
+          totalSubFolders: 0,
+          totalWorkflows: 0,
+        },
+      },
+      {
+        body: {
+          id: 'f-1',
+          name: 'Folder Renamed',
+          parentFolderId: 'parent-2',
+          createdAt: '',
+          updatedAt: '',
+          totalSubFolders: 0,
+          totalWorkflows: 0,
+        },
+      },
     ]);
     const resource = new ProjectResource(
       new ProjectClient(http),
@@ -505,14 +712,8 @@ describe('Implementation Consistency: Project', () => {
     const patched = await resource.folders().patch('f-1', { parentFolderId: 'parent-2' });
     const patchedResource = await resource.folders().patchResource('f-1', { name: 'Folder Renamed' });
 
-    expect(http.patch).toHaveBeenNthCalledWith(1, '/projects/p-1/folders/f-1', {
-      name: 'Folder One',
-      parentFolderId: 'parent-2',
-    });
-    expect(http.patch).toHaveBeenNthCalledWith(2, '/projects/p-1/folders/f-1', {
-      name: 'Folder Renamed',
-      parentFolderId: 'parent-2',
-    });
+    expect(http.patch).toHaveBeenNthCalledWith(1, '/projects/p-1/folders/f-1', { parentFolderId: 'parent-2' });
+    expect(http.patch).toHaveBeenNthCalledWith(2, '/projects/p-1/folders/f-1', { name: 'Folder Renamed' });
     expect(patched.parentFolderId).toBe('parent-2');
     expect(patchedResource).toBeInstanceOf(FolderResource);
     expect(patchedResource.name).toBe('Folder Renamed');
@@ -585,7 +786,9 @@ describe('Implementation Consistency: Project', () => {
       { body: { data: [{ id: 'v-1', key: 'FIRST', value: 'one' }], nextCursor: undefined } },
       { body: undefined },
       { body: { data: [{ id: 'v-1', key: 'FIRST', value: 'one' }], nextCursor: undefined } },
+      { body: { data: [{ id: 'v-1', key: 'FIRST', value: 'one' }], nextCursor: undefined } },
       { body: undefined },
+      { body: { data: [{ id: 'v-1', key: 'FIRST', value: 'three' }], nextCursor: undefined } },
     ]);
     const resource = new ProjectResource(
       new ProjectClient(http),
@@ -729,12 +932,6 @@ describe('Implementation Consistency: Project', () => {
           nextCursor: 'next',
         },
       },
-      {
-        body: {
-          data: [{ id: 3, finished: true, mode: 'manual', startedAt: '', workflowId: 1, status: 'success' }],
-          nextCursor: undefined,
-        },
-      },
       { body: { id: 3, finished: true, mode: 'manual', startedAt: '', workflowId: 1, status: 'success' } },
     ]);
     const handle = new ProjectClient(http);
@@ -754,22 +951,14 @@ describe('Implementation Consistency: Project', () => {
 
     expect(http.get).toHaveBeenNthCalledWith(1, '/executions', { status: 'success', limit: 10, projectId: 'p-1' });
     expect(http.get).toHaveBeenNthCalledWith(2, '/executions', { limit: 1, projectId: 'p-1' });
-    expect(http.get).toHaveBeenNthCalledWith(3, '/executions', { projectId: 'p-1', cursor: undefined });
-    expect(http.get).toHaveBeenNthCalledWith(4, '/executions/3', { includeData: true });
+    expect(http.get).toHaveBeenNthCalledWith(3, '/executions/3', { includeData: true });
     expect(listed.data[0].id).toBe(1);
     expect(listedResources.data[0]).toBeInstanceOf(ExecutionResource);
     expect(execution).toBeInstanceOf(ExecutionResource);
   });
 
-  test('project resource execution getResource verifies project scope before fetching', async () => {
+  test('project resource execution getResource uses a direct execution lookup', async () => {
     const http = createMockHttpClient([
-      { body: { data: [], nextCursor: 'next-page' } },
-      {
-        body: {
-          data: [{ id: 3, finished: true, mode: 'manual', startedAt: '', workflowId: 1, status: 'success' }],
-          nextCursor: undefined,
-        },
-      },
       { body: { id: 3, finished: true, mode: 'manual', startedAt: '', workflowId: 1, status: 'success' } },
     ]);
     const handle = new ProjectClient(http);
@@ -785,20 +974,13 @@ describe('Implementation Consistency: Project', () => {
 
     const execution = await resource.executions().getResource(3, { includeData: true });
 
-    expect(http.get).toHaveBeenNthCalledWith(1, '/executions', { projectId: 'p-1', cursor: undefined });
-    expect(http.get).toHaveBeenNthCalledWith(2, '/executions', { projectId: 'p-1', cursor: 'next-page' });
-    expect(http.get).toHaveBeenNthCalledWith(3, '/executions/3', { includeData: true });
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get).toHaveBeenNthCalledWith(1, '/executions/3', { includeData: true });
     expect(execution).toBeInstanceOf(ExecutionResource);
   });
 
-  test('project resource executions get returns raw execution after scope verification', async () => {
+  test('project resource executions get returns raw execution via direct lookup', async () => {
     const http = createMockHttpClient([
-      {
-        body: {
-          data: [{ id: 3, finished: true, mode: 'manual', startedAt: '', workflowId: 1, status: 'success' }],
-          nextCursor: undefined,
-        },
-      },
       { body: { id: 3, finished: true, mode: 'manual', startedAt: '', workflowId: 1, status: 'success' } },
     ]);
     const handle = new ProjectClient(http);
@@ -814,8 +996,8 @@ describe('Implementation Consistency: Project', () => {
 
     const execution = await resource.executions().get(3, { includeData: true });
 
-    expect(http.get).toHaveBeenNthCalledWith(1, '/executions', { projectId: 'p-1', cursor: undefined });
-    expect(http.get).toHaveBeenNthCalledWith(2, '/executions/3', { includeData: true });
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get).toHaveBeenNthCalledWith(1, '/executions/3', { includeData: true });
     expect(execution.id).toBe(3);
   });
 });

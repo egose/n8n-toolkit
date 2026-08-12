@@ -33,11 +33,11 @@ export default class DataTableResource extends BaseResource<DataTable> {
   }
 
   get id(): string {
-    return this.data.id;
+    return this.snapshot.id;
   }
 
   get name(): string {
-    return this.data.name;
+    return this.snapshot.name;
   }
 
   async refresh(): Promise<this> {
@@ -49,8 +49,10 @@ export default class DataTableResource extends BaseResource<DataTable> {
   }
 
   async patch(data: Partial<UpdateDataTableRequest>): Promise<this> {
+    const snapshot = this.snapshot;
+
     return this.update({
-      name: this.data.name,
+      name: snapshot.name,
       ...data,
     });
   }
@@ -97,18 +99,18 @@ export default class DataTableResource extends BaseResource<DataTable> {
 
   async createColumn(data: CreateColumnRequest): Promise<DataTableColumn> {
     const column = await this.dataTables.createColumn(this.id, data);
-    this.mergeSnapshot({ columns: [...this.data.columns, column] });
+    this.mergeSnapshot({ columns: [...this.snapshot.columns, column] });
     return column;
   }
 
   async updateColumn(columnId: string, data: UpdateColumnRequest): Promise<DataTableColumn> {
     const column = await this.dataTables.updateColumn(this.id, columnId, data);
-    this.mergeSnapshot({ columns: this.data.columns.map((entry) => (entry.id === columnId ? column : entry)) });
+    this.mergeSnapshot({ columns: this.snapshot.columns.map((entry) => (entry.id === columnId ? column : entry)) });
     return column;
   }
 
   async deleteColumn(columnId: string): Promise<void> {
     await this.dataTables.deleteColumn(this.id, columnId);
-    this.mergeSnapshot({ columns: this.data.columns.filter((entry) => entry.id !== columnId) });
+    this.mergeSnapshot({ columns: this.snapshot.columns.filter((entry) => entry.id !== columnId) });
   }
 }

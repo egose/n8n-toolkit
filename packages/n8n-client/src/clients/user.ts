@@ -1,4 +1,5 @@
 import type { PaginatedResponse } from '../pagination.js';
+import { encodePathSegment } from '../path.js';
 import type {
   User,
   UserCreate,
@@ -18,7 +19,7 @@ export default class UserClient extends BaseClient {
   }
 
   async get(id: string, params?: UserGetParams): Promise<User> {
-    return normalizeUser(await this.http.get<User>(`/users/${id}`, params));
+    return normalizeUser(await this.http.get<User>(`/users/${encodePathSegment(id)}`, params));
   }
 
   async getResource(id: string, params?: UserGetParams): Promise<UserResource> {
@@ -41,11 +42,11 @@ export default class UserClient extends BaseClient {
   }
 
   async delete(id: string): Promise<void> {
-    await this.http.delete<void>(`/users/${id}`);
+    await this.http.delete<void>(`/users/${encodePathSegment(id)}`);
   }
 
   async changeRole(id: string, newRoleName: string): Promise<void> {
     const data: UserRoleChangeRequest = { newRoleName };
-    await this.http.patch<void>(`/users/${id}/role`, data);
+    await this.http.patch<void>(`/users/${encodePathSegment(id)}/role`, data);
   }
 }

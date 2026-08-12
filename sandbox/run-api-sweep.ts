@@ -45,6 +45,13 @@ import type {
   DeleteRowsBooleanParams,
   ProjectMemberRelation,
 } from '../packages/n8n-client/dist/index.js';
+import {
+  getSweepFailureDefinition,
+  getSweepProbeDefinition,
+  PRIVILEGE_MATRIX,
+  type SweepAuthProfile,
+  type SweepFailureClassification,
+} from './api-sweep-catalog.ts';
 
 const SANDBOX_DIR = resolve(import.meta.dirname, '.');
 const COMPOSE_FILE = resolve(SANDBOX_DIR, 'docker-compose.apispec.yml');
@@ -118,10 +125,16 @@ function waitForProvisioner(timeoutMs = 180_000): boolean {
 type SweepEntry = {
   /** Dotted path identifying the client method, e.g. `workflows.list`. */
   op: string;
+  /** Which API-key profile executed the probe. */
+  authProfile: SweepAuthProfile;
   /** HTTP status code when known, else null. */
   status: number | null;
   /** Response payload (parsed JSON; array, object, or primitive). */
   payload: unknown;
+  /** Declared probe setup requirements for interpreting failures. */
+  preconditions: string[];
+  /** Failure classification for non-2xx probes. */
+  classification?: SweepFailureClassification;
   /** Error message when the call threw. Set together with `status` when the
    *  client re-threw an HttpError carrying both pieces. */
   error?: string;
@@ -129,22 +142,56 @@ type SweepEntry = {
   durationMs: number;
 };
 
-async function capture(op: string, fn: () => Promise<unknown>): Promise<SweepEntry> {
+type SweepSecrets = {
+  baseUrl: string;
+  apiKey?: string;
+  authProfiles?: Partial<
+    Record<SweepAuthProfile, { apiKey: string; authMode: string; role: string; requestedScopes?: string[] }>
+  >;
+  provisioning?: {
+    licenseActivationRequested?: boolean;
+    apiKeyScopesSource?: string;
+    apiKeyScopesStatus?: number | null;
+    restrictedScopeCount?: number;
+  };
+  server?: {
+    version?: string | null;
+    settingsStatus?: number | null;
+    licenseInfoStatus?: number | null;
+    licensePlanName?: string | null;
+    licenseFeatureKeys?: string[];
+  };
+};
+
+function buildFailureMetadata(op: string) {
+  const failure = getSweepFailureDefinition(op);
+  return {
+    classification: failure.classification,
+  } satisfies Pick<SweepEntry, 'classification'>;
+}
+
+async function capture(op: string, authProfile: SweepAuthProfile, fn: () => Promise<unknown>): Promise<SweepEntry> {
   const start = Date.now();
+  const preconditions = getSweepProbeDefinition(op).preconditions;
   try {
     const result = await fn();
     return {
       op,
+      authProfile,
       status: 200,
       payload: normalizeForJson(result),
+      preconditions,
       durationMs: Date.now() - start,
     };
   } catch (err) {
     if (err instanceof HttpError) {
       return {
         op,
+        authProfile,
         status: err.status,
         payload: normalizeForJson(err.data),
+        preconditions,
+        ...buildFailureMetadata(op),
         error: err.message,
         durationMs: Date.now() - start,
       };
@@ -154,8 +201,11 @@ async function capture(op: string, fn: () => Promise<unknown>): Promise<SweepEnt
     const message = err instanceof Error ? err.message : String(err);
     return {
       op,
+      authProfile,
       status: null,
       payload: null,
+      preconditions,
+      ...buildFailureMetadata(op),
       error: message,
       durationMs: Date.now() - start,
     };
@@ -248,28 +298,37 @@ const SECURITY_POLICY_UPDATE_BASE = {
 };
 
 // ─── Sweep orchestration ───────────────────────────────────────────────────
-async function runSweep(client: N8nClient): Promise<SweepEntry[]> {
+type SweepResourceIds = {
+  workflowId?: string;
+};
+
+async function runSweep(
+  client: N8nClient,
+  authProfile: SweepAuthProfile = 'owner',
+): Promise<{ entries: SweepEntry[]; resourceIds: SweepResourceIds }> {
   const entries: SweepEntry[] = [];
 
   // ---- Workflows -----------------------------------------------------------
-  const wfCreated = await capture('workflows.create', () => client.workflows().create(WORKFLOW_CREATE));
+  const wfCreated = await capture('workflows.create', authProfile, () => client.workflows().create(WORKFLOW_CREATE));
   entries.push(wfCreated);
   const wfId = pickId(wfCreated.payload);
 
-  entries.push(await capture('workflows.list', () => client.workflows().list({})));
+  entries.push(await capture('workflows.list', authProfile, () => client.workflows().list({})));
   if (wfId) {
-    entries.push(await capture('workflows.get', () => client.workflows().get(wfId)));
-    entries.push(await capture('workflows.update', () => client.workflows().update(wfId, { ...WORKFLOW_UPDATE })));
-    entries.push(await capture('workflows.activate', () => client.workflows().activate(wfId)));
-    entries.push(await capture('workflows.deactivate', () => client.workflows().deactivate(wfId)));
-    entries.push(await capture('workflows.archive', () => client.workflows().archive(wfId)));
-    entries.push(await capture('workflows.unarchive', () => client.workflows().unarchive(wfId)));
-    entries.push(await capture('workflows.getTags', () => client.workflows().getTags(wfId)));
-    entries.push(await capture('workflows.updateTags', () => client.workflows().updateTags(wfId, [])));
+    entries.push(await capture('workflows.get', authProfile, () => client.workflows().get(wfId)));
+    entries.push(
+      await capture('workflows.update', authProfile, () => client.workflows().update(wfId, { ...WORKFLOW_UPDATE })),
+    );
+    entries.push(await capture('workflows.activate', authProfile, () => client.workflows().activate(wfId)));
+    entries.push(await capture('workflows.deactivate', authProfile, () => client.workflows().deactivate(wfId)));
+    entries.push(await capture('workflows.archive', authProfile, () => client.workflows().archive(wfId)));
+    entries.push(await capture('workflows.unarchive', authProfile, () => client.workflows().unarchive(wfId)));
+    entries.push(await capture('workflows.getTags', authProfile, () => client.workflows().getTags(wfId)));
+    entries.push(await capture('workflows.updateTags', authProfile, () => client.workflows().updateTags(wfId, [])));
     // getVersion requires a real version id we don't have — feed '1' so we capture
     // either the body or the 404 from n8n.
-    entries.push(await capture('workflows.getVersion', () => client.workflows().getVersion(wfId, '1')));
-    entries.push(await capture('workflows.listTestRuns', () => client.workflows().listTestRuns(wfId)));
+    entries.push(await capture('workflows.getVersion', authProfile, () => client.workflows().getVersion(wfId, '1')));
+    entries.push(await capture('workflows.listTestRuns', authProfile, () => client.workflows().listTestRuns(wfId)));
   }
 
   // ---- Executions ----------------------------------------------------------
@@ -277,15 +336,15 @@ async function runSweep(client: N8nClient): Promise<SweepEntry[]> {
   // require an existing execution id; we don't trigger one in the sweep, so
   // each call below will hit the 404 path. The sweep still records the actual
   // API response (status + body) so coverage stays complete.
-  entries.push(await capture('executions.list', () => client.executions().list({})));
-  entries.push(await capture('executions.get', () => client.executions().get(1)));
-  entries.push(await capture('executions.getTags', () => client.executions().getTags(1)));
-  entries.push(await capture('executions.updateTags', () => client.executions().updateTags(1, [])));
-  entries.push(await capture('executions.retry', () => client.executions().retry(1)));
-  entries.push(await capture('executions.stop', () => client.executions().stop(1)));
-  entries.push(await capture('executions.delete', () => client.executions().delete(1)));
+  entries.push(await capture('executions.list', authProfile, () => client.executions().list({})));
+  entries.push(await capture('executions.get', authProfile, () => client.executions().get(1)));
+  entries.push(await capture('executions.getTags', authProfile, () => client.executions().getTags(1)));
+  entries.push(await capture('executions.updateTags', authProfile, () => client.executions().updateTags(1, [])));
+  entries.push(await capture('executions.retry', authProfile, () => client.executions().retry(1)));
+  entries.push(await capture('executions.stop', authProfile, () => client.executions().stop(1)));
+  entries.push(await capture('executions.delete', authProfile, () => client.executions().delete(1)));
   entries.push(
-    await capture('executions.stopMany', () =>
+    await capture('executions.stopMany', authProfile, () =>
       client.executions().stopMany({
         status: ['queued', 'running', 'waiting'],
       } satisfies StopManyExecutionsRequest),
@@ -293,103 +352,115 @@ async function runSweep(client: N8nClient): Promise<SweepEntry[]> {
   );
 
   // ---- Credentials ---------------------------------------------------------
-  const credCreated = await capture('credentials.create', () => client.credentials().create(CREDENTIAL_CREATE));
+  const credCreated = await capture('credentials.create', authProfile, () =>
+    client.credentials().create(CREDENTIAL_CREATE),
+  );
   entries.push(credCreated);
   const credId = pickId(credCreated.payload);
 
-  entries.push(await capture('credentials.list', () => client.credentials().list({})));
+  entries.push(await capture('credentials.list', authProfile, () => client.credentials().list({})));
   if (credId) {
-    entries.push(await capture('credentials.get', () => client.credentials().get(credId)));
+    entries.push(await capture('credentials.get', authProfile, () => client.credentials().get(credId)));
     entries.push(
-      await capture('credentials.update', () =>
+      await capture('credentials.update', authProfile, () =>
         client.credentials().update(credId, { name: 'api-sweep-credential-renamed' }),
       ),
     );
-    entries.push(await capture('credentials.test', () => client.credentials().test(credId)));
-    entries.push(await capture('credentials.transfer', () => client.credentials().transfer(credId, 'n8n-personal')));
+    entries.push(await capture('credentials.test', authProfile, () => client.credentials().test(credId)));
+    entries.push(
+      await capture('credentials.transfer', authProfile, () => client.credentials().transfer(credId, 'n8n-personal')),
+    );
   }
-  entries.push(await capture('credentials.getSchema', () => client.credentials().getSchema('httpHeaderAuth')));
+  entries.push(
+    await capture('credentials.getSchema', authProfile, () => client.credentials().getSchema('httpHeaderAuth')),
+  );
 
   // ---- Tags ----------------------------------------------------------------
-  const tagCreated = await capture('tags.create', () => client.tags().create(TAG_CREATE));
+  const tagCreated = await capture('tags.create', authProfile, () => client.tags().create(TAG_CREATE));
   entries.push(tagCreated);
   const tagId = pickId(tagCreated.payload);
 
-  entries.push(await capture('tags.list', () => client.tags().list({})));
+  entries.push(await capture('tags.list', authProfile, () => client.tags().list({})));
   if (tagId) {
-    entries.push(await capture('tags.get', () => client.tags().get(tagId)));
-    entries.push(await capture('tags.update', () => client.tags().update(tagId, TAG_CREATE)));
+    entries.push(await capture('tags.get', authProfile, () => client.tags().get(tagId)));
+    entries.push(await capture('tags.update', authProfile, () => client.tags().update(tagId, TAG_CREATE)));
   }
 
   // ---- Users ---------------------------------------------------------------
-  entries.push(await capture('users.list', () => client.users().list({})));
+  entries.push(await capture('users.list', authProfile, () => client.users().list({})));
   const usersListEntry = entries.find((e) => e.op === 'users.list');
   const usersList = usersListEntry?.payload as { data?: Array<{ id: string }> } | undefined;
   const ownerId = usersList?.data?.[0]?.id;
   if (ownerId) {
-    entries.push(await capture('users.get', () => client.users().get(ownerId)));
+    entries.push(await capture('users.get', authProfile, () => client.users().get(ownerId)));
     // changeRole on the owner: will likely 400 — we record the response.
-    entries.push(await capture('users.changeRole', () => client.users().changeRole(ownerId, 'member')));
+    entries.push(await capture('users.changeRole', authProfile, () => client.users().changeRole(ownerId, 'member')));
   }
   // users.create takes an array
-  entries.push(await capture('users.create', () => client.users().create(USER_CREATE)));
+  entries.push(await capture('users.create', authProfile, () => client.users().create(USER_CREATE)));
 
   // ---- Variables -----------------------------------------------------------
-  const varCreated = await capture('variables.create', () => client.variables().create(VARIABLE_CREATE));
+  const varCreated = await capture('variables.create', authProfile, () => client.variables().create(VARIABLE_CREATE));
   entries.push(varCreated);
   // variables.create returns void on success, so we can't pick the id from
   // the payload. Fall back to listing then looking up by key.
-  const varList = await capture('variables.list', () => client.variables().list({}));
+  const varList = await capture('variables.list', authProfile, () => client.variables().list({}));
   entries.push(varList);
   const varId = pickVariableId(varList.payload, 'API_SWEEP_VAR');
   if (varId) {
     // variables.get uses paginated search
-    entries.push(await capture('variables.get', () => client.variables().get(varId)));
-    entries.push(await capture('variables.update', () => client.variables().update(varId, VARIABLE_UPDATE)));
+    entries.push(await capture('variables.get', authProfile, () => client.variables().get(varId)));
+    entries.push(
+      await capture('variables.update', authProfile, () => client.variables().update(varId, VARIABLE_UPDATE)),
+    );
   }
 
   // ---- Projects ------------------------------------------------------------
-  const projCreated = await capture('projects.create', () => client.projects().create(PROJECT_CREATE));
+  const projCreated = await capture('projects.create', authProfile, () => client.projects().create(PROJECT_CREATE));
   entries.push(projCreated);
   const projId = pickId(projCreated.payload);
 
-  entries.push(await capture('projects.list', () => client.projects().list({})));
+  entries.push(await capture('projects.list', authProfile, () => client.projects().list({})));
   if (projId) {
-    entries.push(await capture('projects.update', () => client.projects().update(projId, PROJECT_CREATE)));
+    entries.push(await capture('projects.update', authProfile, () => client.projects().update(projId, PROJECT_CREATE)));
     // ProjectClient has no `get(id)` — exercise `listMembers` instead.
-    entries.push(await capture('projects.listMembers', () => client.projects().listMembers(projId)));
+    entries.push(await capture('projects.listMembers', authProfile, () => client.projects().listMembers(projId)));
     // addMembers then removeMember — sweep needs a user id; reuse ownerId if present.
     if (ownerId) {
       const memberRelation: ProjectMemberRelation = {
         userId: ownerId,
         role: 'project:editor',
       };
-      entries.push(await capture('projects.addMembers', () => client.projects().addMembers(projId, [memberRelation])));
       entries.push(
-        await capture('projects.changeMemberRole', () =>
+        await capture('projects.addMembers', authProfile, () => client.projects().addMembers(projId, [memberRelation])),
+      );
+      entries.push(
+        await capture('projects.changeMemberRole', authProfile, () =>
           client.projects().changeMemberRole(projId, ownerId, 'project:viewer'),
         ),
       );
-      entries.push(await capture('projects.removeMember', () => client.projects().removeMember(projId, ownerId)));
+      entries.push(
+        await capture('projects.removeMember', authProfile, () => client.projects().removeMember(projId, ownerId)),
+      );
     }
   }
 
   // ---- Folders (project-scoped) --------------------------------------------
   if (projId) {
     const folders = client.folders(projId);
-    const folderCreated = await capture('folders.create', () => folders.create(FOLDER_CREATE));
+    const folderCreated = await capture('folders.create', authProfile, () => folders.create(FOLDER_CREATE));
     entries.push(folderCreated);
     const folderId = pickId(folderCreated.payload);
 
-    entries.push(await capture('folders.list', () => folders.list({})));
+    entries.push(await capture('folders.list', authProfile, () => folders.list({})));
     if (folderId) {
-      entries.push(await capture('folders.get', () => folders.get(folderId)));
-      entries.push(await capture('folders.update', () => folders.update(folderId, FOLDER_UPDATE)));
+      entries.push(await capture('folders.get', authProfile, () => folders.get(folderId)));
+      entries.push(await capture('folders.update', authProfile, () => folders.update(folderId, FOLDER_UPDATE)));
     }
   }
 
   // ---- Data tables ---------------------------------------------------------
-  const dtCreated = await capture('dataTables.create', () =>
+  const dtCreated = await capture('dataTables.create', authProfile, () =>
     client.dataTables().create({
       ...DATA_TABLE_CREATE,
       ...(projId ? { projectId: projId } : {}),
@@ -398,13 +469,15 @@ async function runSweep(client: N8nClient): Promise<SweepEntry[]> {
   entries.push(dtCreated);
   const dtId = pickId(dtCreated.payload);
 
-  entries.push(await capture('dataTables.list', () => client.dataTables().list({})));
+  entries.push(await capture('dataTables.list', authProfile, () => client.dataTables().list({})));
   if (dtId) {
-    entries.push(await capture('dataTables.get', () => client.dataTables().get(dtId)));
-    entries.push(await capture('dataTables.update', () => client.dataTables().update(dtId, DATA_TABLE_UPDATE)));
+    entries.push(await capture('dataTables.get', authProfile, () => client.dataTables().get(dtId)));
+    entries.push(
+      await capture('dataTables.update', authProfile, () => client.dataTables().update(dtId, DATA_TABLE_UPDATE)),
+    );
 
     // Rows — insert, list, upsert, update, delete, clear
-    const inserted = await capture('dataTables.insertRows', () =>
+    const inserted = await capture('dataTables.insertRows', authProfile, () =>
       client.dataTables().insertRows(dtId, {
         data: [
           { name: 'alpha', count: 1 },
@@ -415,7 +488,7 @@ async function runSweep(client: N8nClient): Promise<SweepEntry[]> {
     );
     entries.push(inserted);
 
-    entries.push(await capture('dataTables.listRows', () => client.dataTables().listRows(dtId)));
+    entries.push(await capture('dataTables.listRows', authProfile, () => client.dataTables().listRows(dtId)));
 
     const upsertPayload: UpsertRowBooleanRequest = {
       filter: {
@@ -425,7 +498,9 @@ async function runSweep(client: N8nClient): Promise<SweepEntry[]> {
       data: { name: 'alpha', count: 1 },
       returnData: false,
     };
-    entries.push(await capture('dataTables.upsertRow', () => client.dataTables().upsertRow(dtId, upsertPayload)));
+    entries.push(
+      await capture('dataTables.upsertRow', authProfile, () => client.dataTables().upsertRow(dtId, upsertPayload)),
+    );
     const updatePayload: UpdateRowsBooleanRequest = {
       filter: {
         type: 'and',
@@ -434,55 +509,126 @@ async function runSweep(client: N8nClient): Promise<SweepEntry[]> {
       data: { count: 3 },
       returnData: false,
     };
-    entries.push(await capture('dataTables.updateRows', () => client.dataTables().updateRows(dtId, updatePayload)));
+    entries.push(
+      await capture('dataTables.updateRows', authProfile, () => client.dataTables().updateRows(dtId, updatePayload)),
+    );
     const deleteRowsPayload: DeleteRowsBooleanParams = {
-      filter: "name eq 'unused-name'",
+      filter: {
+        type: 'and',
+        filters: [{ columnName: 'name', condition: 'eq', value: 'unused-name' }],
+      },
       returnData: false,
     };
-    entries.push(await capture('dataTables.deleteRows', () => client.dataTables().deleteRows(dtId, deleteRowsPayload)));
-    entries.push(await capture('dataTables.clearRows', () => client.dataTables().clearRows(dtId)));
+    entries.push(
+      await capture('dataTables.deleteRows', authProfile, () =>
+        client.dataTables().deleteRows(dtId, deleteRowsPayload),
+      ),
+    );
+    entries.push(await capture('dataTables.clearRows', authProfile, () => client.dataTables().clearRows(dtId)));
 
     // Columns
-    const colCreated = await capture('dataTables.createColumn', () =>
+    const colCreated = await capture('dataTables.createColumn', authProfile, () =>
       client.dataTables().createColumn(dtId, COLUMN_CREATE),
     );
     entries.push(colCreated);
-    entries.push(await capture('dataTables.listColumns', () => client.dataTables().listColumns(dtId)));
+    entries.push(await capture('dataTables.listColumns', authProfile, () => client.dataTables().listColumns(dtId)));
     const colId = pickId(colCreated.payload);
     if (colId) {
       entries.push(
-        await capture('dataTables.updateColumn', () =>
+        await capture('dataTables.updateColumn', authProfile, () =>
           client.dataTables().updateColumn(dtId, colId, { name: 'flag-renamed' }),
         ),
       );
-      entries.push(await capture('dataTables.deleteColumn', () => client.dataTables().deleteColumn(dtId, colId)));
+      entries.push(
+        await capture('dataTables.deleteColumn', authProfile, () => client.dataTables().deleteColumn(dtId, colId)),
+      );
     }
   }
 
   // ---- Community packages --------------------------------------------------
-  entries.push(await capture('communityPackages.list', () => client.communityPackages().list()));
+  entries.push(await capture('communityPackages.list', authProfile, () => client.communityPackages().list()));
   // install: actually pulls from npm — too invasive for a sweep. Skip and
   // exercise only the read path. If the user opts in later we can add it.
   // update / uninstall need a name; we don't install anything here.
 
   // ---- Singletons ----------------------------------------------------------
-  entries.push(await capture('audit.generate', () => client.audit().generate({})));
-  entries.push(await capture('insights.getSummary', () => client.insights().getSummary({})));
-  entries.push(await capture('sourceControl.pull', () => client.sourceControl().pull({})));
-  entries.push(await capture('securityPolicy.get', () => client.securityPolicy().get()));
+  entries.push(await capture('audit.generate', authProfile, () => client.audit().generate({})));
+  entries.push(await capture('insights.getSummary', authProfile, () => client.insights().getSummary({})));
+  entries.push(await capture('sourceControl.pull', authProfile, () => client.sourceControl().pull({})));
+  entries.push(await capture('securityPolicy.get', authProfile, () => client.securityPolicy().get()));
   entries.push(
-    await capture('securityPolicy.update', () => client.securityPolicy().update(SECURITY_POLICY_UPDATE_BASE)),
+    await capture('securityPolicy.update', authProfile, () =>
+      client.securityPolicy().update(SECURITY_POLICY_UPDATE_BASE),
+    ),
   );
-  entries.push(await capture('discover.get', () => client.discover().get()));
+  entries.push(await capture('discover.get', authProfile, () => client.discover().get()));
 
   // ---- Packages (export+import) --------------------------------------------
   // Export with an empty workflowIds list produces an empty package without
   // needing any workflow resource to exist on the server.
-  entries.push(await capture('n8nPackage.exportWorkflows', () => client.n8nPackage().exportWorkflows({})));
+  entries.push(await capture('n8nPackage.exportWorkflows', authProfile, () => client.n8nPackage().exportWorkflows({})));
   // importPackage needs a real file; we don't have one to feed. Skip the import
   // call so it doesn't error on a missing file — that failure isn't a server-
   // side response anyway.
+  return { entries, resourceIds: { workflowId: wfId } };
+}
+
+async function runRestrictedSweep(client: N8nClient, resourceIds: SweepResourceIds): Promise<SweepEntry[]> {
+  const entries: SweepEntry[] = [];
+
+  entries.push(await capture('discover.get', 'restricted', () => client.discover().get()));
+  entries.push(await capture('workflows.list', 'restricted', () => client.workflows().list({})));
+  if (resourceIds.workflowId) {
+    entries.push(await capture('workflows.get', 'restricted', () => client.workflows().get(resourceIds.workflowId!)));
+    entries.push(
+      await capture('workflows.getTags', 'restricted', () => client.workflows().getTags(resourceIds.workflowId!)),
+    );
+    entries.push(
+      await capture('workflows.listTestRuns', 'restricted', () =>
+        client.workflows().listTestRuns(resourceIds.workflowId!),
+      ),
+    );
+  }
+  entries.push(await capture('executions.list', 'restricted', () => client.executions().list({})));
+  entries.push(await capture('tags.list', 'restricted', () => client.tags().list({})));
+  entries.push(await capture('users.list', 'restricted', () => client.users().list({})));
+  entries.push(await capture('variables.list', 'restricted', () => client.variables().list({})));
+  entries.push(await capture('projects.list', 'restricted', () => client.projects().list({})));
+  entries.push(await capture('dataTables.list', 'restricted', () => client.dataTables().list({})));
+  entries.push(await capture('communityPackages.list', 'restricted', () => client.communityPackages().list()));
+
   return entries;
+}
+
+function resolveAuthProfiles(
+  secrets: SweepSecrets,
+): Record<
+  SweepAuthProfile,
+  { client: N8nClient; role: string; authMode: string; requestedScopes?: string[] } | undefined
+> {
+  const ownerProfile =
+    secrets.authProfiles?.owner ??
+    (secrets.apiKey ? { apiKey: secrets.apiKey, authMode: 'apiKey', role: 'legacy owner API key' } : undefined);
+  const restrictedProfile = secrets.authProfiles?.restricted;
+
+  return {
+    owner: ownerProfile
+      ? {
+          client: new N8nClient({ baseUrl: secrets.baseUrl, apiKey: ownerProfile.apiKey }),
+          role: ownerProfile.role,
+          authMode: ownerProfile.authMode,
+          requestedScopes: ownerProfile.requestedScopes,
+        }
+      : undefined,
+    restricted: restrictedProfile
+      ? {
+          client: new N8nClient({ baseUrl: secrets.baseUrl, apiKey: restrictedProfile.apiKey }),
+          role: restrictedProfile.role,
+          authMode: restrictedProfile.authMode,
+          requestedScopes: restrictedProfile.requestedScopes,
+        }
+      : undefined,
+  };
 }
 
 function pickId(payload: unknown): string | undefined {
@@ -612,15 +758,12 @@ async function main() {
     logOk('provisioner OK — secrets written.');
   }
 
-  // Step 3: load the secrets file and construct the client.
-  logStep('Build N8nClient from the provisioned API key');
-  const secrets = JSON.parse(readFileSync(SECRETS_PATH, 'utf8')) as {
-    baseUrl: string;
-    apiKey: string;
-  };
-  let client: N8nClient;
+  // Step 3: load the secrets file and construct the clients.
+  logStep('Build N8nClient from the provisioned API keys');
+  const secrets = JSON.parse(readFileSync(SECRETS_PATH, 'utf8')) as SweepSecrets;
+  let authProfiles: ReturnType<typeof resolveAuthProfiles> | undefined;
   try {
-    client = new N8nClient({ baseUrl: secrets.baseUrl, apiKey: secrets.apiKey });
+    authProfiles = resolveAuthProfiles(secrets);
   } catch (err) {
     clack.cancel(`Failed to construct N8nClient: ${err instanceof Error ? err.message : String(err)}`);
     if (!noBoot && !noCleanupFlag) {
@@ -631,15 +774,24 @@ async function main() {
     }
     process.exit(1);
   }
-  logOk(`client ready (baseUrl=${secrets.baseUrl})`);
+  const ownerClient = authProfiles?.owner?.client;
+  if (!ownerClient) {
+    clack.cancel(`Provisioned secrets at ${SECRETS_PATH} did not contain an owner API key profile.`);
+    process.exit(1);
+  }
+  logOk(`clients ready (baseUrl=${secrets.baseUrl})`);
 
   // Step 4: run the sweep.
   logStep('Hitting every endpoint through @egose/n8n-client');
-  const entries = await runSweep(client);
+  const ownerSweep = await runSweep(ownerClient, 'owner');
+  const entries = [...ownerSweep.entries];
+  if (authProfiles?.restricted?.client) {
+    entries.push(...(await runRestrictedSweep(authProfiles.restricted.client, ownerSweep.resourceIds)));
+  }
 
   // Step 5: best-effort cleanup of created resources.
   logStep('Cleanup created resources (best-effort)');
-  await cleanup(client, entries);
+  await cleanup(ownerClient, entries);
 
   // Step 6: write the report.
   logStep(`Write report to ${OUTPUT_PATH}`);
@@ -647,6 +799,28 @@ async function main() {
   const report = {
     generatedAt: new Date().toISOString(),
     baseUrl: secrets.baseUrl,
+    context: {
+      n8nVersion: secrets.server?.version ?? null,
+      authProfiles: Object.entries(authProfiles ?? {})
+        .filter(([, profile]) => profile !== undefined)
+        .map(([name, profile]) => ({
+          name,
+          authMode: profile!.authMode,
+          role: profile!.role,
+          scopeCount: profile!.requestedScopes?.length ?? null,
+        })),
+      privilegeMatrix: PRIVILEGE_MATRIX,
+      featureState: {
+        licenseActivationRequested: secrets.provisioning?.licenseActivationRequested ?? null,
+        apiKeyScopesSource: secrets.provisioning?.apiKeyScopesSource ?? null,
+        apiKeyScopesStatus: secrets.provisioning?.apiKeyScopesStatus ?? null,
+        restrictedScopeCount: secrets.provisioning?.restrictedScopeCount ?? null,
+        settingsStatus: secrets.server?.settingsStatus ?? null,
+        licenseInfoStatus: secrets.server?.licenseInfoStatus ?? null,
+        licensePlanName: secrets.server?.licensePlanName ?? null,
+        licenseFeatureKeys: secrets.server?.licenseFeatureKeys ?? [],
+      },
+    },
     endpointCount: entries.length,
     okCount: entries.filter((e) => e.status !== null && e.status >= 200 && e.status < 300).length,
     errCount: entries.filter((e) => e.status === null || e.status >= 400).length,

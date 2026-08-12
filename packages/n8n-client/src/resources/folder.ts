@@ -1,37 +1,35 @@
 import FolderClient from '../clients/folder.js';
-import type { Folder, FolderDetail, FolderUpdate } from '../types.js';
+import type { Folder, FolderCreateResult, FolderDetail, FolderUpdate, FolderUpdateResult } from '../types.js';
 import BaseResource from './base.js';
 
-export default class FolderResource extends BaseResource<Folder | FolderDetail> {
+export default class FolderResource extends BaseResource<
+  Folder | FolderCreateResult | FolderDetail | FolderUpdateResult
+> {
   constructor(
     private readonly folders: FolderClient,
-    folder: Folder | FolderDetail,
+    folder: Folder | FolderCreateResult | FolderDetail | FolderUpdateResult,
   ) {
     super(folder);
   }
 
   get id(): string {
-    return this.data.id;
+    return this.snapshot.id;
   }
 
   get name(): string {
-    return this.data.name;
+    return this.snapshot.name;
   }
 
-  get parentFolderId(): string | undefined {
-    return this.data.parentFolderId;
+  get parentFolderId(): string | null | undefined {
+    return this.snapshot.parentFolderId;
   }
 
   async update(data: FolderUpdate): Promise<this> {
-    return this.replaceSnapshot(await this.folders.update(this.id, data));
+    return this.mergeSnapshot(await this.folders.update(this.id, data));
   }
 
   async patch(data: FolderUpdate): Promise<this> {
-    return this.update({
-      name: this.data.name,
-      parentFolderId: this.data.parentFolderId,
-      ...data,
-    });
+    return this.update(data);
   }
 
   async delete(transferToFolderId?: string): Promise<void> {

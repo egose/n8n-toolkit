@@ -4,10 +4,6 @@ import UserResource from '../src/resources/user';
 import { createMockHttpClient } from './test-utils';
 
 const normalizedUser = <T extends Record<string, unknown>>(user: T) => ({
-  firstName: null,
-  lastName: null,
-  role: null,
-  mfaEnabled: false,
   ...user,
 });
 
@@ -31,6 +27,22 @@ describe('Implementation Consistency: User', () => {
 
     expect(http.get).toHaveBeenCalledWith('/users/u-1', undefined);
     expect(result).toEqual(normalizedUser(user));
+  });
+
+  test('get rejects null user responses at the response boundary', async () => {
+    const http = createMockHttpClient([{ body: null }]);
+    const handle = new UserClient(http);
+
+    await expect(handle.get('u-1')).rejects.toThrow('user must be an object');
+  });
+
+  test('get rejects user responses missing mandatory identity fields', async () => {
+    const http = createMockHttpClient([
+      { body: { email: 'alice@example.com', isPending: false, createdAt: '', updatedAt: '' } },
+    ]);
+    const handle = new UserClient(http);
+
+    await expect(handle.get('u-1')).rejects.toThrow('user.id must be a string');
   });
 
   test('getResource returns a bound user resource', async () => {
@@ -67,9 +79,7 @@ describe('Implementation Consistency: User', () => {
     const result = await handle.create([{ email: 'bob@example.com', role: 'global:member' }]);
 
     expect(http.post).toHaveBeenCalledWith('/users', [{ email: 'bob@example.com', role: 'global:member' }]);
-    expect(result).toEqual([
-      { user: { id: 'u-2', email: 'bob@example.com', inviteAcceptUrl: null, emailSent: false, role: null }, error: '' },
-    ]);
+    expect(result).toEqual(created);
   });
 
   test('delete calls DELETE /users/:id', async () => {
@@ -90,7 +100,7 @@ describe('Implementation Consistency: User', () => {
     expect(http.patch).toHaveBeenCalledWith('/users/u-1/role', { newRoleName: 'global:admin' });
   });
 
-  test('user resource methods use bound user id and refresh local role', async () => {
+  test('user resource methods use bound user id and refresh local role after role changes', async () => {
     const refreshed = {
       id: 'u-1',
       email: 'alice@example.com',
@@ -117,10 +127,10 @@ describe('Implementation Consistency: User', () => {
     });
 
     await resource.changeRole('global:admin');
-    await resource.refresh();
     await resource.delete();
 
     expect(resource.data.role).toBe('global:admin');
+    expect(http.get).toHaveBeenCalledWith('/users/u-1', undefined);
     expect(http.delete).toHaveBeenCalledWith('/users/u-1');
   });
 });

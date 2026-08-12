@@ -1,4 +1,5 @@
 import type { PaginatedResponse } from '../pagination.js';
+import { encodePathSegment } from '../path.js';
 import type {
   DataTable,
   DataTableColumn,
@@ -36,13 +37,32 @@ import {
   normalizeDataTableRowListResponse,
 } from '../response-mappers.js';
 
+const DATA_TABLE_COLUMN_NAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+
+function validateDataTableColumnName(name: string | undefined): void {
+  if (name === undefined || DATA_TABLE_COLUMN_NAME_PATTERN.test(name)) {
+    return;
+  }
+
+  throw new Error(
+    `Invalid data table column name "${name}". Column names must match ${DATA_TABLE_COLUMN_NAME_PATTERN.toString()}.`,
+  );
+}
+
+function serializeDeleteRowsParams(params: DeleteRowsParams): Record<string, unknown> {
+  return {
+    ...params,
+    filter: JSON.stringify(params.filter),
+  };
+}
+
 export default class DataTableClient extends BaseClient {
   async list(params?: DataTableListParams): Promise<DataTableListResponse> {
     return normalizeDataTableListResponse(await this.http.get<DataTableListResponse>('/data-tables', params));
   }
 
   async get(id: string): Promise<DataTable> {
-    return normalizeDataTable(await this.http.get<DataTable>(`/data-tables/${id}`));
+    return normalizeDataTable(await this.http.get<DataTable>(`/data-tables/${encodePathSegment(id)}`));
   }
 
   async getResource(id: string): Promise<DataTableResource> {
@@ -67,7 +87,7 @@ export default class DataTableClient extends BaseClient {
   }
 
   async update(id: string, data: UpdateDataTableRequest): Promise<DataTable> {
-    return normalizeDataTable(await this.http.patch<DataTable>(`/data-tables/${id}`, data));
+    return normalizeDataTable(await this.http.patch<DataTable>(`/data-tables/${encodePathSegment(id)}`, data));
   }
 
   async updateResource(id: string, data: UpdateDataTableRequest): Promise<DataTableResource> {
@@ -75,12 +95,12 @@ export default class DataTableClient extends BaseClient {
   }
 
   async delete(id: string): Promise<void> {
-    await this.http.delete<void>(`/data-tables/${id}`);
+    await this.http.delete<void>(`/data-tables/${encodePathSegment(id)}`);
   }
 
   async listRows(dataTableId: string, params?: DataTableRowListParams): Promise<DataTableRowListResponse> {
     return normalizeDataTableRowListResponse(
-      await this.http.get<DataTableRowListResponse>(`/data-tables/${dataTableId}/rows`, params),
+      await this.http.get<DataTableRowListResponse>(`/data-tables/${encodePathSegment(dataTableId)}/rows`, params),
     );
   }
 
@@ -92,7 +112,7 @@ export default class DataTableClient extends BaseClient {
     data: InsertRowsRequest,
   ): Promise<{ count: number } | number[] | DataTableRow[]> {
     const response = await this.http.post<{ count: number } | number[] | DataTableRow[]>(
-      `/data-tables/${dataTableId}/rows`,
+      `/data-tables/${encodePathSegment(dataTableId)}/rows`,
       data,
     );
     return Array.isArray(response) && response.every((row) => typeof row === 'object')
@@ -103,48 +123,63 @@ export default class DataTableClient extends BaseClient {
   async updateRows(dataTableId: string, data: UpdateRowsBooleanRequest): Promise<boolean>;
   async updateRows(dataTableId: string, data: UpdateRowsDataRequest): Promise<DataTableRow[]>;
   async updateRows(dataTableId: string, data: UpdateRowsRequest): Promise<boolean | DataTableRow[]> {
-    const response = await this.http.patch<boolean | DataTableRow[]>(`/data-tables/${dataTableId}/rows/update`, data);
+    const response = await this.http.patch<boolean | DataTableRow[]>(
+      `/data-tables/${encodePathSegment(dataTableId)}/rows/update`,
+      data,
+    );
     return Array.isArray(response) ? response.map(normalizeDataTableRow) : response;
   }
 
   async upsertRow(dataTableId: string, data: UpsertRowBooleanRequest): Promise<boolean>;
   async upsertRow(dataTableId: string, data: UpsertRowDataRequest): Promise<DataTableRow>;
   async upsertRow(dataTableId: string, data: UpsertRowRequest): Promise<boolean | DataTableRow> {
-    const response = await this.http.post<boolean | DataTableRow>(`/data-tables/${dataTableId}/rows/upsert`, data);
+    const response = await this.http.post<boolean | DataTableRow>(
+      `/data-tables/${encodePathSegment(dataTableId)}/rows/upsert`,
+      data,
+    );
     return typeof response === 'boolean' ? response : normalizeDataTableRow(response);
   }
 
   async clearRows(dataTableId: string): Promise<ClearRowsResponse> {
-    return this.http.delete<ClearRowsResponse>(`/data-tables/${dataTableId}/rows/clear`);
+    return this.http.delete<ClearRowsResponse>(`/data-tables/${encodePathSegment(dataTableId)}/rows/clear`);
   }
 
   async deleteRows(dataTableId: string, params: DeleteRowsBooleanParams): Promise<boolean>;
   async deleteRows(dataTableId: string, params: DeleteRowsDataParams): Promise<DataTableRow[]>;
   async deleteRows(dataTableId: string, params: DeleteRowsParams): Promise<boolean | DataTableRow[]> {
     const response = await this.http.delete<boolean | DataTableRow[]>(
-      `/data-tables/${dataTableId}/rows/delete`,
-      params,
+      `/data-tables/${encodePathSegment(dataTableId)}/rows/delete`,
+      serializeDeleteRowsParams(params),
     );
     return Array.isArray(response) ? response.map(normalizeDataTableRow) : response;
   }
 
   async listColumns(dataTableId: string): Promise<DataTableColumn[]> {
-    return ((await this.http.get<DataTableColumn[]>(`/data-tables/${dataTableId}/columns`)) ?? []).map(
-      normalizeDataTableColumn,
-    );
+    return (
+      (await this.http.get<DataTableColumn[]>(`/data-tables/${encodePathSegment(dataTableId)}/columns`)) ?? []
+    ).map(normalizeDataTableColumn);
   }
 
   async createColumn(dataTableId: string, data: CreateColumnRequest): Promise<DataTableColumn> {
-    return normalizeDataTableColumn(await this.http.post<DataTableColumn>(`/data-tables/${dataTableId}/columns`, data));
+    validateDataTableColumnName(data.name);
+    return normalizeDataTableColumn(
+      await this.http.post<DataTableColumn>(`/data-tables/${encodePathSegment(dataTableId)}/columns`, data),
+    );
   }
 
   async deleteColumn(dataTableId: string, columnId: string): Promise<void> {
-    await this.http.delete<void>(`/data-tables/${dataTableId}/columns/${columnId}`);
+    await this.http.delete<void>(
+      `/data-tables/${encodePathSegment(dataTableId)}/columns/${encodePathSegment(columnId)}`,
+    );
   }
 
   async updateColumn(dataTableId: string, columnId: string, data: UpdateColumnRequest): Promise<DataTableColumn> {
+    validateDataTableColumnName(data.name);
     return normalizeDataTableColumn(
-      await this.http.patch<DataTableColumn>(`/data-tables/${dataTableId}/columns/${columnId}`, data),
+      await this.http.patch<DataTableColumn>(
+        `/data-tables/${encodePathSegment(dataTableId)}/columns/${encodePathSegment(columnId)}`,
+        data,
+      ),
     );
   }
 }

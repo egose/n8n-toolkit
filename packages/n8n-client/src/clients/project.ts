@@ -1,7 +1,8 @@
 import { HttpError } from '../http-client.js';
 import type { PaginatedResponse } from '../pagination.js';
+import { encodePathSegment } from '../path.js';
 import type {
-  Project,
+  ProjectCreateResult,
   ProjectCreate,
   ProjectSummary,
   ProjectListResponse,
@@ -19,7 +20,7 @@ import VariableClient from './variable.js';
 import WorkflowClient from './workflow.js';
 import ProjectResource from '../resources/project.js';
 import {
-  normalizeProject,
+  normalizeProjectCreateResult,
   normalizeProjectListResponse,
   normalizeProjectMemberListResponse,
 } from '../response-mappers.js';
@@ -29,7 +30,6 @@ export default class ProjectClient extends BaseClient {
   private readonly variablesClient = new VariableClient(this.http);
   private readonly dataTablesClient = new DataTableClient(this.http);
   private readonly executionsClient = new ExecutionClient(this.http);
-  private readonly folderClients = new Map<string, FolderClient>();
 
   async list(params?: PaginationParams): Promise<ProjectListResponse> {
     return normalizeProjectListResponse(await this.http.get<ProjectListResponse>('/projects', params));
@@ -54,8 +54,8 @@ export default class ProjectClient extends BaseClient {
     };
   }
 
-  async create(data: ProjectCreate): Promise<Project> {
-    return normalizeProject(await this.http.post<Project>('/projects', data));
+  async create(data: ProjectCreate): Promise<ProjectCreateResult> {
+    return normalizeProjectCreateResult(await this.http.post<ProjectCreateResult>('/projects', data));
   }
 
   async createResource(data: ProjectCreate): Promise<ProjectResource> {
@@ -63,7 +63,7 @@ export default class ProjectClient extends BaseClient {
   }
 
   async update(id: string, data: ProjectUpdate): Promise<void> {
-    await this.http.put<void>(`/projects/${id}`, data);
+    await this.http.put<void>(`/projects/${encodePathSegment(id)}`, data);
   }
 
   async updateResource(id: string, data: ProjectUpdate): Promise<ProjectResource> {
@@ -73,52 +73,42 @@ export default class ProjectClient extends BaseClient {
 
   async delete(id: string, transferId?: string): Promise<void> {
     if (transferId) {
-      await this.http.delete<void>(`/projects/${id}`, { transferId });
+      await this.http.delete<void>(`/projects/${encodePathSegment(id)}`, { transferId });
       return;
     }
 
-    await this.http.delete<void>(`/projects/${id}`);
+    await this.http.delete<void>(`/projects/${encodePathSegment(id)}`);
   }
 
   async listMembers(projectId: string, params?: PaginationParams): Promise<ProjectMemberListResponse> {
     return normalizeProjectMemberListResponse(
-      await this.http.get<ProjectMemberListResponse>(`/projects/${projectId}/users`, params),
+      await this.http.get<ProjectMemberListResponse>(`/projects/${encodePathSegment(projectId)}/users`, params),
     );
   }
 
   async addMembers(projectId: string, relations: ProjectMemberRelation[]): Promise<void> {
-    await this.http.post<void>(`/projects/${projectId}/users`, { relations });
+    await this.http.post<void>(`/projects/${encodePathSegment(projectId)}/users`, { relations });
   }
 
   async removeMember(projectId: string, userId: string): Promise<void> {
-    await this.http.delete<void>(`/projects/${projectId}/users/${userId}`);
+    await this.http.delete<void>(`/projects/${encodePathSegment(projectId)}/users/${encodePathSegment(userId)}`);
   }
 
   async changeMemberRole(projectId: string, userId: string, role: string): Promise<void> {
     const data: ProjectMemberRoleChangeRequest = { role };
-    await this.http.patch<void>(`/projects/${projectId}/users/${userId}`, data);
+    await this.http.patch<void>(`/projects/${encodePathSegment(projectId)}/users/${encodePathSegment(userId)}`, data);
   }
 
-  private bindResource(project: Project | ProjectSummary): ProjectResource {
+  private bindResource(project: ProjectCreateResult | ProjectSummary): ProjectResource {
     return new ProjectResource(
       this,
       this.workflowsClient,
-      this.folderClient(project.id),
+      new FolderClient(this.http, project.id),
       this.variablesClient,
       this.dataTablesClient,
       this.executionsClient,
       project,
     );
-  }
-
-  private folderClient(projectId: string): FolderClient {
-    let client = this.folderClients.get(projectId);
-    if (!client) {
-      client = new FolderClient(this.http, projectId);
-      this.folderClients.set(projectId, client);
-    }
-
-    return client;
   }
 
   private async findProject(id: string): Promise<ProjectSummary | undefined> {

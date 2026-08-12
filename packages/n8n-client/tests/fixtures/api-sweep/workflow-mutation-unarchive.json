@@ -1,0 +1,32 @@
+{
+  "id": "wf_observed_redacted",
+  "name": "observed-contract-workflow",
+  "description": null,
+  "active": false,
+  "createdAt": "2026-07-22T00:30:39.354Z",
+  "updatedAt": "2026-07-22T00:31:10.000Z",
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "node_observed_start",
+      "name": "When clicking Execute",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {}
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": null,
+  "versionId": "version_observed_2",
+  "activeVersionId": null,
+  "versionCounter": 2,
+  "triggerCount": 0,
+  "sourceWorkflowId": null
+}

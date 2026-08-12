@@ -1,8 +1,11 @@
 import type { PaginatedResponse, PaginationParams } from '../pagination.js';
+import { encodePathSegment } from '../path.js';
 import ExecutionClient from './execution.js';
 import type {
   Workflow,
+  WorkflowDetail,
   WorkflowCreate,
+  WorkflowMutationResult,
   WorkflowUpdate,
   WorkflowListResponse,
   WorkflowVersion,
@@ -24,6 +27,7 @@ import {
   normalizeTestRunListResponse,
   normalizeWorkflow,
   normalizeWorkflowListResponse,
+  normalizeWorkflowMutation,
 } from '../response-mappers.js';
 
 export default class WorkflowClient extends BaseClient {
@@ -33,8 +37,8 @@ export default class WorkflowClient extends BaseClient {
     return normalizeWorkflowListResponse(await this.http.get<WorkflowListResponse>('/workflows', params));
   }
 
-  async get(id: string, params?: WorkflowGetParams): Promise<Workflow> {
-    return normalizeWorkflow(await this.http.get<Workflow>(`/workflows/${id}`, params));
+  async get(id: string, params?: WorkflowGetParams): Promise<WorkflowDetail> {
+    return normalizeWorkflow(await this.http.get<WorkflowDetail>(`/workflows/${encodePathSegment(id)}`, params));
   }
 
   async getResource(id: string, params?: WorkflowGetParams): Promise<WorkflowResource> {
@@ -50,69 +54,85 @@ export default class WorkflowClient extends BaseClient {
     };
   }
 
-  async create(data: WorkflowCreate): Promise<Workflow> {
-    return normalizeWorkflow(await this.http.post<Workflow>('/workflows', data));
+  async create(data: WorkflowCreate): Promise<WorkflowDetail> {
+    return normalizeWorkflow(await this.http.post<WorkflowDetail>('/workflows', data));
   }
 
   async createResource(data: WorkflowCreate): Promise<WorkflowResource> {
     return new WorkflowResource(this, this.executions, await this.create(data));
   }
 
-  async update(id: string, data: WorkflowUpdate): Promise<Workflow> {
-    return normalizeWorkflow(await this.http.put<Workflow>(`/workflows/${id}`, data));
+  async update(id: string, data: WorkflowUpdate): Promise<WorkflowMutationResult> {
+    return normalizeWorkflowMutation(
+      await this.http.put<WorkflowMutationResult>(`/workflows/${encodePathSegment(id)}`, data),
+    );
   }
 
   async updateResource(id: string, data: WorkflowUpdate): Promise<WorkflowResource> {
-    return new WorkflowResource(this, this.executions, await this.update(id, data));
+    await this.update(id, data);
+    return this.getResource(id);
   }
 
   async delete(id: string): Promise<Workflow> {
-    return normalizeWorkflow(await this.http.delete<Workflow>(`/workflows/${id}`));
+    return normalizeWorkflow(await this.http.delete<Workflow>(`/workflows/${encodePathSegment(id)}`));
   }
 
-  async activate(id: string, data?: WorkflowActivateRequest): Promise<Workflow> {
-    return normalizeWorkflow(await this.http.post<Workflow>(`/workflows/${id}/activate`, data));
+  async activate(id: string, data?: WorkflowActivateRequest): Promise<WorkflowMutationResult> {
+    return normalizeWorkflowMutation(
+      await this.http.post<WorkflowMutationResult>(`/workflows/${encodePathSegment(id)}/activate`, data),
+    );
   }
 
-  async deactivate(id: string): Promise<Workflow> {
-    return normalizeWorkflow(await this.http.post<Workflow>(`/workflows/${id}/deactivate`));
+  async deactivate(id: string): Promise<WorkflowMutationResult> {
+    return normalizeWorkflowMutation(
+      await this.http.post<WorkflowMutationResult>(`/workflows/${encodePathSegment(id)}/deactivate`),
+    );
   }
 
-  async archive(id: string): Promise<Workflow> {
-    return normalizeWorkflow(await this.http.post<Workflow>(`/workflows/${id}/archive`));
+  async archive(id: string): Promise<WorkflowMutationResult> {
+    return normalizeWorkflowMutation(
+      await this.http.post<WorkflowMutationResult>(`/workflows/${encodePathSegment(id)}/archive`),
+    );
   }
 
-  async unarchive(id: string): Promise<Workflow> {
-    return normalizeWorkflow(await this.http.post<Workflow>(`/workflows/${id}/unarchive`));
+  async unarchive(id: string): Promise<WorkflowMutationResult> {
+    return normalizeWorkflowMutation(
+      await this.http.post<WorkflowMutationResult>(`/workflows/${encodePathSegment(id)}/unarchive`),
+    );
   }
 
   async transfer(id: string, destinationProjectId: string): Promise<void> {
-    await this.http.put<void>(`/workflows/${id}/transfer`, { destinationProjectId });
+    await this.http.put<void>(`/workflows/${encodePathSegment(id)}/transfer`, { destinationProjectId });
   }
 
   async getTags(id: string): Promise<Tag[]> {
-    return ((await this.http.get<Tag[]>(`/workflows/${id}/tags`)) ?? []).map(normalizeTag);
+    return ((await this.http.get<Tag[]>(`/workflows/${encodePathSegment(id)}/tags`)) ?? []).map(normalizeTag);
   }
 
   async updateTags(id: string, tags: TagId[]): Promise<Tag[]> {
-    return ((await this.http.put<Tag[]>(`/workflows/${id}/tags`, tags)) ?? []).map(normalizeTag);
+    return ((await this.http.put<Tag[]>(`/workflows/${encodePathSegment(id)}/tags`, tags)) ?? []).map(normalizeTag);
   }
 
   async getVersion(id: string, versionId: string): Promise<WorkflowVersion> {
-    return this.http.get<WorkflowVersion>(`/workflows/${id}/${versionId}`);
+    return this.http.get<WorkflowVersion>(`/workflows/${encodePathSegment(id)}/${encodePathSegment(versionId)}`);
   }
 
   async listTestRuns(id: string, params?: TestRunListParams): Promise<TestRunListResponse> {
-    return normalizeTestRunListResponse(await this.http.get<TestRunListResponse>(`/workflows/${id}/test-runs`, params));
+    return normalizeTestRunListResponse(
+      await this.http.get<TestRunListResponse>(`/workflows/${encodePathSegment(id)}/test-runs`, params),
+    );
   }
 
   async getTestRun(id: string, runId: string): Promise<TestRunSummary> {
-    return this.http.get<TestRunSummary>(`/workflows/${id}/test-runs/${runId}`);
+    return this.http.get<TestRunSummary>(`/workflows/${encodePathSegment(id)}/test-runs/${encodePathSegment(runId)}`);
   }
 
   async listTestCases(id: string, runId: string, params?: PaginationParams): Promise<TestCaseExecutionListResponse> {
     return normalizeTestCaseExecutionListResponse(
-      await this.http.get<TestCaseExecutionListResponse>(`/workflows/${id}/test-runs/${runId}/test-cases`, params),
+      await this.http.get<TestCaseExecutionListResponse>(
+        `/workflows/${encodePathSegment(id)}/test-runs/${encodePathSegment(runId)}/test-cases`,
+        params,
+      ),
     );
   }
 }

@@ -69,7 +69,7 @@ describe('Implementation Consistency: Tag', () => {
   });
 
   test('update calls PUT /tags/:id', async () => {
-    const updated = { id: 't-1', name: 'Prod', createdAt: '', updatedAt: '' };
+    const updated = { id: 't-1', name: 'Prod' };
     const http = createMockHttpClient([{ body: updated }]);
     const handle = new TagClient(http);
 
@@ -80,28 +80,31 @@ describe('Implementation Consistency: Tag', () => {
   });
 
   test('updateResource wraps updated tag as a resource', async () => {
-    const updated = { id: 't-1', name: 'Prod', createdAt: '', updatedAt: '' };
-    const http = createMockHttpClient([{ body: updated }]);
+    const current = { id: 't-1', name: 'Production', createdAt: '', updatedAt: '' };
+    const updated = { id: 't-1', name: 'Prod' };
+    const http = createMockHttpClient([{ body: current }, { body: updated }]);
     const handle = new TagClient(http);
 
     const result = await handle.updateResource('t-1', { name: 'Prod' });
 
     expect(result).toBeInstanceOf(TagResource);
-    expect(result.data).toEqual(updated);
+    expect(result.data).toEqual({ ...current, ...updated });
   });
 
   test('delete calls DELETE /tags/:id', async () => {
-    const http = createMockHttpClient([{ body: undefined }]);
+    const deleted = { id: 't-1', name: 'Production' };
+    const http = createMockHttpClient([{ body: deleted }]);
     const handle = new TagClient(http);
 
-    await handle.delete('t-1');
+    const result = await handle.delete('t-1');
 
     expect(http.delete).toHaveBeenCalledWith('/tags/t-1');
+    expect(result).toEqual(deleted);
   });
 
   test('tag resource methods use bound tag id', async () => {
-    const updated = { id: 't-1', name: 'Prod', createdAt: '', updatedAt: '' };
-    const deleted = { id: 't-1', name: 'Prod', createdAt: '', updatedAt: '' };
+    const updated = { id: 't-1', name: 'Prod' };
+    const deleted = { id: 't-1', name: 'Prod' };
     const http = createMockHttpClient([{ body: updated }, { body: deleted }]);
     const handle = new TagClient(http);
     const resource = new TagResource(handle, { id: 't-1', name: 'Production', createdAt: '', updatedAt: '' });
@@ -123,5 +126,25 @@ describe('Implementation Consistency: Tag', () => {
 
     expect(http.put).toHaveBeenCalledWith('/tags/t-1', { name: 'Production' });
     expect(resource.name).toBe('Production');
+  });
+
+  test('tag resource update preserves known timestamps when the mutation response is compact', async () => {
+    const http = createMockHttpClient([{ body: { id: 't-1', name: 'Prod' } }]);
+    const handle = new TagClient(http);
+    const resource = new TagResource(handle, {
+      id: 't-1',
+      name: 'Production',
+      createdAt: '2026-07-22T00:30:40.630Z',
+      updatedAt: '2026-07-22T00:30:40.630Z',
+    });
+
+    await resource.update({ name: 'Prod' });
+
+    expect(resource.data).toEqual({
+      id: 't-1',
+      name: 'Prod',
+      createdAt: '2026-07-22T00:30:40.630Z',
+      updatedAt: '2026-07-22T00:30:40.630Z',
+    });
   });
 });

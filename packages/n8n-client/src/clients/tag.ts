@@ -1,8 +1,9 @@
 import type { PaginatedResponse } from '../pagination.js';
-import type { Tag, TagListResponse, PaginationParams, TagMutation } from '../types.js';
+import { encodePathSegment } from '../path.js';
+import type { Tag, TagListResponse, PaginationParams, TagMutation, TagMutationResult } from '../types.js';
 import BaseClient from './base.js';
 import TagResource from '../resources/tag.js';
-import { normalizeTag, normalizeTagListResponse } from '../response-mappers.js';
+import { normalizeTag, normalizeTagListResponse, normalizeTagMutationResult } from '../response-mappers.js';
 
 export default class TagClient extends BaseClient {
   async list(params?: PaginationParams): Promise<TagListResponse> {
@@ -10,7 +11,7 @@ export default class TagClient extends BaseClient {
   }
 
   async get(id: string): Promise<Tag> {
-    return normalizeTag(await this.http.get<Tag>(`/tags/${id}`));
+    return normalizeTag(await this.http.get<Tag>(`/tags/${encodePathSegment(id)}`));
   }
 
   async getResource(id: string): Promise<TagResource> {
@@ -34,15 +35,15 @@ export default class TagClient extends BaseClient {
     return new TagResource(this, await this.create(data));
   }
 
-  async update(id: string, data: TagMutation): Promise<Tag> {
-    return normalizeTag(await this.http.put<Tag>(`/tags/${id}`, data));
+  async update(id: string, data: TagMutation): Promise<TagMutationResult> {
+    return normalizeTagMutationResult(await this.http.put<TagMutationResult>(`/tags/${encodePathSegment(id)}`, data));
   }
 
   async updateResource(id: string, data: TagMutation): Promise<TagResource> {
-    return new TagResource(this, await this.update(id, data));
+    return (await this.getResource(id)).update(data);
   }
 
-  async delete(id: string): Promise<Tag> {
-    return normalizeTag(await this.http.delete<Tag>(`/tags/${id}`));
+  async delete(id: string): Promise<TagMutationResult> {
+    return normalizeTagMutationResult(await this.http.delete<TagMutationResult>(`/tags/${encodePathSegment(id)}`));
   }
 }

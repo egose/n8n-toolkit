@@ -48,6 +48,14 @@ function emittedEvent(emit: ReturnType<typeof vi.fn>): SyncEvent {
   return emit.mock.calls[0][0] as SyncEvent;
 }
 
+function emittedWorkflowEvent(emit: ReturnType<typeof vi.fn>): Extract<SyncEvent, { workflow: unknown }> {
+  const event = emittedEvent(emit);
+  if (!('workflow' in event)) {
+    throw new Error(`expected workflow event, received ${event.type}`);
+  }
+  return event;
+}
+
 describe('createPublisherHooks', () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -266,9 +274,10 @@ describe('createPublisherHooks', () => {
         type: 'workflow.upsert',
         workflow: { id: 'wf-sync', active: true },
       });
+      const event = emittedWorkflowEvent(emit);
       // No tags, no active_real rewriting on the DTO when filter is off
-      expect((emittedEvent(emit) as { workflow: Record<string, unknown> }).workflow.tags).toBeUndefined();
-      expect((emittedEvent(emit) as { workflow: { meta?: unknown } }).workflow.meta).toBeUndefined();
+      expect(event.workflow.tags).toBeUndefined();
+      expect(event.workflow.meta).toBeUndefined();
     });
 
     it('emits a workflow.upsert (with tags + meta.active_real=real active) when sync tag is present but active tag missing', async () => {

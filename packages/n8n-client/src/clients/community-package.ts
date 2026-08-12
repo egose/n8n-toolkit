@@ -1,4 +1,5 @@
 import { HttpError } from '../http-client.js';
+import { encodePathSegment } from '../path.js';
 import type { CommunityPackage, InstallCommunityPackageRequest, UpdateCommunityPackageRequest } from '../types.js';
 import BaseClient from './base.js';
 import CommunityPackageResource from '../resources/community-package.js';
@@ -33,7 +34,7 @@ export default class CommunityPackageClient extends BaseClient {
   }
 
   async update(name: string, data?: UpdateCommunityPackageRequest): Promise<CommunityPackage> {
-    return this.http.patch<CommunityPackage>(`/community-packages/${name}`, data);
+    return this.http.patch<CommunityPackage>(`/community-packages/${encodePathSegment(name)}`, data);
   }
 
   async updateResource(name: string, data?: UpdateCommunityPackageRequest): Promise<CommunityPackageResource> {
@@ -41,6 +42,6 @@ export default class CommunityPackageClient extends BaseClient {
   }
 
   async uninstall(name: string): Promise<void> {
-    await this.http.delete<void>(`/community-packages/${name}`);
+    await this.http.delete<void>(`/community-packages/${encodePathSegment(name)}`);
   }
 }
