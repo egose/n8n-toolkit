@@ -22,7 +22,7 @@
 #              -e EXTERNAL_HOOK_FILES=/opt/n8n-hooks/subscriber.cjs \
 #              n8n-with-sync
 
-ARG N8N_VERSION=latest
+ARG N8N_VERSION=2.31.2
 ARG N8N_SYNC_VERSION=latest
 # CDN base: https://unpkg.com/@egose/n8n-sync or https://cdn.jsdelivr.net/npm/@egose/n8n-sync
 ARG N8N_SYNC_CDN=https://cdn.jsdelivr.net/npm/@egose/n8n-sync
@@ -37,8 +37,8 @@ ARG N8N_SYNC_CDN
 RUN apk add --no-cache curl
 WORKDIR /bundles
 RUN set -eux; \
-    curl -fsSL "${N8N_SYNC_CDN}@${N8N_SYNC_VERSION}/publisher.cjs" -o publisher.cjs; \
-    curl -fsSL "${N8N_SYNC_CDN}@${N8N_SYNC_VERSION}/subscriber.cjs" -o subscriber.cjs
+    curl -fsSL "${N8N_SYNC_CDN}@${N8N_SYNC_VERSION}/dist/publisher.cjs" -o publisher.cjs; \
+    curl -fsSL "${N8N_SYNC_CDN}@${N8N_SYNC_VERSION}/dist/subscriber.cjs" -o subscriber.cjs
 
 # ---------------------------------------------------------------------------
 # Stage 2: n8n runtime image with the hook bundles baked in

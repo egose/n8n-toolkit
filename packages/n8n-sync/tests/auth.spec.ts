@@ -2,7 +2,13 @@ import type { IncomingMessage } from 'node:http';
 
 import { describe, expect, it } from 'vitest';
 
-import { signPayload, verifyRequest, verifyRequestSignature, verifyRequestToken } from '../src/shared/auth';
+import {
+  createRequestReplayGuard,
+  signPayload,
+  verifyRequest,
+  verifyRequestSignature,
+  verifyRequestToken,
+} from '../src/shared/auth';
 
 const SECRET = 's3cret'; // pragma: allowlist secret
 const BODY = '{"type":"workflow.delete","workflowId":"wf-1"}';
@@ -108,5 +114,31 @@ describe('verifyRequest', () => {
 
     const hmacReq = reqWithHeaders(signedHeaders(SECRET, String(NOW), BODY));
     expect(verifyRequest(hmacReq, SECRET, BODY, 'token', 60_000, NOW)).toBe(false);
+  });
+});
+
+describe('createRequestReplayGuard', () => {
+  it('accepts the first verified request and rejects an exact replay', () => {
+    const timestamp = String(NOW);
+    const req = reqWithHeaders(signedHeaders(SECRET, timestamp, BODY));
+    const replayGuard = createRequestReplayGuard({ ttlMs: 60_000, nowMs: () => NOW });
+
+    expect(replayGuard.remember(req)).toBe('accepted');
+    expect(replayGuard.remember(req)).toBe('replayed');
+  });
+
+  it('expires old entries and keeps the cache bounded', () => {
+    let now = NOW;
+    const replayGuard = createRequestReplayGuard({ ttlMs: 10, maxEntries: 1, nowMs: () => now });
+
+    const first = reqWithHeaders(signedHeaders(SECRET, String(NOW), BODY));
+    const second = reqWithHeaders(signedHeaders(SECRET, String(NOW + 1), BODY));
+
+    expect(replayGuard.remember(first)).toBe('accepted');
+    expect(replayGuard.remember(second)).toBe('accepted');
+
+    now += 20;
+
+    expect(replayGuard.remember(first)).toBe('accepted');
   });
 });

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createPublisherHooks } from '../src/publisher/hooks';
+import type { Logger } from '../src/shared/logger';
 import type { ICredentialsDb, IRunPayload, IWorkflowBase, IWorkflowTag, SyncEvent } from '../src/shared/types';
 
 const NOW = new Date('2026-03-04T05:06:07.000Z');
@@ -11,11 +12,20 @@ function makeDeps(
     filterByTag?: boolean;
     syncWorkflowTag?: string;
     activeTag?: string;
+    emit?: (event: SyncEvent) => Promise<void>;
   } = {},
 ) {
-  const emit = vi.fn().mockResolvedValue(undefined);
+  const emit = vi.fn(overrides.emit ?? (async () => undefined));
+  const log: Logger = {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    child: vi.fn(),
+  };
   const hooks = createPublisherHooks({
     emit,
+    log,
     sourceId: 'src-1',
     now: () => NOW,
     ...(overrides.entities ? { entities: overrides.entities } : {}),
@@ -23,7 +33,7 @@ function makeDeps(
     ...(overrides.syncWorkflowTag !== undefined ? { syncWorkflowTag: overrides.syncWorkflowTag } : {}),
     ...(overrides.activeTag !== undefined ? { activeTag: overrides.activeTag } : {}),
   });
-  return { emit, hooks };
+  return { emit, hooks, log };
 }
 
 const workflow: IWorkflowBase = {
@@ -89,18 +99,31 @@ describe('createPublisherHooks', () => {
     expect(hooks.credentials).toBeUndefined();
   });
 
-  it('wires only workflow.postExecute when workflows is disabled but executions is enabled', () => {
-    const { hooks } = makeDeps({ entities: { workflows: false, executions: true } });
-    expect(hooks.workflow).toBeDefined();
-    expect(hooks.workflow.postExecute).toBeDefined();
-    expect(hooks.workflow.afterCreate).toBeUndefined();
-    expect(hooks.workflow.activate).toBeUndefined();
+  it('rejects enabling execution sync when workflow sync is disabled', () => {
+    expect(() => makeDeps({ entities: { workflows: false, executions: true } })).toThrow(
+      'Execution sync requires workflow sync to also be enabled',
+    );
   });
 
   it('stamps every event with at/sourceId', async () => {
     const { emit, hooks } = makeDeps();
     await hooks.workflow.afterDelete[0]('wf-1' as never);
-    expect(emittedEvent(emit)).toMatchObject({ at: NOW.toISOString(), sourceId: 'src-1' });
+    expect(emittedEvent(emit)).toMatchObject({
+      at: NOW.toISOString(),
+      sourceId: 'src-1',
+      eventId: 'src-1:1',
+      entityRevision: '1',
+    });
+  });
+
+  it('increments the per-entity revision even when timestamps are equal', async () => {
+    const { emit, hooks } = makeDeps();
+
+    await hooks.workflow.afterUpdate[0](workflow as never);
+    await hooks.workflow.afterUpdate[0](workflow as never);
+
+    expect(emit.mock.calls[0][0]).toMatchObject({ eventId: 'src-1:1', entityRevision: '1' });
+    expect(emit.mock.calls[1][0]).toMatchObject({ eventId: 'src-1:2', entityRevision: '2' });
   });
 
   it('maps credentials.create and credentials.update to credentials.upsert from the hook payload', async () => {
@@ -117,25 +140,29 @@ describe('createPublisherHooks', () => {
     expect(emittedEvent(emit)).toMatchObject({ type: 'credentials.upsert', credential: { id: 'cred-1' } });
   });
 
-  it('resolves credentials.create from dbCollections when the hook payload is incomplete', async () => {
-    const { emit, hooks } = makeDeps();
-    const findOne = vi.fn().mockResolvedValue(credential);
+  it('resolves credentials.create from dbCollections by id when the stored row appears later', async () => {
+    vi.useFakeTimers();
 
-    await hooks.credentials.create[0].call({ dbCollections: { Credentials: { findOne } } }, {
-      name: credential.name,
-      type: credential.type,
-    } as never);
+    try {
+      const { emit, hooks } = makeDeps();
+      const findOne = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(credential);
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(emit).toHaveBeenCalledTimes(1);
-    expect(findOne).toHaveBeenCalledWith({
-      where: { name: credential.name, type: credential.type },
-      order: { updatedAt: 'DESC' },
-    });
-    expect(emittedEvent(emit)).toMatchObject({
-      type: 'credentials.upsert',
-      credential: { id: 'cred-1', name: 'C', data: 'encrypted' },
-    });
+      await hooks.credentials.create[0].call({ dbCollections: { Credentials: { findOne } } }, {
+        id: credential.id,
+      } as never);
+      await vi.runAllTimersAsync();
+
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(findOne).toHaveBeenNthCalledWith(1, { where: { id: credential.id } });
+      expect(findOne).toHaveBeenNthCalledWith(2, { where: { id: credential.id } });
+      expect(findOne).toHaveBeenNthCalledWith(3, { where: { id: credential.id } });
+      expect(emittedEvent(emit)).toMatchObject({
+        type: 'credentials.upsert',
+        credential: { id: 'cred-1', name: 'C', data: 'encrypted' },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not query dbCollections on credentials.update when the payload is complete', async () => {
@@ -151,10 +178,108 @@ describe('createPublisherHooks', () => {
     });
   });
 
+  it('drops credential object payloads without logging secret material', async () => {
+    const { emit, hooks, log } = makeDeps();
+
+    await hooks.credentials.update[0]({
+      ...credential,
+      data: { user: 'alice', password: 'secret' }, // pragma: allowlist secret
+    } as never);
+
+    expect(emit).not.toHaveBeenCalled();
+    expect(log.warn).toHaveBeenCalledWith(
+      'Dropping credential sync event',
+      expect.objectContaining({
+        context: 'publisher hook',
+        hook: 'credentials.update',
+        reason: 'plaintext_object_payload',
+        credentialId: credential.id,
+        supportedN8nVersion: '2.31.2',
+      }),
+    );
+    expect(log.warn).toHaveBeenCalledWith(
+      'Dropping credential sync event',
+      expect.not.objectContaining({ data: expect.anything(), password: expect.anything(), user: expect.anything() }),
+    );
+  });
+
   it('maps credentials.delete to credentials.delete', async () => {
     const { emit, hooks } = makeDeps();
     await hooks.credentials.delete[0]('cred-9' as never);
     expect(emittedEvent(emit)).toMatchObject({ type: 'credentials.delete', credentialId: 'cred-9' });
+  });
+
+  it('drops duplicate-name credential creates without a stable id instead of guessing by name and type', async () => {
+    const { emit, hooks, log } = makeDeps();
+    const findOne = vi.fn().mockResolvedValue({ ...credential, id: 'cred-2' });
+
+    await hooks.credentials.create[0].call({ dbCollections: { Credentials: { findOne } } }, {
+      name: credential.name,
+      type: credential.type,
+    } as never);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(findOne).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalled();
+    expect(log.warn).toHaveBeenCalledWith(
+      'Dropping credential sync event',
+      expect.objectContaining({
+        context: 'publisher hook',
+        hook: 'credentials.create',
+        reason: 'missing_stable_id',
+        supportedN8nVersion: '2.31.2',
+      }),
+    );
+  });
+
+  it('drops concurrent duplicate-name credential creates without cross-publication', async () => {
+    const { emit, hooks, log } = makeDeps();
+    const findOne = vi.fn();
+
+    await Promise.all([
+      hooks.credentials.create[0].call({ dbCollections: { Credentials: { findOne } } }, {
+        name: credential.name,
+        type: credential.type,
+      } as never),
+      hooks.credentials.create[0].call({ dbCollections: { Credentials: { findOne } } }, {
+        name: credential.name,
+        type: credential.type,
+      } as never),
+    ]);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(findOne).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalled();
+    expect(log.warn).toHaveBeenCalledTimes(2);
+  });
+
+  it('drops credentials.create when the stable id never becomes visible before the retry timeout', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const { emit, hooks, log } = makeDeps();
+      const findOne = vi.fn().mockResolvedValue(null);
+
+      await hooks.credentials.create[0].call({ dbCollections: { Credentials: { findOne } } }, {
+        id: credential.id,
+      } as never);
+      await vi.runAllTimersAsync();
+
+      expect(findOne).toHaveBeenCalledTimes(10);
+      expect(emit).not.toHaveBeenCalled();
+      expect(log.warn).toHaveBeenCalledWith(
+        'Dropping credential sync event',
+        expect.objectContaining({
+          context: 'publisher hook',
+          hook: 'credentials.create',
+          reason: 'not_visible_before_timeout',
+          credentialId: credential.id,
+          supportedN8nVersion: '2.31.2',
+        }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('maps workflow.afterCreate and workflow.afterUpdate to workflow.upsert', async () => {
@@ -202,6 +327,82 @@ describe('createPublisherHooks', () => {
     expect(emittedEvent(emit)).toMatchObject({ type: 'workflow.archive', workflowId: 'wf-1', archived: false });
   });
 
+  it('logs and resolves when credentials.create detached lookup work rejects', async () => {
+    const { emit, hooks, log } = makeDeps();
+    const unhandled: unknown[] = [];
+    const onUnhandled = (error: unknown) => {
+      unhandled.push(error);
+    };
+    process.on('unhandledRejection', onUnhandled);
+
+    try {
+      await expect(
+        hooks.credentials.create[0].call(
+          {
+            dbCollections: {
+              Credentials: {
+                findOne: vi.fn().mockRejectedValue(new Error('credential lookup failed')),
+              },
+            },
+          },
+          { id: credential.id } as never,
+        ),
+      ).resolves.toBeUndefined();
+
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(emit).not.toHaveBeenCalled();
+      expect(unhandled).toEqual([]);
+      expect(log.error).toHaveBeenCalledWith(
+        'error',
+        expect.objectContaining({ context: 'publisher hook', hook: 'credentials.create', detached: true }),
+      );
+      expect(log.error).toHaveBeenCalledWith(
+        'error',
+        expect.not.objectContaining({ credential: expect.anything(), workflow: expect.anything() }),
+      );
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+  });
+
+  it('logs and resolves when credentials.update emit rejects', async () => {
+    const { hooks, log } = makeDeps({
+      emit: async () => {
+        throw new Error('emit failed');
+      },
+    });
+
+    await expect(hooks.credentials.update[0](credential as never)).resolves.toBeUndefined();
+    expect(log.error).toHaveBeenCalledWith(
+      'error',
+      expect.objectContaining({ context: 'publisher hook', hook: 'credentials.update', detached: false }),
+    );
+  });
+
+  it('logs and resolves when workflow lookup rejects', async () => {
+    const { emit, hooks, log } = makeDeps();
+
+    await expect(
+      hooks.workflow.afterCreate[0].call(
+        {
+          dbCollections: {
+            Workflow: {
+              findOne: vi.fn().mockRejectedValue(new Error('workflow lookup failed')),
+            },
+          },
+        },
+        'wf-1' as never,
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(emit).not.toHaveBeenCalled();
+    expect(log.error).toHaveBeenCalledWith(
+      'error',
+      expect.objectContaining({ context: 'publisher hook', hook: 'workflow.afterCreate', detached: false }),
+    );
+  });
+
   describe('workflow.postExecute', () => {
     it('emits an execution.upsert event from the postExecute hook and is fire-and-forget', async () => {
       const { emit, hooks } = makeDeps({ entities: { executions: true } });
@@ -241,6 +442,75 @@ describe('createPublisherHooks', () => {
       await hooks.workflow.postExecute[0](undefined as never, workflow as never, '' as never);
       await new Promise((resolve) => setImmediate(resolve));
       expect(emit).not.toHaveBeenCalled();
+    });
+
+    it('drops execution events when the workflow identity is missing', async () => {
+      const { emit, hooks, log } = makeDeps({ entities: { executions: true } });
+
+      await hooks.workflow.postExecute[0](
+        { status: 'success', mode: 'manual', startedAt: new Date('2026-05-01T00:00:00Z'), finished: true } as never,
+        undefined as never,
+        'exec-missing-workflow' as never,
+      );
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(emit).not.toHaveBeenCalled();
+      expect(log.warn).toHaveBeenCalledWith(
+        'Dropping execution sync event',
+        expect.objectContaining({ reason: 'missing_workflow_id', executionId: 'exec-missing-workflow' }),
+      );
+    });
+
+    it('drops execution events when the hook payload has no lifecycle timestamps', async () => {
+      const { emit, hooks, log } = makeDeps({ entities: { executions: true } });
+
+      await hooks.workflow.postExecute[0](undefined as never, workflow as never, 'exec-missing-time' as never);
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(emit).not.toHaveBeenCalled();
+      expect(log.warn).toHaveBeenCalledWith(
+        'Dropping execution sync event',
+        expect.objectContaining({ reason: 'missing_lifecycle_timestamp', executionId: 'exec-missing-time' }),
+      );
+    });
+
+    it('logs and resolves when detached execution emit rejects without unhandledRejection', async () => {
+      const { hooks, log } = makeDeps({
+        entities: { executions: true },
+        emit: async () => {
+          throw new Error('execution emit failed');
+        },
+      });
+      const unhandled: unknown[] = [];
+      const onUnhandled = (error: unknown) => {
+        unhandled.push(error);
+      };
+      process.on('unhandledRejection', onUnhandled);
+
+      try {
+        await expect(
+          hooks.workflow.postExecute[0](
+            {
+              status: 'success',
+              mode: 'manual',
+              finished: true,
+              startedAt: new Date('2026-05-01T10:00:00.000Z'),
+              stoppedAt: new Date('2026-05-01T10:00:05.000Z'),
+            } as never,
+            workflow as never,
+            'exec-1' as never,
+          ),
+        ).resolves.toBeUndefined();
+        await new Promise((resolve) => setImmediate(resolve));
+
+        expect(unhandled).toEqual([]);
+        expect(log.error).toHaveBeenCalledWith(
+          'error',
+          expect.objectContaining({ context: 'publisher hook', hook: 'workflow.postExecute', detached: true }),
+        );
+      } finally {
+        process.off('unhandledRejection', onUnhandled);
+      }
     });
   });
 
@@ -464,6 +734,42 @@ describe('createPublisherHooks', () => {
         type: 'execution.upsert',
         execution: { id: 'exec-z', workflowId: 'wf-sync' },
       });
+    });
+
+    it('workflow.postExecute logs tag-resolution failures without unhandledRejection', async () => {
+      const { emit, hooks, log } = makeDeps({ entities: { executions: true }, filterByTag: true });
+      const unhandled: unknown[] = [];
+      const onUnhandled = (error: unknown) => {
+        unhandled.push(error);
+      };
+      process.on('unhandledRejection', onUnhandled);
+
+      try {
+        await expect(
+          hooks.workflow.postExecute[0].call(
+            {
+              dbCollections: {
+                Workflow: {
+                  findOne: vi.fn().mockRejectedValue(new Error('tag lookup failed')),
+                },
+              },
+            },
+            { status: 'success', mode: 'manual', startedAt: new Date('2026-05-01T00:00:00Z'), finished: true } as never,
+            { id: 'wf-sync' } as never,
+            'exec-z' as never,
+          ),
+        ).resolves.toBeUndefined();
+        await new Promise((resolve) => setImmediate(resolve));
+
+        expect(emit).not.toHaveBeenCalled();
+        expect(unhandled).toEqual([]);
+        expect(log.error).toHaveBeenCalledWith(
+          'error',
+          expect.objectContaining({ context: 'publisher hook', hook: 'workflow.postExecute', detached: true }),
+        );
+      } finally {
+        process.off('unhandledRejection', onUnhandled);
+      }
     });
   });
 });

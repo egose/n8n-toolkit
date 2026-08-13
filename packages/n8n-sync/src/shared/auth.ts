@@ -10,6 +10,7 @@ export const SYNC_SIGNATURE_HEADER = 'x-sync-signature';
 
 /** Default maximum age/skew accepted for a signed request (5 minutes). */
 export const DEFAULT_SIGNATURE_TOLERANCE_MS = 5 * 60 * 1000;
+export const DEFAULT_REPLAY_CACHE_SIZE = 10_000;
 
 /**
  * Publisher → subscriber authentication scheme:
@@ -17,6 +18,10 @@ export const DEFAULT_SIGNATURE_TOLERANCE_MS = 5 * 60 * 1000;
  *   - `token`           — static shared-secret bearer token
  */
 export type SyncAuthMode = 'hmac' | 'token';
+
+export interface RequestReplayGuard {
+  remember(req: IncomingMessage): 'accepted' | 'replayed' | 'missing';
+}
 
 /**
  * Sign a request payload: hex HMAC-SHA256 of `<timestamp>.<rawBody>` keyed
@@ -62,6 +67,45 @@ export function verifyRequestSignature(
   if (received.length !== expected.length) return false;
 
   return timingSafeEqual(received, expected);
+}
+
+export function createRequestReplayGuard(options: {
+  ttlMs: number;
+  maxEntries?: number;
+  nowMs?: () => number;
+}): RequestReplayGuard {
+  const ttlMs = Math.max(1, options.ttlMs);
+  const maxEntries = Math.max(1, options.maxEntries ?? DEFAULT_REPLAY_CACHE_SIZE);
+  const nowMs = options.nowMs ?? (() => Date.now());
+  const cache = new Map<string, number>();
+
+  const prune = (now: number) => {
+    for (const [key, expiresAt] of cache) {
+      if (expiresAt <= now) cache.delete(key);
+    }
+    while (cache.size > maxEntries) {
+      const oldestKey = cache.keys().next().value as string | undefined;
+      if (!oldestKey) break;
+      cache.delete(oldestKey);
+    }
+  };
+
+  return {
+    remember(req) {
+      const timestamp = headerValue(req, SYNC_TIMESTAMP_HEADER);
+      const signature = headerValue(req, SYNC_SIGNATURE_HEADER);
+      if (!timestamp || !signature) return 'missing';
+
+      const now = nowMs();
+      prune(now);
+      const key = `${timestamp}:${signature}`;
+      if (cache.has(key)) return 'replayed';
+
+      cache.set(key, now + ttlMs);
+      prune(now);
+      return 'accepted';
+    },
+  };
 }
 
 /** Check the static shared-secret bearer token on an incoming request (token mode). */

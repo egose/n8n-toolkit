@@ -30,7 +30,7 @@ x-n8n-env: &n8n-env
   N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET}
   N8N_BASE_URL: ${N8N_BASE_URL}
   N8N_PORT: '5678'
-  NODE_ENV: production
+  NODE_ENV: development
   N8N_PROTOCOL: http
   N8N_TRUST_PROXY: 'true'
   N8N_PROXY_HOPS: '1'
@@ -72,12 +72,22 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+      args:
+        N8N_VERSION: ${N8N_VERSION:-2.31.2}
+        N8N_SYNC_BUNDLE_SOURCE: ${N8N_SYNC_BUNDLE_SOURCE:-workspace}
     environment:
       <<: *n8n-env
       DB_POSTGRESDB_DATABASE: n8n1
       EXTERNAL_HOOK_FILES: /opt/n8n-hooks/publisher.cjs
+      SYNC_ENTITIES: workflows,credentials,executions
       SYNC_SUBSCRIBER_URLS: http://n8n2:5678
+      SYNC_ALLOW_INSECURE_HTTP: 'true'
+      SYNC_FILTER_BY_TAG: ${SYNC_FILTER_BY_TAG:-false}
+      SYNC_WORKFLOW_TAG: ${SYNC_WORKFLOW_TAG:-sync}
+      SYNC_ACTIVE_TAG: ${SYNC_ACTIVE_TAG:-active}
+      SYNC_MAX_QUEUE_SIZE: ${SYNC_MAX_QUEUE_SIZE:-1000}
       SYNC_SOURCE_ID: n8n1
+      SYNC_PUBLISHER_STATE_PATH: /home/node/.n8n/sync-state/publisher-ordering.json
     ports:
     - ${N8N1_PORT:-5678}:5678
     volumes:
@@ -101,11 +111,16 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+      args:
+        N8N_VERSION: ${N8N_VERSION:-2.31.2}
+        N8N_SYNC_BUNDLE_SOURCE: ${N8N_SYNC_BUNDLE_SOURCE:-workspace}
     environment:
       <<: *n8n-env
       DB_POSTGRESDB_DATABASE: n8n2
       EXTERNAL_HOOK_FILES: /opt/n8n-hooks/subscriber.cjs
+      SYNC_ENTITIES: workflows,credentials,executions
       SYNC_APPLY_ACTIVE_STATE: 'true'
+      SYNC_SUBSCRIBER_STATE_PATH: /home/node/.n8n/sync-state/subscriber-ordering.json
     ports:
     - ${N8N2_PORT:-5679}:5678
     volumes:

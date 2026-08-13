@@ -4,7 +4,7 @@
     "target": "ES2022",
     "module": "CommonJS",
     "moduleResolution": "node",
-    "strict": false,
+    "strict": true,
     "ignoreDeprecations": "6.0",
     "declaration": false,
     "declarationMap": false,

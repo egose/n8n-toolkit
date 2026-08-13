@@ -1,11 +1,15 @@
 {
   "name": "@egose/n8n-sync",
   "description": "n8n external-hook bundles to sync credentials and workflows between n8n instances (publisher + subscriber).",
-  "version": "0.0.0-PLACEHOLDER",
-  "license": "PLACEHOLDER",
+  "version": "0.5.0",
+  "license": "Apache-2.0",
   "sideEffects": false,
-  "repository": "PLACEHOLDER",
-  "author": "PLACEHOLDER",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/egose/n8n-toolkit.git",
+    "directory": "packages/n8n-sync"
+  },
+  "author": "Junmin Ahn",
   "keywords": [
     "n8n",
     "n8n-hooks",
@@ -17,11 +21,18 @@
   ],
   "scripts": {
     "build": "tsup --config tsup.config.ts",
+    "prepack": "npm run build",
+    "pack:verify": "node scripts/verify-package.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
     "test": "vitest run --no-cache --config vitest.config.ts",
     "test:integration": "pnpm --filter @egose/n8n-client... build && vitest run --no-cache --config vitest.integration.config.ts"
   },
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     "./publisher": {
       "require": "./dist/publisher.cjs"
@@ -30,6 +41,10 @@
       "require": "./dist/subscriber.cjs"
     }
   },
+  "bugs": {
+    "url": "https://github.com/egose/n8n-toolkit/issues"
+  },
+  "homepage": "https://n8n-toolkit.pages.dev/",
   "engines": {
     "node": ">=20"
   },

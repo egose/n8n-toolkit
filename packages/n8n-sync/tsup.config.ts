@@ -14,4 +14,7 @@ export const tsup: Options = {
   minify: false,
   external: [],
   esbuildPlugins: [],
+  esbuildOptions(options) {
+    options.sourcesContent = false;
+  },
 };
