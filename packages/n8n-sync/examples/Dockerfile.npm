@@ -23,7 +23,7 @@
 # Both bundles are copied into the image; EXTERNAL_HOOK_FILES selects which
 # one(s) to load (colon-separated for multiple files).
 
-ARG N8N_VERSION=latest
+ARG N8N_VERSION=2.31.2
 ARG N8N_SYNC_VERSION=latest
 
 # ---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ RUN set -eux; \
     tarball="$(ls egose-n8n-sync-*.tgz)"; \
     tar -xzf "${tarball}"; \
     mkdir -p /bundles; \
-    cp package/publisher.cjs package/subscriber.cjs /bundles/
+    cp package/dist/publisher.cjs package/dist/subscriber.cjs /bundles/
 
 # ---------------------------------------------------------------------------
 # Stage 2: n8n runtime image with the hook bundles baked in
