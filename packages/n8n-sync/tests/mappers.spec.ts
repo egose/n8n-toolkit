@@ -3,6 +3,17 @@ import { describe, expect, it } from 'vitest';
 import { mapCredential, mapExecution, mapWorkflow } from '../src/shared/mappers';
 import type { ICredentialsDb, IRunPayload, IWorkflowBase } from '../src/shared/types';
 
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const nested of Object.values(value as Record<string, unknown>)) {
+      deepFreeze(nested);
+    }
+  }
+
+  return value;
+}
+
 describe('mapWorkflow', () => {
   const workflow: IWorkflowBase = {
     id: 'wf-base',
@@ -121,6 +132,21 @@ describe('mapWorkflow', () => {
     expect(dto.active).toBe(false);
   });
 
+  it('rewriteActive=true maps a deeply frozen workflow without mutating the source metadata', () => {
+    const wf = deepFreeze({
+      ...workflow,
+      active: true,
+      meta: { templateId: 'template-1', nested: { keep: true } },
+    }) as IWorkflowBase;
+
+    const dto = mapWorkflow(wf, { rewriteActive: true, rewriteActiveTo: false });
+
+    expect(dto.active).toBe(false);
+    expect(dto.meta).toEqual({ templateId: 'template-1', nested: { keep: true }, active_real: true });
+    expect(dto.meta).not.toBe(wf.meta);
+    expect(wf.meta).toEqual({ templateId: 'template-1', nested: { keep: true } });
+  });
+
   it('rewriteActive=true rewrites to true and preserves real=false', () => {
     const wf = { ...workflow, active: false } as IWorkflowBase;
     const dto = mapWorkflow(wf, { rewriteActive: true, rewriteActiveTo: true });
@@ -158,6 +184,17 @@ describe('mapCredential', () => {
     const dto = mapCredential({ id: 'c', name: 'n', type: 't', data: 'd' });
     expect(dto).toEqual({ id: 'c', name: 'n', type: 't', data: 'd' });
   });
+
+  it('rejects plaintext object payloads instead of guessing about repository-side encryption', () => {
+    expect(() =>
+      mapCredential({
+        id: 'cred-1',
+        name: 'Plaintext credential',
+        type: 'httpBasicAuth',
+        data: { user: 'alice' },
+      }),
+    ).toThrow('Credential sync requires encrypted string data');
+  });
 });
 
 describe('mapExecution', () => {
@@ -194,6 +231,29 @@ describe('mapExecution', () => {
       createdAt: '2026-05-01T10:00:00.000Z',
       workflowSnapshot: { id: 'wf-1', name: 'W', nodes: [{ id: 'n1' }], connections: { n1: {} } },
     });
+  });
+
+  it('does not publish execution-summary-only retry or workflow-version fields', () => {
+    const run = {
+      finished: true,
+      mode: 'manual',
+      status: 'success',
+      startedAt: new Date('2026-05-01T10:00:00.000Z'),
+      stoppedAt: new Date('2026-05-01T10:00:05.000Z'),
+      retryOf: 'exec-0',
+      retrySuccessId: 'exec-2',
+      workflowVersionId: 'version-1',
+    } as IRunPayload & {
+      retryOf: string;
+      retrySuccessId: string;
+      workflowVersionId: string;
+    };
+
+    const dto = mapExecution('exec-1', run, workflow);
+
+    expect(dto).not.toHaveProperty('retryOf');
+    expect(dto).not.toHaveProperty('retrySuccessId');
+    expect(dto).not.toHaveProperty('workflowVersionId');
   });
 
   it('derives finished=true from status=success when finished is undefined', () => {

@@ -1,16 +1,15 @@
 import { sendSyncEvent } from '../shared/http';
 import { logError, type Logger } from '../shared/logger';
-import type { SyncAuthMode } from '../shared/auth';
+import type { SyncAuthConfig } from '../shared/config';
 import type { SyncEvent } from '../shared/types';
 
 export interface EventSenderOptions {
   /** Base URL of the target instance (no trailing slash). */
   baseUrl: string;
   eventsPath: string;
-  secret: string;
-  authMode: SyncAuthMode;
+  auth: SyncAuthConfig;
   timeoutMs: number;
-  maxRetries: number;
+  maxAttempts: number;
   maxQueueSize?: number;
   log: Logger;
   /** Injectable for tests. */
@@ -31,9 +30,10 @@ export interface EventSender {
 
 /**
  * Create a per-target sender with a serialized delivery queue: events are
- * delivered one at a time, in the exact order the hooks fired. A failed
- * delivery is logged and does not block the rest of the queue — the
- * subscriber's last-write-wins guard converges state on the next event.
+ * delivered one at a time, in the exact order the hooks fired. Exact
+ * duplicates that preserve the same semantic operation may replace older
+ * queued entries, but mixed operations stay ordered. A failed delivery is
+ * logged and does not block the rest of the queue.
  */
 export function createEventSender(options: EventSenderOptions): EventSender {
   const url = `${options.baseUrl}${options.eventsPath}`;
@@ -45,29 +45,30 @@ export function createEventSender(options: EventSenderOptions): EventSender {
   const deliver = (event: SyncEvent): Promise<void> =>
     sendSyncEvent(event, {
       url,
-      token: options.secret,
-      authMode: options.authMode,
+      auth: options.auth,
       timeoutMs: options.timeoutMs,
-      maxRetries: options.maxRetries,
+      maxAttempts: options.maxAttempts,
       log: options.log,
       fetchImpl: options.fetchImpl,
       sleep: options.sleep,
     });
 
-  const eventKey = (event: SyncEvent): string => {
+  const coalescingKey = (event: SyncEvent): string => {
     switch (event.type) {
       case 'workflow.upsert':
+        return `workflow.upsert:${event.workflow.id}`;
       case 'workflow.activate':
-        return `workflow:${event.workflow.id}`;
+        return `workflow.activate:${event.workflow.id}`;
       case 'workflow.delete':
+        return `workflow.delete:${event.workflowId}`;
       case 'workflow.archive':
-        return `workflow:${event.workflowId}`;
+        return `workflow.archive:${event.workflowId}:${event.archived ? 'archived' : 'unarchived'}`;
       case 'credentials.upsert':
-        return `credential:${event.credential.id}`;
+        return `credential.upsert:${event.credential.id}`;
       case 'credentials.delete':
-        return `credential:${event.credentialId}`;
+        return `credential.delete:${event.credentialId}`;
       case 'execution.upsert':
-        return `execution:${event.execution.id}`;
+        return `execution.upsert:${event.execution.id}`;
     }
   };
 
@@ -112,8 +113,8 @@ export function createEventSender(options: EventSenderOptions): EventSender {
   };
 
   const send = (event: SyncEvent): void => {
-    const key = eventKey(event);
-    const existingIndex = queue.findIndex((queuedEvent) => eventKey(queuedEvent) === key);
+    const key = coalescingKey(event);
+    const existingIndex = queue.findIndex((queuedEvent) => coalescingKey(queuedEvent) === key);
     if (existingIndex >= 0) {
       queue.splice(existingIndex, 1);
       options.log.debug('Coalesced queued sync event', { type: event.type, target: url, key });
@@ -124,7 +125,7 @@ export function createEventSender(options: EventSenderOptions): EventSender {
       options.log.warn('Sync queue is full; dropping oldest queued event', {
         target: url,
         droppedType: dropped?.type,
-        droppedKey: dropped ? eventKey(dropped) : undefined,
+        droppedKey: dropped ? coalescingKey(dropped) : undefined,
         maxQueueSize,
       });
     }

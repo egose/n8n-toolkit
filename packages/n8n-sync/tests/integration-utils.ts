@@ -60,6 +60,10 @@ function sqlLiteral(value: string): string {
 }
 
 async function queryTargetJson(sql: string): Promise<unknown | null> {
+  return queryDatabaseJson('n8n2', sql);
+}
+
+async function queryDatabaseJson(database: 'n8n1' | 'n8n2', sql: string): Promise<unknown | null> {
   const { stdout } = await execFile('docker', [
     'compose',
     '-f',
@@ -71,7 +75,7 @@ async function queryTargetJson(sql: string): Promise<unknown | null> {
     '-U',
     'postgres',
     '-d',
-    'n8n2',
+    database,
     '-t',
     '-A',
     '-c',
@@ -79,6 +83,31 @@ async function queryTargetJson(sql: string): Promise<unknown | null> {
   ]);
   const raw = stdout.trim();
   return raw ? JSON.parse(raw) : null;
+}
+
+async function execTargetSql(sql: string): Promise<string> {
+  return execDatabaseSql('n8n2', sql);
+}
+
+async function execDatabaseSql(database: 'n8n1' | 'n8n2', sql: string): Promise<string> {
+  const { stdout } = await execFile('docker', [
+    'compose',
+    '-f',
+    COMPOSE_FILE,
+    'exec',
+    '-T',
+    'postgres',
+    'psql',
+    '-U',
+    'postgres',
+    '-d',
+    database,
+    '-t',
+    '-A',
+    '-c',
+    sql,
+  ]);
+  return stdout.trim();
 }
 
 export async function readTargetWorkflow(
@@ -102,6 +131,125 @@ export async function readTargetCredential(id: string): Promise<null | { id: str
       `'type', type` +
       `) from credentials_entity where id = ${sqlLiteral(id)} limit 1;`,
   )) as null | { id: string; name: string; type: string };
+}
+
+export async function readDatabaseCredentialRecord(
+  database: 'n8n1' | 'n8n2',
+  id: string,
+): Promise<null | { id: string; name: string; type: string; data: string }> {
+  return (await queryDatabaseJson(
+    database,
+    `select json_build_object(` +
+      `'id', id, ` +
+      `'name', name, ` +
+      `'type', type, ` +
+      `'data', data` +
+      `) from credentials_entity where id = ${sqlLiteral(id)} limit 1;`,
+  )) as null | { id: string; name: string; type: string; data: string };
+}
+
+export async function readTargetWorkflowOwnerLink(
+  workflowId: string,
+): Promise<null | { workflowId: string; projectId: string; role: string }> {
+  return (await queryTargetJson(
+    `select json_build_object(` +
+      `'workflowId', "workflowId", ` +
+      `'projectId', "projectId", ` +
+      `'role', role` +
+      `) from shared_workflow where "workflowId" = ${sqlLiteral(workflowId)} and role = 'workflow:owner' limit 1;`,
+  )) as null | { workflowId: string; projectId: string; role: string };
+}
+
+export async function readTargetCredentialOwnerLink(
+  credentialId: string,
+): Promise<null | { credentialsId: string; projectId: string; role: string }> {
+  return (await queryTargetJson(
+    `select json_build_object(` +
+      `'credentialsId', "credentialsId", ` +
+      `'projectId', "projectId", ` +
+      `'role', role` +
+      `) from shared_credentials where "credentialsId" = ${sqlLiteral(credentialId)} and role = 'credential:owner' limit 1;`,
+  )) as null | { credentialsId: string; projectId: string; role: string };
+}
+
+export interface TargetExecutionRow {
+  id: string;
+  workflowId: string | null;
+  status: string;
+  mode: string;
+  finished: boolean;
+  startedAt: string | null;
+  stoppedAt: string | null;
+}
+
+export async function readTargetExecutionsByWorkflow(workflowId: string): Promise<TargetExecutionRow[]> {
+  const rows = (await queryTargetJson(
+    `select coalesce(json_agg(json_build_object(` +
+      `'id', id::text, ` +
+      `'workflowId', "workflowId", ` +
+      `'status', status, ` +
+      `'mode', mode, ` +
+      `'finished', finished, ` +
+      `'startedAt', to_char("startedAt" at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), ` +
+      `'stoppedAt', case when "stoppedAt" is null then null else to_char("stoppedAt" at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end` +
+      `) order by id), '[]'::json) from execution_entity where "workflowId" = ${sqlLiteral(workflowId)};`,
+  )) as TargetExecutionRow[] | null;
+  return rows ?? [];
+}
+
+export async function insertTargetExecution(
+  workflowId: string,
+  options: {
+    status: string;
+    mode: string;
+    finished: boolean;
+    startedAt?: string;
+    stoppedAt?: string;
+    createdAt?: string;
+  },
+): Promise<TargetExecutionRow> {
+  const startedAt = options.startedAt ?? null;
+  const stoppedAt = options.stoppedAt ?? null;
+  const createdAt = options.createdAt ?? options.startedAt ?? new Date().toISOString();
+  return (await queryTargetJson(
+    `with inserted as (` +
+      `insert into execution_entity (` +
+      `status, finished, mode, "workflowId", "startedAt", "stoppedAt", "createdAt", "storedAt", "deduplicationKey", "waitTill", "tracingContext", "usedPrivateCredentials"` +
+      `) values (` +
+      `${sqlLiteral(options.status)}, ` +
+      `${options.finished ? 'true' : 'false'}, ` +
+      `${sqlLiteral(options.mode)}, ` +
+      `${sqlLiteral(workflowId)}, ` +
+      `${startedAt ? `${sqlLiteral(startedAt)}::timestamptz` : 'null'}, ` +
+      `${stoppedAt ? `${sqlLiteral(stoppedAt)}::timestamptz` : 'null'}, ` +
+      `${sqlLiteral(createdAt)}::timestamptz, ` +
+      `'db', null, null, null, false` +
+      `) returning id::text as id, "workflowId", status, mode, finished, ` +
+      `case when "startedAt" is null then null else to_char("startedAt" at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end as "startedAt", ` +
+      `case when "stoppedAt" is null then null else to_char("stoppedAt" at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end as "stoppedAt"` +
+      `) select row_to_json(inserted) from inserted;`,
+  )) as TargetExecutionRow;
+}
+
+export async function deleteTargetExecution(id: string): Promise<void> {
+  await execTargetSql(`delete from execution_entity where id::text = ${sqlLiteral(id)};`);
+}
+
+export async function deleteTargetExecutionsByWorkflow(workflowId: string): Promise<void> {
+  await execTargetSql(`delete from execution_entity where "workflowId" = ${sqlLiteral(workflowId)};`);
+}
+
+export async function stopSandboxServices(...services: string[]): Promise<void> {
+  await execFile('docker', ['compose', '-f', COMPOSE_FILE, 'stop', ...services]);
+}
+
+export async function startSandboxServices(...services: string[]): Promise<void> {
+  await execFile('docker', ['compose', '-f', COMPOSE_FILE, 'start', ...services]);
+}
+
+export async function readSandboxServiceLogs(service: string): Promise<string> {
+  const { stdout } = await execFile('docker', ['compose', '-f', COMPOSE_FILE, 'logs', '--no-color', service]);
+  return stdout;
 }
 
 /** Wait until `predicate()` returns truthy, polling every `intervalMs`. */
@@ -151,7 +299,7 @@ export function makeWorkflowBody(name: string) {
 }
 
 /** A workflow body with a real trigger node so n8n allows activation. */
-export function makeActivatableWorkflowBody(name: string) {
+export function makeActivatableWorkflowBody(name: string, path = `sync-${Date.now()}`) {
   return {
     name,
     nodes: [
@@ -161,7 +309,7 @@ export function makeActivatableWorkflowBody(name: string) {
         typeVersion: 2,
         position: [0, 0],
         parameters: {
-          path: `sync-${Date.now()}`,
+          path,
           httpMethod: 'GET',
           responseMode: 'onReceived',
         },

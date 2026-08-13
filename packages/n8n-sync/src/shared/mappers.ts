@@ -41,7 +41,7 @@ export function mapWorkflow(
   const updatedAt = toIsoString(workflow.updatedAt);
 
   let meta: Record<string, unknown> | undefined =
-    workflow.meta !== undefined ? (workflow.meta as Record<string, unknown>) : undefined;
+    workflow.meta !== undefined ? { ...(workflow.meta as Record<string, unknown>) } : undefined;
   let active = workflow.active ?? false;
 
   if (options.rewriteActive) {
@@ -76,6 +76,10 @@ export function mapWorkflow(
 
 /** Map an n8n `ICredentialsDb` hook payload to its JSON-serializable DTO. */
 export function mapCredential(credential: ICredentialsDb): SyncCredentialDto {
+  if (typeof credential.data !== 'string') {
+    throw new Error('Credential sync requires encrypted string data');
+  }
+
   const createdAt = toIsoString(credential.createdAt);
   const updatedAt = toIsoString(credential.updatedAt);
 

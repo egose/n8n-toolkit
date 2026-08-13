@@ -122,17 +122,17 @@ export interface SyncWorkflowDto {
   updatedAt?: string;
 }
 
-/** JSON-serializable credential payload (data stays encrypted at rest). */
+/** JSON-serializable credential payload (encrypted string blob only). */
 export interface SyncCredentialDto {
   id: string;
   name: string;
   type: string;
   /**
-   * Credential payload, passed through verbatim from n8n's hook runtime.
-   * This may already be encrypted, or it may be the plain JSON object n8n
-   * encrypts when persisting the row.
+   * Credential payload as stored in n8n's database. Plain object payloads are
+   * rejected at the publisher/subscriber boundaries because this package does
+   * not rely on undocumented repository-side encryption semantics.
    */
-  data: string | Record<string, unknown>;
+  data: string;
   isGlobal?: boolean;
   isManaged?: boolean;
   createdAt?: string;
@@ -140,14 +140,17 @@ export interface SyncCredentialDto {
 }
 
 /**
- * JSON-serializable execution summary. Mirrors the minimal column set of
- * n8n's `execution_entity` table (plus the source `workflowId`) needed to
- * upsert an execution row on a target instance. Large per-step run data is
- * deliberately not included.
+ * JSON-serializable execution summary. Mirrors the scalar lifecycle fields
+ * exposed by n8n's `workflow.postExecute` hook (plus the source `workflowId`)
+ * that the subscriber needs to upsert an `execution_entity` row. `id` is the
+ * source-local execution identifier; subscribers must map it through the
+ * event's `sourceId`, never claim a target row by native id equality. Large
+ * per-step run data and execution-summary-only fields are deliberately not
+ * included.
  */
 export interface SyncExecutionDto {
   id: string;
-  workflowId: string | null;
+  workflowId?: string | null;
   status: string;
   mode: string;
   /** @deprecated on n8n's side; mirrored for parity with `status`. */
@@ -155,10 +158,6 @@ export interface SyncExecutionDto {
   startedAt?: string;
   stoppedAt?: string;
   createdAt?: string;
-  retryOf?: string | null;
-  retrySuccessId?: string | null;
-  workflowVersionId?: string | null;
-  /** ID of the workflow version this execution ran, defaulted from the snapshot. */
   workflowSnapshot?: Pick<SyncWorkflowDto, 'id' | 'name' | 'nodes' | 'connections'>;
 }
 
@@ -167,6 +166,10 @@ interface SyncEventBase {
   at: string;
   /** Identifier of the publishing instance (SYNC_SOURCE_ID or hostname). */
   sourceId: string;
+  /** Unique source-scoped event identifier. */
+  eventId: string;
+  /** Monotonic per-entity revision emitted by the source as a decimal string. */
+  entityRevision: string;
 }
 
 export type SyncEvent =

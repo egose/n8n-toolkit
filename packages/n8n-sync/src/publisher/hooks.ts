@@ -1,4 +1,6 @@
 import { mapCredential, mapExecution, mapWorkflow } from '../shared/mappers';
+import { logError, type Logger } from '../shared/logger';
+import { createEventOrderingAllocator, type EventOrderingAllocator } from './order-state';
 import type {
   ICredentialsDb,
   IExternalHooksFileData,
@@ -20,19 +22,24 @@ type PublisherHookThis = {
       findOne(options: WorkflowFindOptions): Promise<(IWorkflowBase & { tags?: IWorkflowTag[] }) | null>;
     };
     Credentials?: {
-      findOne(options: {
-        where: { id?: string; name?: string; type?: string };
-        order?: { updatedAt: 'DESC' };
-      }): Promise<ICredentialsDb | null>;
+      findOne(options: { where: { id: string } }): Promise<ICredentialsDb | null>;
     };
   };
 };
 
+const CREDENTIAL_LOOKUP_ATTEMPTS = 10;
+const CREDENTIAL_LOOKUP_DELAY_MS = 250;
+const SUPPORTED_CREDENTIAL_HOOK_N8N_VERSION = '2.31.2';
+
 export interface PublisherDeps {
   /** Deliver a fully-built event to the subscriber. Must never throw. */
   emit: (event: SyncEvent) => Promise<void>;
+  /** Logger used for the publisher's no-throw hook boundary. */
+  log: Logger;
   /** Identifier of this publishing instance, stamped on every event. */
   sourceId: string;
+  /** Monotonic event/revision allocator. Defaults to an in-memory allocator. */
+  ordering?: EventOrderingAllocator;
   /** Injectable clock for tests. */
   now?: () => Date;
   /**
@@ -76,14 +83,55 @@ export interface PublisherDeps {
  */
 export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileData {
   const timestamp = (): string => (deps.now ? deps.now() : new Date()).toISOString();
-  const envelope = <T extends Omit<SyncEvent, 'at' | 'sourceId'>>(event: T): T & Pick<SyncEvent, 'at' | 'sourceId'> =>
-    ({ ...event, at: timestamp(), sourceId: deps.sourceId }) as T & Pick<SyncEvent, 'at' | 'sourceId'>;
+  const ordering = deps.ordering ?? createEventOrderingAllocator({ sourceId: deps.sourceId });
+  type SyncEventPayload = Parameters<EventOrderingAllocator['allocate']>[0];
+  const envelope = async <T extends SyncEventPayload>(
+    event: T,
+  ): Promise<T & Pick<SyncEvent, 'at' | 'sourceId' | 'eventId' | 'entityRevision'>> => {
+    const ordered = await ordering.allocate(event);
+    return {
+      ...event,
+      at: timestamp(),
+      sourceId: deps.sourceId,
+      eventId: ordered.eventId,
+      entityRevision: ordered.entityRevision,
+    } as T & Pick<SyncEvent, 'at' | 'sourceId' | 'eventId' | 'entityRevision'>;
+  };
+
+  const reportHookError = (error: unknown, hook: string, detached = false): void => {
+    logError(deps.log, error, { context: 'publisher hook', hook, detached });
+  };
+
+  const withErrorBoundary = <Args extends unknown[]>(
+    hook: string,
+    handler: (this: PublisherHookThis, ...args: Args) => Promise<void> | void,
+  ) => {
+    return async function (this: PublisherHookThis, ...args: Args): Promise<void> {
+      try {
+        await handler.apply(this, args);
+      } catch (error) {
+        reportHookError(error, hook);
+      }
+    };
+  };
+
+  const runDetached = (hook: string, work: () => Promise<void>): void => {
+    void Promise.resolve()
+      .then(work)
+      .catch((error) => {
+        reportHookError(error, hook, true);
+      });
+  };
 
   const entities = {
     workflows: deps.entities?.workflows ?? true,
     credentials: deps.entities?.credentials ?? true,
     executions: deps.entities?.executions ?? false,
   };
+
+  if (entities.executions && !entities.workflows) {
+    throw new Error('Execution sync requires workflow sync to also be enabled');
+  }
 
   const filterByTag = deps.filterByTag ?? false;
   const syncWorkflowTag = deps.syncWorkflowTag ?? 'sync';
@@ -153,56 +201,78 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
     });
   }
 
-  function hasCredentialIdentity(
-    credential: Partial<ICredentialsDb>,
-  ): credential is Pick<ICredentialsDb, 'name' | 'type'> {
-    return typeof credential.name === 'string' && typeof credential.type === 'string';
-  }
+  type CredentialDropReason =
+    | 'missing_stable_id'
+    | 'plaintext_object_payload'
+    | 'repository_unavailable'
+    | 'not_visible_before_timeout';
+
+  type CredentialResolution = { credential: ICredentialsDb } | { dropReason: CredentialDropReason };
 
   async function resolveCredential(
     this: PublisherHookThis,
     credential: Partial<ICredentialsDb>,
-  ): Promise<ICredentialsDb | undefined> {
-    const hasCompletePayload = typeof credential.id === 'string' && credential.data !== undefined;
+  ): Promise<CredentialResolution> {
+    const hasCompletePayload = typeof credential.id === 'string' && typeof credential.data === 'string';
 
     if (hasCompletePayload) {
-      return credential as ICredentialsDb;
+      return { credential: credential as ICredentialsDb };
+    }
+
+    if (typeof credential.id !== 'string') {
+      return { dropReason: 'missing_stable_id' };
+    }
+
+    if (credential.data !== undefined) {
+      return { dropReason: 'plaintext_object_payload' };
     }
 
     const repository = this.dbCollections?.Credentials;
     if (!repository) {
-      return hasCompletePayload ? (credential as ICredentialsDb) : undefined;
+      return { dropReason: 'repository_unavailable' };
     }
 
-    // `credentials.create` can surface before the final row is visible from the
-    // hook payload (`id` may be present but still undefined). Poll briefly in
-    // the background for the canonical stored row, then emit that snapshot.
-    for (let attempt = 0; attempt < 10; attempt += 1) {
+    // On n8n 2.31.2, the credential hook can expose the stable row id before
+    // the stored row becomes queryable. Retry by that id only; never guess by
+    // mutable fields like name/type because duplicates can publish the wrong row.
+    for (let attempt = 0; attempt < CREDENTIAL_LOOKUP_ATTEMPTS; attempt += 1) {
       if (attempt > 0) {
-        await new Promise((resolve) => setTimeout(resolve, 250));
+        await new Promise((resolve) => setTimeout(resolve, CREDENTIAL_LOOKUP_DELAY_MS));
       }
 
-      if (typeof credential.id === 'string') {
-        const byId = await repository.findOne({ where: { id: credential.id } });
-        if (byId) return byId;
-      }
-
-      if (hasCredentialIdentity(credential)) {
-        const byIdentity = await repository.findOne({
-          where: { name: credential.name, type: credential.type },
-          order: { updatedAt: 'DESC' },
-        });
-        if (byIdentity) return byIdentity;
+      const byId = await repository.findOne({ where: { id: credential.id } });
+      if (byId) {
+        if (typeof byId.data !== 'string') {
+          return { dropReason: 'plaintext_object_payload' };
+        }
+        return { credential: byId };
       }
     }
 
-    return hasCompletePayload ? (credential as ICredentialsDb) : undefined;
+    return { dropReason: 'not_visible_before_timeout' };
   }
 
-  async function emitCredentialUpsert(this: PublisherHookThis, credential: Partial<ICredentialsDb>): Promise<void> {
+  function logCredentialDrop(hook: string, reason: CredentialDropReason, credential: Partial<ICredentialsDb>): void {
+    deps.log.warn('Dropping credential sync event', {
+      context: 'publisher hook',
+      hook,
+      reason,
+      ...(typeof credential.id === 'string' ? { credentialId: credential.id } : {}),
+      supportedN8nVersion: SUPPORTED_CREDENTIAL_HOOK_N8N_VERSION,
+    });
+  }
+
+  async function emitCredentialUpsert(
+    this: PublisherHookThis,
+    hook: string,
+    credential: Partial<ICredentialsDb>,
+  ): Promise<void> {
     const resolved = await resolveCredential.call(this, credential);
-    if (!resolved) return;
-    await deps.emit(envelope({ type: 'credentials.upsert', credential: mapCredential(resolved) }));
+    if (!('credential' in resolved)) {
+      logCredentialDrop(hook, resolved.dropReason, credential);
+      return;
+    }
+    await deps.emit(await envelope({ type: 'credentials.upsert', credential: mapCredential(resolved.credential) }));
   }
 
   /**
@@ -218,10 +288,10 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
       return;
     }
     if (decision === 'delete') {
-      await deps.emit(envelope({ type: 'workflow.delete', workflowId: workflow.id }));
+      await deps.emit(await envelope({ type: 'workflow.delete', workflowId: workflow.id }));
       return;
     }
-    await deps.emit(envelope({ type: 'workflow.upsert', workflow: mapWorkflowDto(workflow) }));
+    await deps.emit(await envelope({ type: 'workflow.upsert', workflow: mapWorkflowDto(workflow) }));
   };
 
   /**
@@ -235,10 +305,10 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
       return;
     }
     if (decision === 'delete') {
-      await deps.emit(envelope({ type: 'workflow.delete', workflowId: workflow.id }));
+      await deps.emit(await envelope({ type: 'workflow.delete', workflowId: workflow.id }));
       return;
     }
-    await deps.emit(envelope({ type: 'workflow.activate', workflow: mapWorkflowDto(workflow) }));
+    await deps.emit(await envelope({ type: 'workflow.activate', workflow: mapWorkflowDto(workflow) }));
   };
 
   return {
@@ -246,23 +316,31 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
       ? {
           credentials: {
             create: [
-              async function (this: PublisherHookThis, encryptedData: Partial<ICredentialsDb>) {
-                if (typeof encryptedData.id === 'string' && encryptedData.data !== undefined) {
-                  await emitCredentialUpsert.call(this, encryptedData);
-                  return;
-                }
-                void emitCredentialUpsert.call(this, encryptedData);
-              },
+              withErrorBoundary(
+                'credentials.create',
+                async function (this: PublisherHookThis, encryptedData: Partial<ICredentialsDb>) {
+                  if (typeof encryptedData.id === 'string' && encryptedData.data !== undefined) {
+                    await emitCredentialUpsert.call(this, 'credentials.create', encryptedData);
+                    return;
+                  }
+                  runDetached('credentials.create', () =>
+                    emitCredentialUpsert.call(this, 'credentials.create', encryptedData),
+                  );
+                },
+              ),
             ],
             update: [
-              async function (this: PublisherHookThis, newCredentialData: Partial<ICredentialsDb>) {
-                await emitCredentialUpsert.call(this, newCredentialData);
-              },
+              withErrorBoundary(
+                'credentials.update',
+                async function (this: PublisherHookThis, newCredentialData: Partial<ICredentialsDb>) {
+                  await emitCredentialUpsert.call(this, 'credentials.update', newCredentialData);
+                },
+              ),
             ],
             delete: [
-              async function (credentialId: string) {
-                await deps.emit(envelope({ type: 'credentials.delete', credentialId }));
-              },
+              withErrorBoundary('credentials.delete', async function (credentialId: string) {
+                await deps.emit(await envelope({ type: 'credentials.delete', credentialId }));
+              }),
             ],
           },
         }
@@ -273,40 +351,49 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
             ...(entities.workflows
               ? {
                   afterCreate: [
-                    async function (this: PublisherHookThis, createdWorkflow: IWorkflowBase | string) {
-                      const workflow = await resolveWorkflow.call(this, createdWorkflow);
-                      if (!workflow) return;
-                      await emitWorkflowUpsert(workflow);
-                    },
+                    withErrorBoundary(
+                      'workflow.afterCreate',
+                      async function (this: PublisherHookThis, createdWorkflow: IWorkflowBase | string) {
+                        const workflow = await resolveWorkflow.call(this, createdWorkflow);
+                        if (!workflow) return;
+                        await emitWorkflowUpsert(workflow);
+                      },
+                    ),
                   ],
                   afterUpdate: [
-                    async function (this: PublisherHookThis, updatedWorkflow: IWorkflowBase | string) {
-                      const workflow = await resolveWorkflow.call(this, updatedWorkflow);
-                      if (!workflow) return;
-                      await emitWorkflowUpsert(workflow);
-                    },
+                    withErrorBoundary(
+                      'workflow.afterUpdate',
+                      async function (this: PublisherHookThis, updatedWorkflow: IWorkflowBase | string) {
+                        const workflow = await resolveWorkflow.call(this, updatedWorkflow);
+                        if (!workflow) return;
+                        await emitWorkflowUpsert(workflow);
+                      },
+                    ),
                   ],
                   activate: [
-                    async function (this: PublisherHookThis, updatedWorkflow: IWorkflowBase | string) {
-                      const workflow = await resolveWorkflow.call(this, updatedWorkflow);
-                      if (!workflow) return;
-                      await emitWorkflowActivate(workflow);
-                    },
+                    withErrorBoundary(
+                      'workflow.activate',
+                      async function (this: PublisherHookThis, updatedWorkflow: IWorkflowBase | string) {
+                        const workflow = await resolveWorkflow.call(this, updatedWorkflow);
+                        if (!workflow) return;
+                        await emitWorkflowActivate(workflow);
+                      },
+                    ),
                   ],
                   afterDelete: [
-                    async function (workflowId: string) {
-                      await deps.emit(envelope({ type: 'workflow.delete', workflowId }));
-                    },
+                    withErrorBoundary('workflow.afterDelete', async function (workflowId: string) {
+                      await deps.emit(await envelope({ type: 'workflow.delete', workflowId }));
+                    }),
                   ],
                   afterArchive: [
-                    async function (workflowId: string) {
-                      await deps.emit(envelope({ type: 'workflow.archive', workflowId, archived: true }));
-                    },
+                    withErrorBoundary('workflow.afterArchive', async function (workflowId: string) {
+                      await deps.emit(await envelope({ type: 'workflow.archive', workflowId, archived: true }));
+                    }),
                   ],
                   afterUnarchive: [
-                    async function (workflowId: string) {
-                      await deps.emit(envelope({ type: 'workflow.archive', workflowId, archived: false }));
-                    },
+                    withErrorBoundary('workflow.afterUnarchive', async function (workflowId: string) {
+                      await deps.emit(await envelope({ type: 'workflow.archive', workflowId, archived: false }));
+                    }),
                   ],
                 }
               : {}),
@@ -325,34 +412,60 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
                      * already carries a complete `IWorkflowBase` with tags;
                      * otherwise we resolve tags from the repository once).
                      */
-                    async function (
-                      this: PublisherHookThis,
-                      fullRunData: IRunPayload | undefined,
-                      workflowData: WorkflowSnapshot | IWorkflowBase | undefined,
-                      executionId: string,
-                    ) {
-                      if (typeof executionId !== 'string' || !executionId) return;
+                    withErrorBoundary(
+                      'workflow.postExecute',
+                      async function (
+                        this: PublisherHookThis,
+                        fullRunData: IRunPayload | undefined,
+                        workflowData: WorkflowSnapshot | IWorkflowBase | undefined,
+                        executionId: string,
+                      ) {
+                        if (typeof executionId !== 'string' || !executionId) return;
 
-                      if (filterByTag) {
-                        const workflowId = (workflowData as { id?: string } | undefined)?.id;
-                        if (!workflowId) return;
-                        // Use the in-memory workflow payload if it already has
-                        // tags; otherwise resolve the workflow with its tags
-                        // relation from the DB.
-                        let tags: IWorkflowTag[] | undefined = (workflowData as { tags?: IWorkflowTag[] }).tags;
-                        if (tags === undefined) {
-                          const resolved = await resolveWorkflow.call(this, workflowId);
-                          tags = resolved?.tags;
-                        }
-                        if (!workflowHasTag(tags, syncWorkflowTag)) return;
-                      }
+                        runDetached('workflow.postExecute', async () => {
+                          if (filterByTag) {
+                            const workflowId = (workflowData as { id?: string } | undefined)?.id;
+                            if (!workflowId) return;
+                            // Use the in-memory workflow payload if it already has
+                            // tags; otherwise resolve the workflow with its tags
+                            // relation from the DB.
+                            let tags: IWorkflowTag[] | undefined = (workflowData as { tags?: IWorkflowTag[] }).tags;
+                            if (tags === undefined) {
+                              const resolved = await resolveWorkflow.call(this, workflowId);
+                              tags = resolved?.tags;
+                            }
+                            if (!workflowHasTag(tags, syncWorkflowTag)) return;
+                          }
 
-                      const event = envelope({
-                        type: 'execution.upsert',
-                        execution: mapExecution(executionId, fullRunData, workflowData),
-                      });
-                      void deps.emit(event);
-                    },
+                          const execution = mapExecution(executionId, fullRunData, workflowData);
+                          if (!execution.workflowId) {
+                            deps.log.warn('Dropping execution sync event', {
+                              context: 'publisher hook',
+                              hook: 'workflow.postExecute',
+                              reason: 'missing_workflow_id',
+                              executionId,
+                            });
+                            return;
+                          }
+                          if (!execution.startedAt && !execution.stoppedAt && !execution.createdAt) {
+                            deps.log.warn('Dropping execution sync event', {
+                              context: 'publisher hook',
+                              hook: 'workflow.postExecute',
+                              reason: 'missing_lifecycle_timestamp',
+                              executionId,
+                              workflowId: execution.workflowId,
+                            });
+                            return;
+                          }
+
+                          const event = await envelope({
+                            type: 'execution.upsert',
+                            execution,
+                          });
+                          await deps.emit(event);
+                        });
+                      },
+                    ),
                   ],
                 }
               : {}),

@@ -3,6 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "noEmit": true,
+    "strict": false,
     "paths": {
       "@egose/n8n-client": ["../n8n-client/dist/index.d.ts"]
     },

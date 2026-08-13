@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '../src/shared/logger';
-import type { SyncEvent } from '../src/shared/types';
+import type { SyncEvent, SyncWorkflowDto } from '../src/shared/types';
 import { createEventSender } from '../src/publisher/sender';
 
 const log: Logger = {
@@ -13,17 +13,88 @@ const log: Logger = {
 };
 
 function makeEvent(id: string): SyncEvent {
-  return { type: 'workflow.delete', at: '2026-01-01T00:00:00.000Z', sourceId: 'src', workflowId: id };
+  return {
+    type: 'workflow.delete',
+    at: '2026-01-01T00:00:00.000Z',
+    sourceId: 'src',
+    eventId: `src:delete:${id}`,
+    entityRevision: '1',
+    workflowId: id,
+  };
+}
+
+type WorkflowOperation = 'upsert' | 'activate' | 'archive' | 'unarchive' | 'delete';
+
+function makeWorkflow(id: string, overrides: Partial<SyncWorkflowDto> = {}): SyncWorkflowDto {
+  return {
+    id,
+    name: `Workflow ${id}`,
+    active: false,
+    isArchived: false,
+    nodes: [],
+    connections: {},
+    ...overrides,
+  };
+}
+
+function makeWorkflowEvent(
+  operation: WorkflowOperation,
+  id = 'wf-1',
+  overrides: Partial<SyncWorkflowDto> = {},
+): SyncEvent {
+  const base = {
+    at: '2026-01-01T00:00:00.000Z',
+    sourceId: 'src',
+    eventId: `src:${operation}:${id}`,
+    entityRevision: '1',
+  };
+
+  switch (operation) {
+    case 'upsert':
+      return { ...base, type: 'workflow.upsert', workflow: makeWorkflow(id, overrides) };
+    case 'activate':
+      return { ...base, type: 'workflow.activate', workflow: makeWorkflow(id, { active: true, ...overrides }) };
+    case 'archive':
+      return { ...base, type: 'workflow.archive', workflowId: id, archived: true };
+    case 'unarchive':
+      return { ...base, type: 'workflow.archive', workflowId: id, archived: false };
+    case 'delete':
+      return { ...base, type: 'workflow.delete', workflowId: id };
+  }
+}
+
+function eventLabel(event: SyncEvent): string {
+  if (event.type === 'workflow.archive') {
+    return event.archived ? 'workflow.archive' : 'workflow.unarchive';
+  }
+
+  return event.type;
+}
+
+function eventResourceId(event: SyncEvent): string {
+  switch (event.type) {
+    case 'workflow.upsert':
+    case 'workflow.activate':
+      return event.workflow.id;
+    case 'workflow.delete':
+    case 'workflow.archive':
+      return event.workflowId;
+    case 'credentials.upsert':
+      return event.credential.id;
+    case 'credentials.delete':
+      return event.credentialId;
+    case 'execution.upsert':
+      return event.execution.id;
+  }
 }
 
 function makeSenderOptions(fetchImpl: typeof fetch, overrides: Partial<{ maxQueueSize: number }> = {}) {
   return {
     baseUrl: 'https://target.example.com',
     eventsPath: '/rest/sync/v1/events',
-    secret: 's3cret', // pragma: allowlist secret
-    authMode: 'hmac' as const,
+    auth: { mode: 'hmac', secret: 's3cret' } as const, // pragma: allowlist secret
     timeoutMs: 1000,
-    maxRetries: 1,
+    maxAttempts: 1,
     maxQueueSize: overrides.maxQueueSize,
     log,
     fetchImpl,
@@ -32,6 +103,10 @@ function makeSenderOptions(fetchImpl: typeof fetch, overrides: Partial<{ maxQueu
 }
 
 describe('createEventSender', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('posts to <baseUrl><eventsPath>', async () => {
     const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     const sender = createEventSender(makeSenderOptions(fetchImpl as unknown as typeof fetch));
@@ -98,36 +173,99 @@ describe('createEventSender', () => {
     expect(log.error).toHaveBeenCalled();
   });
 
-  it('coalesces queued events for the same resource key', async () => {
-    const delivered: string[] = [];
+  it.each(
+    (['upsert', 'activate', 'archive', 'unarchive', 'delete'] as const).flatMap((first) =>
+      (['upsert', 'activate', 'archive', 'unarchive', 'delete'] as const)
+        .filter((second) => second !== first)
+        .map((second) => [first, second] as const),
+    ),
+  )('preserves mixed workflow queue order for %s -> %s', async (first, second) => {
+    const delivered: SyncEvent[] = [];
     let releaseFirst!: () => void;
     const firstDelivery = new Promise<void>((resolve) => {
       releaseFirst = resolve;
     });
+    let callCount = 0;
 
     const fetchImpl = vi.fn().mockImplementation(((_url: string, init: RequestInit) => {
-      const id = JSON.parse(init.body as string).workflowId as string;
-      return id === 'wf-1'
+      const event = JSON.parse(init.body as string) as SyncEvent;
+      const currentCall = callCount;
+      callCount += 1;
+
+      return currentCall === 0
         ? firstDelivery.then(() => {
-            delivered.push(id);
+            delivered.push(event);
             return { ok: true, status: 200 };
           })
         : Promise.resolve().then(() => {
-            delivered.push(id);
+            delivered.push(event);
             return { ok: true, status: 200 };
           });
     }) as unknown as typeof fetch);
 
     const sender = createEventSender(makeSenderOptions(fetchImpl));
 
-    sender.send(makeEvent('wf-1'));
-    sender.send(makeEvent('wf-2'));
-    sender.send(makeEvent('wf-2'));
+    sender.send(makeWorkflowEvent(first));
+    sender.send(makeWorkflowEvent(second));
 
     releaseFirst();
     await sender.drain();
 
-    expect(delivered).toEqual(['wf-1', 'wf-2']);
+    expect(delivered.map(eventLabel)).toEqual([
+      eventLabel(makeWorkflowEvent(first)),
+      eventLabel(makeWorkflowEvent(second)),
+    ]);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('coalesces queued workflow.upsert events by keeping the newest payload', async () => {
+    const delivered: SyncEvent[] = [];
+    let releaseFirst!: () => void;
+    const firstDelivery = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+
+    const fetchImpl = vi.fn().mockImplementation(((_url: string, init: RequestInit) => {
+      const event = JSON.parse(init.body as string) as SyncEvent;
+      const workflowId = eventResourceId(event);
+
+      return workflowId === 'wf-blocker'
+        ? firstDelivery.then(() => {
+            delivered.push(event);
+            return { ok: true, status: 200 };
+          })
+        : Promise.resolve().then(() => {
+            delivered.push(event);
+            return { ok: true, status: 200 };
+          });
+    }) as unknown as typeof fetch);
+
+    const sender = createEventSender(makeSenderOptions(fetchImpl));
+
+    sender.send(makeEvent('wf-blocker'));
+    sender.send(
+      makeWorkflowEvent('upsert', 'wf-1', {
+        name: 'Older workflow snapshot',
+        updatedAt: '2026-01-01T00:00:01.000Z',
+      }),
+    );
+    sender.send(
+      makeWorkflowEvent('upsert', 'wf-1', {
+        name: 'Newest workflow snapshot',
+        updatedAt: '2026-01-01T00:00:02.000Z',
+      }),
+    );
+
+    releaseFirst();
+    await sender.drain();
+
+    expect(delivered).toEqual([
+      makeEvent('wf-blocker'),
+      makeWorkflowEvent('upsert', 'wf-1', {
+        name: 'Newest workflow snapshot',
+        updatedAt: '2026-01-01T00:00:02.000Z',
+      }),
+    ]);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 

@@ -4,11 +4,14 @@
 
 * **n8n-client:** serialize structured data-table delete filters before transport and validate column names locally
 * **n8n-client:** preserve known workflow enrichment on compact mutation responses and validate workflow core fields at the response boundary
+* **n8n-sync:** add durable event identity, subscriber tombstones, and exact HMAC replay rejection so stale deletes, archives, and duplicate deliveries no longer regress state after restart
 
 ### Breaking Changes
 
 * **n8n-client:** `DataTableClient.deleteRows()` and `DataTableResource.deleteRows()` now require a structured `DataTableFilter` instead of a pre-serialized JSON string
 * **n8n-client:** workflow endpoints now expose endpoint-specific response types: `list()` returns `WorkflowListItem`, `get()`/observed create responses return `WorkflowDetail`, compact workflow mutations return `WorkflowMutationResult`, and `SharedWorkflow.project` is optional when the API omits project enrichment
+* **n8n-sync:** the publisher/subscriber wire contract now requires `eventId` and `entityRevision` on every sync event, so both sides must be upgraded together and durable ordering state must live on persistent storage
+* **n8n-sync:** credential sync now accepts only encrypted string blobs on the wire; object-form credential payloads are dropped by the publisher and rejected by the subscriber
 
 ## [0.5.0](https://github.com/egose/n8n-client/compare/v0.4.5...v0.5.0) (2026-07-08)
 
