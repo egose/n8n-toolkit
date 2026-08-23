@@ -1,14 +1,4 @@
-## Unreleased
-
-### Bug Fixes
-
-* **n8n-sync:** allow higher revisions to apply workflow, credential, and execution updates when source timestamps tie, and reject older-timestamp conflicts without advancing subscriber ordering state.
-* **n8n-sync:** store ordering checkpoints with JSON tuple keys to prevent source/entity ID colon collisions. Subscriber state format `1` now fails with backup/reset/resync guidance because it is ambiguous; publisher state format `1` migrates automatically to tuple-keyed format `2`.
-* **n8n-sync:** return non-retryable `409 SYNC_REVISION_CONFLICT` for distinct events that reuse an already-applied entity revision without mutating target state or subscriber checkpoints.
-* **n8n-sync:** enforce subscriber `SYNC_ENTITIES` before repository or ordering-state access and return non-retryable `422 SYNC_ENTITY_DISABLED` for valid disabled event families.
-* **n8n-sync:** make HMAC replay tracking failure-aware and efficient. Exact signed requests are reserved while in flight, retained only after controlled completion, released after parse/validation/application failure so exact retries can succeed, and maintained without full-cache pruning; HMAC mode now always applies the authenticated raw bytes instead of any divergent pre-parsed body.
-* **n8n-sync:** require explicit publisher `SYNC_SOURCE_ID` when delivery is enabled, persist it in publisher state format `3`, reject configured/stored source mismatches with rotation guidance, validate publisher-generated IDs against subscriber wire limits, and reject live duplicate file-backed publisher allocators for the same state path.
-* **n8n-sync:** tighten sync event wire validation to reject unknown contract properties and aggregate over-budget payloads; execution payloads now require `workflowId` and closed `status`/`mode` values in TypeScript.
+## [0.14.1](https://github.com/egose/n8n-toolkit/compare/v0.14.0...v0.14.1) (2026-08-13)
 
 ## [0.14.0](https://github.com/egose/n8n-toolkit/compare/v0.13.0...v0.14.0) (2026-08-13)
 
