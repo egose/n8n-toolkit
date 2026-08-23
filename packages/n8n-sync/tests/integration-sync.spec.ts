@@ -294,7 +294,7 @@ function buildWorkflowSyncDto(workflow: Workflow, overrides: Record<string, unkn
     ...(workflow.meta === undefined ? {} : { meta: workflow.meta }),
     ...(workflow.versionId === undefined ? {} : { versionId: workflow.versionId }),
     ...(workflow.activeVersionId === undefined ? {} : { activeVersionId: workflow.activeVersionId }),
-    ...(workflow.tags === undefined ? {} : { tags: workflow.tags }),
+    ...(workflow.tags === undefined ? {} : { tags: workflow.tags.map(({ id, name }) => ({ id, name })) }),
     ...(workflow.createdAt === undefined ? {} : { createdAt: workflow.createdAt }),
     ...(workflow.updatedAt === undefined ? {} : { updatedAt: workflow.updatedAt }),
     ...overrides,
