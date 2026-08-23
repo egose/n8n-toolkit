@@ -15,13 +15,13 @@ jobs:
       matrix:
         node-version: [20.x, 22.x, 24.x, 26.x]
     steps:
-    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
     - name: Setup Tools
       uses: ./.github/actions/setup-tools
 
     - name: Use matrix Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7.0.0
       with:
         node-version: ${{ matrix.node-version }}
 
@@ -50,13 +50,13 @@ jobs:
         node-version: [20.x, 22.x, 24.x, 26.x]
         n8n-version: [2.31.2]
     steps:
-    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
     - name: Setup Tools
       uses: ./.github/actions/setup-tools
 
     - name: Use matrix Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7.0.0
       with:
         node-version: ${{ matrix.node-version }}
 
