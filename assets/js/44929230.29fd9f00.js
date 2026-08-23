@@ -113,11 +113,15 @@ function _createMdxContent(props) {
               children: "SYNC_SHARED_SECRET"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "yes"
+            children: "yes, when delivery is enabled"
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "—"
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Shared secret. HMAC key (hmac mode) or bearer token (token mode)."
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Shared secret. HMAC key in ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "hmac"
+            }), " mode or bearer token in ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "token"
+            }), " mode. Publisher startup fails when subscriber URLs are configured and this is blank. Subscriber auth fails closed when blank."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -135,7 +139,7 @@ function _createMdxContent(props) {
               children: "hmac"
             }), " | ", (0,jsx_runtime.jsx)(_components.code, {
               children: "token"
-            }), " — must match on publisher and subscriber. See ", (0,jsx_runtime.jsx)(_components.a, {
+            }), ". Must match on publisher and subscriber. See ", (0,jsx_runtime.jsx)(_components.a, {
               href: "/n8n-sync/sync/authentication/",
               children: "Authentication"
             }), "."]
@@ -158,15 +162,12 @@ function _createMdxContent(props) {
               children: "credentials"
             }), ", ", (0,jsx_runtime.jsx)(_components.code, {
               children: "executions"
-            }), " to sync. Unknown names are dropped. When ", (0,jsx_runtime.jsx)(_components.code, {
+            }), ". Absent or blank values use the default; explicit invalid names or comma-only empty selections fail startup. ", (0,jsx_runtime.jsx)(_components.code, {
               children: "executions"
-            }), " is included, the publisher registers ", (0,jsx_runtime.jsx)(_components.code, {
-              children: "workflow.postExecute"
-            }), " and the subscriber resolves the ", (0,jsx_runtime.jsx)(_components.code, {
-              children: "ExecutionRepository"
-            }), ". See ", (0,jsx_runtime.jsx)(_components.a, {
-              href: "/n8n-sync/sync/hooks/",
-              children: "Wired Hooks"
+            }), " requires ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "workflows"
+            }), ". Disabled families are rejected by the subscriber with non-retryable ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "422 SYNC_ENTITY_DISABLED"
             }), "."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
@@ -216,13 +217,21 @@ function _createMdxContent(props) {
               children: "SYNC_SUBSCRIBER_URLS"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "yes"
+            children: "yes, on publisher"
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "—"
           }), (0,jsx_runtime.jsxs)(_components.td, {
-            children: ["Comma-separated target base URLs (fan-out). Falls back to ", (0,jsx_runtime.jsx)(_components.code, {
+            children: ["Comma-separated target base URLs for fan-out. Falls back to ", (0,jsx_runtime.jsx)(_components.code, {
               children: "SYNC_SUBSCRIBER_URL"
-            }), " if unset."]
+            }), " if unset. Entries must be absolute base URLs with no path, query, fragment, or userinfo. HTTPS is required unless ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_ALLOW_INSECURE_HTTP=true"
+            }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "NODE_ENV"
+            }), " is ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "development"
+            }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "test"
+            }), "."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -241,14 +250,40 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
-              children: "SYNC_SOURCE_ID"
+              children: "SYNC_ALLOW_INSECURE_HTTP"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "no"
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "hostname"
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "false"
+            })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Development/test-only escape hatch for ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "http://"
+            }), " subscriber URLs. Ignored unless ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "NODE_ENV"
+            }), " is ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "development"
+            }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "test"
+            }), "."]
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_SOURCE_ID"
+            })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Identifier stamped on every event."
+            children: "yes, when delivery is enabled"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "—"
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Stable logical source identifier stamped on every event. Required when ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_SUBSCRIBER_URLS"
+            }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_SUBSCRIBER_URL"
+            }), " enables delivery. Must be non-blank and 512 characters or fewer."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -262,7 +297,7 @@ function _createMdxContent(props) {
               children: "/rest/sync/v1/events"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Endpoint path on the subscriber."
+            children: "Endpoint path on the subscriber. Must be a local absolute path with no query or fragment."
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -275,8 +310,12 @@ function _createMdxContent(props) {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "10000"
             })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Per-attempt HTTP timeout."
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Per-attempt HTTP timeout in milliseconds. Integer range: ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "1"
+            }), " to ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "300000"
+            }), "."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -289,8 +328,50 @@ function _createMdxContent(props) {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "3"
             })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Total delivery attempts per event, including the first attempt. Integer range: ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "1"
+            }), " to ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "10"
+            }), "."]
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_MAX_QUEUE_SIZE"
+            })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Total delivery attempts per event."
+            children: "no"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "1000"
+            })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Max queued events per target. Integer range: ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "1"
+            }), " to ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "100000"
+            }), ". When full, the oldest queued event is dropped and logged before the new event is enqueued."]
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_PUBLISHER_STATE_PATH"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "no"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "/home/node/.n8n/sync-state/publisher-ordering.json"
+            })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Durable publisher source identity and counter store for ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "eventId"
+            }), " and per-entity ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "entityRevision"
+            }), ". A best-effort ", (0,jsx_runtime.jsx)(_components.code, {
+              children: ".lock"
+            }), " file is created next to this path. Put both on persistent storage."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -345,9 +426,9 @@ function _createMdxContent(props) {
               children: "active"
             }), " to ", (0,jsx_runtime.jsx)(_components.code, {
               children: "true"
-            }), " (real value preserved in ", (0,jsx_runtime.jsx)(_components.code, {
+            }), " when present. The real source value is preserved in ", (0,jsx_runtime.jsx)(_components.code, {
               children: "meta.active_real"
-            }), "). Effective only when ", (0,jsx_runtime.jsx)(_components.code, {
+            }), ". Effective only when ", (0,jsx_runtime.jsx)(_components.code, {
               children: "SYNC_FILTER_BY_TAG=true"
             }), "."]
           })]
@@ -381,8 +462,14 @@ function _createMdxContent(props) {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "/rest/sync/v1"
             })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Base path for the mounted routes."
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Base path for mounted routes. Must be a local absolute path with no query or fragment. The subscriber mounts ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "GET <base>/health"
+            }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "GET <base>/ready"
+            }), ", and ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "POST <base>/events"
+            }), "."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -394,9 +481,9 @@ function _createMdxContent(props) {
           }), (0,jsx_runtime.jsx)(_components.td, {
             children: "—"
           }), (0,jsx_runtime.jsxs)(_components.td, {
-            children: ["Link newly synced workflows/credentials to this project (", (0,jsx_runtime.jsx)(_components.code, {
+            children: ["Best-effort link of newly synced workflows/credentials to this project (", (0,jsx_runtime.jsx)(_components.code, {
               children: "*:owner"
-            }), " role)."]
+            }), " role). If empty, the applier lazily tries the target owner's personal project and caches the result, including lookup misses."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -414,10 +501,10 @@ function _createMdxContent(props) {
               children: "active"
             }), "/", (0,jsx_runtime.jsx)(_components.code, {
               children: "activeVersionId"
-            }), " (see ", (0,jsx_runtime.jsx)(_components.a, {
+            }), ". This is DB-only and does not register triggers/webhooks with the active workflow manager. See ", (0,jsx_runtime.jsx)(_components.a, {
               href: "/n8n-sync/sync/limitations/",
               children: "Limitations"
-            }), ")."]
+            }), "."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -430,8 +517,12 @@ function _createMdxContent(props) {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "16777216"
             })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Request body size cap."
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Request body size cap. Integer range: ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "1"
+            }), " to ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "67108864"
+            }), "."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -444,8 +535,50 @@ function _createMdxContent(props) {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "300000"
             })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Max signature age/skew accepted in hmac mode. Integer range: ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "1"
+            }), " to ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "3600000"
+            }), "."]
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_REPLAY_CACHE_SIZE"
+            })
           }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Max signature age/skew accepted in hmac mode."
+            children: "no"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "10000"
+            })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Max successful exact signed HMAC requests remembered for replay rejection in this process. Integer range: ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "1"
+            }), " to ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "100000"
+            }), ". Entries expire with ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_SIGNATURE_TOLERANCE_MS"
+            }), "; in-flight reservations are additional transient entries."]
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_SUBSCRIBER_STATE_PATH"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "no"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "/home/node/.n8n/sync-state/subscriber-ordering.json"
+            })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Durable subscriber ordering and tombstone store keyed by ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "[sourceId, entityKind, entityId]"
+            }), ". When executions are enabled, the execution identity map is stored beside it as ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "<basename>.executions.json"
+            }), "."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -487,7 +620,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-bash",
-        children: "# Minimal publisher\nexport EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs\nexport SYNC_SUBSCRIBER_URLS=https://target.example.com\nexport SYNC_SHARED_SECRET=<secret>\n\n# Minimal subscriber\nexport EXTERNAL_HOOK_FILES=/opt/n8n-sync/subscriber.cjs\nexport SYNC_SHARED_SECRET=<secret>\n"
+        children: "# Minimal publisher\nexport EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs\nexport SYNC_SUBSCRIBER_URLS=https://target.example.com\nexport SYNC_SOURCE_ID=prod-source-a\nexport SYNC_SHARED_SECRET=<secret>\n\n# Minimal subscriber\nexport EXTERNAL_HOOK_FILES=/opt/n8n-sync/subscriber.cjs\nexport SYNC_SHARED_SECRET=<secret>\n"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["Every other setting has a sensible default and only needs to be set when you want non-default behavior. See the ", (0,jsx_runtime.jsx)(_components.a, {
@@ -527,6 +660,11 @@ function _createMdxContent(props) {
         }), " — ", (0,jsx_runtime.jsx)(_components.code, {
           children: "SYNC_ENTITIES"
         }), "."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.a, {
+          href: "/n8n-sync/sync/persistence-readiness/",
+          children: "Persistence & Readiness"
+        }), " — state paths, queues, and readiness behavior."]
       }), "\n"]
     })]
   });

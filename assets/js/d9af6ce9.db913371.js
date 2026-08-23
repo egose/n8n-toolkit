@@ -194,7 +194,7 @@ function _createMdxContent(props) {
       id: "4-zero-dependencies",
       children: "4. Zero Dependencies"
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["The client uses Node.js 20+ built-in ", (0,jsx_runtime.jsx)(_components.code, {
+      children: ["The client uses Node.js 22+ built-in ", (0,jsx_runtime.jsx)(_components.code, {
         children: "fetch"
       }), ". No axios, no node-fetch, no extra packages to audit or maintain."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {

@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-n-8-n-sync-about-quick-start-mdx-945.json
-var site_docs_n_8_n_sync_about_quick_start_mdx_945_namespaceObject = JSON.parse('{"id":"n8n-sync/about/quick-start","title":"Quick Start","description":"n8n-sync is a deployment-style package: you build two CommonJS hook bundles, copy them to your n8n instances, and point n8n at the right file with EXTERNALHOOKFILES. There is no npm install step at runtime — the bundles are fully self-contained.","source":"@site/docs/n8n-sync/about/quick-start.mdx","sourceDirName":"n8n-sync/about","slug":"/n8n-sync/about/quick-start","permalink":"/n8n-sync/about/quick-start","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":1,"frontMatter":{"sidebar_label":"Quick Start","sidebar_position":1},"sidebar":"n8nSync","previous":{"title":"Overview","permalink":"/n8n-sync/about/overview"},"next":{"title":"Reference","permalink":"/n8n-sync/sync"}}')
+var site_docs_n_8_n_sync_about_quick_start_mdx_945_namespaceObject = JSON.parse('{"id":"n8n-sync/about/quick-start","title":"Quick Start","description":"n8n-sync is a deployment-style package: you build or download two CommonJS hook bundles, copy them to your n8n instances, and point n8n at the right file with EXTERNALHOOKFILES. The hook files are fully self-contained at runtime.","source":"@site/docs/n8n-sync/about/quick-start.mdx","sourceDirName":"n8n-sync/about","slug":"/n8n-sync/about/quick-start","permalink":"/n8n-sync/about/quick-start","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":1,"frontMatter":{"sidebar_label":"Quick Start","sidebar_position":1},"sidebar":"n8nSync","previous":{"title":"Overview","permalink":"/n8n-sync/about/overview"},"next":{"title":"Reference","permalink":"/n8n-sync/sync"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -83,11 +83,13 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
         children: "n8n-sync"
-      }), " is a deployment-style package: you build two CommonJS hook bundles, copy them to your n8n instances, and point n8n at the right file with ", (0,jsx_runtime.jsx)(_components.code, {
+      }), " is a deployment-style package: you build or download two CommonJS hook bundles, copy them to your n8n instances, and point n8n at the right file with ", (0,jsx_runtime.jsx)(_components.code, {
         children: "EXTERNAL_HOOK_FILES"
-      }), ". There is no ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "npm install"
-      }), " step at runtime — the bundles are fully self-contained."]
+      }), ". The hook files are fully self-contained at runtime."]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["The supported n8n runtime is currently ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "2.31.2"
+      }), "."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "1-build-the-bundles",
       children: "1. Build the bundles"
@@ -106,6 +108,12 @@ function _createMdxContent(props) {
       }), " via ", (0,jsx_runtime.jsx)(_components.code, {
         children: "tsup"
       }), ". Each bundle is a single self-contained CJS file with no runtime dependencies."]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["If you are building an image from the published package instead, use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "packages/n8n-sync/examples/Dockerfile.npm"
+      }), " or ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "packages/n8n-sync/examples/Dockerfile.cdn"
+      }), " as the reference pattern."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "2-copy-the-bundles-to-your-instances",
       children: "2. Copy the bundles to your instances"
@@ -126,44 +134,63 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-bash",
-        children: "export EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs\nexport SYNC_SUBSCRIBER_URLS=https://n8n-target-a.example.com,https://n8n-target-b.example.com\nexport SYNC_SHARED_SECRET=<shared-secret>\n# optional:\nexport SYNC_AUTH_MODE=hmac     # default; or \"token\" for static bearer\nexport SYNC_SOURCE_ID=$(hostname)\n"
+        children: "export EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs\nexport SYNC_SUBSCRIBER_URLS=https://n8n-target-a.example.com,https://n8n-target-b.example.com\nexport SYNC_SOURCE_ID=prod-source-a\nexport SYNC_SHARED_SECRET=<shared-secret>\n# optional:\nexport SYNC_AUTH_MODE=hmac     # default; or \"token\" for static bearer\nexport SYNC_PUBLISHER_STATE_PATH=/home/node/.n8n/sync-state/publisher-ordering.json\n"
       })
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "SYNC_SOURCE_ID"
+      }), " is required when ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "SYNC_SUBSCRIBER_URLS"
+      }), " or legacy ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "SYNC_SUBSCRIBER_URL"
+      }), " is set. Use a stable logical name, not a container hostname or pod name that can change after replacement."]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "Restart n8n on the source. From this point on, every workflow/credential lifecycle hook fans an event out to every subscriber over HTTPS."
+      children: "Restart n8n on the source. From this point on, every enabled workflow/credential lifecycle hook fans an event out to every subscriber."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "4-configure-each-target-instance-subscriber",
       children: "4. Configure each target instance (subscriber)"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
         className: "language-bash",
-        children: "export EXTERNAL_HOOK_FILES=/opt/n8n-sync/subscriber.cjs\nexport SYNC_SHARED_SECRET=<shared-secret>\n# optional:\nexport SYNC_AUTH_MODE=hmac    # must match the publisher\nexport SYNC_TARGET_PROJECT_ID=<project-id>   # link synced entities to this project\n"
+        children: "export EXTERNAL_HOOK_FILES=/opt/n8n-sync/subscriber.cjs\nexport SYNC_SHARED_SECRET=<shared-secret>\n# optional:\nexport SYNC_AUTH_MODE=hmac    # must match the publisher\nexport SYNC_TARGET_PROJECT_ID=<project-id>   # link synced entities to this project\nexport SYNC_SUBSCRIBER_STATE_PATH=/home/node/.n8n/sync-state/subscriber-ordering.json\n"
       })
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "Restart n8n on the target. On startup the subscriber logs:"
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
-        children: "info: n8n-sync subscriber routes active. {\"module\":\"subscriber\"}\n"
+        className: "language-json",
+        children: "{\"level\":\"info\",\"module\":\"subscriber\",\"msg\":\"n8n-sync subscriber routes active.\"}\n"
       })
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["and serves an unauthenticated health probe at ", (0,jsx_runtime.jsx)(_components.code, {
+      children: ["and serves unauthenticated probes at ", (0,jsx_runtime.jsx)(_components.code, {
         children: "GET /rest/sync/v1/health"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "GET /rest/sync/v1/ready"
       }), "."]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: [(0,jsx_runtime.jsx)(_components.code, {
+        children: "/health"
+      }), " returns 200 after the route is mounted. ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "/ready"
+      }), " returns 200 only while required file-backed sync state is loaded and writable; ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "POST /rest/sync/v1/events"
+      }), " returns ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "503 { \"ok\": false, \"ready\": false }"
+      }), " while readiness is false."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "5-verify",
       children: "5. Verify"
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
       children: "Create or update a workflow on the source. Within seconds the same workflow should appear on the target under the same id."
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
-      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
-        children: ["The publisher writes structured JSON logs (", (0,jsx_runtime.jsx)(_components.code, {
-          children: "SYNC_SOURCE_ID"
-        }), ", target URL, event id, attempt count) for every delivery."]
+      children: ["\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "The publisher writes structured JSON logs with target URL, event type, attempt count, and delivery failures."
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
         children: "The subscriber writes structured logs for every applied event (upsert / delete / archive, with the source id and target project assignment)."
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: ["Set ", (0,jsx_runtime.jsx)(_components.code, {
           children: "LOG_LEVEL=debug"
-        }), " on either side to see hook payloads, raw-body bytes, and HMAC computations."]
+        }), " on either side for more detailed routing, ordering, and repository logs. Do not log secrets in your own wrappers."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "next-steps",
@@ -184,6 +211,11 @@ function _createMdxContent(props) {
           href: "/n8n-sync/sync/environment/",
           children: "Environment Variables"
         }), " — every tunable knob."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.a, {
+          href: "/n8n-sync/sync/persistence-readiness/",
+          children: "Persistence & Readiness"
+        }), " — which state files must be persisted."]
       }), "\n"]
     })]
   });

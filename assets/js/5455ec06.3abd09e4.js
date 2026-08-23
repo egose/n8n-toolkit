@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-n-8-n-sync-about-overview-mdx-545.json
-var site_docs_n_8_n_sync_about_overview_mdx_545_namespaceObject = JSON.parse('{"id":"n8n-sync/about/overview","title":"Overview","description":"@egose/n8n-sync syncs credentials and workflows between n8n instances using n8n external hooks. It builds two self-contained CommonJS hook bundles that you deploy alongside n8n and point at via EXTERNALHOOKFILES.","source":"@site/docs/n8n-sync/about/overview.mdx","sourceDirName":"n8n-sync/about","slug":"/n8n-sync/about/overview","permalink":"/n8n-sync/about/overview","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":0,"frontMatter":{"sidebar_label":"Overview","sidebar_position":0},"sidebar":"n8nSync","previous":{"title":"About","permalink":"/n8n-sync/about"},"next":{"title":"Quick Start","permalink":"/n8n-sync/about/quick-start"}}')
+var site_docs_n_8_n_sync_about_overview_mdx_545_namespaceObject = JSON.parse('{"id":"n8n-sync/about/overview","title":"Overview","description":"@egose/n8n-sync syncs workflows, credentials, and optionally execution summaries between n8n instances using n8n external hooks. It builds two self-contained CommonJS hook bundles that you deploy alongside n8n and point at via EXTERNALHOOKFILES.","source":"@site/docs/n8n-sync/about/overview.mdx","sourceDirName":"n8n-sync/about","slug":"/n8n-sync/about/overview","permalink":"/n8n-sync/about/overview","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":0,"frontMatter":{"sidebar_label":"Overview","sidebar_position":0},"sidebar":"n8nSync","previous":{"title":"About","permalink":"/n8n-sync/about"},"next":{"title":"Quick Start","permalink":"/n8n-sync/about/quick-start"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -42,6 +42,10 @@ const toc = [{
 }, {
   "value": "Synced entities",
   "id": "synced-entities",
+  "level": 2
+}, {
+  "value": "Supported runtime",
+  "id": "supported-runtime",
   "level": 2
 }, {
   "value": "Where to go next",
@@ -78,7 +82,7 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: [(0,jsx_runtime.jsx)(_components.code, {
         children: "@egose/n8n-sync"
-      }), " syncs credentials and workflows between n8n instances using ", (0,jsx_runtime.jsx)(_components.a, {
+      }), " syncs workflows, credentials, and optionally execution summaries between n8n instances using ", (0,jsx_runtime.jsx)(_components.a, {
         href: "https://docs.n8n.io/deploy/host-n8n/configure-n8n/external-hooks/",
         children: "n8n external hooks"
       }), ". It builds two self-contained CommonJS hook bundles that you deploy alongside n8n and point at via ", (0,jsx_runtime.jsx)(_components.code, {
@@ -102,7 +106,7 @@ function _createMdxContent(props) {
           }), (0,jsx_runtime.jsxs)(_components.td, {
             children: ["Runs on the ", (0,jsx_runtime.jsx)(_components.strong, {
               children: "source"
-            }), " instance. Lifecycle hooks POST sync events to one or more subscribers over HTTPS."]
+            }), " instance. Lifecycle hooks POST sync events to one or more subscribers. HTTPS is required outside development/test."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -129,23 +133,37 @@ function _createMdxContent(props) {
           children: "Fan-out"
         }), ": the publisher delivers every event to every URL in ", (0,jsx_runtime.jsx)(_components.code, {
           children: "SYNC_SUBSCRIBER_URLS"
-        }), ". Each target has its own ", (0,jsx_runtime.jsx)(_components.strong, {
-          children: "serialized delivery queue"
-        }), " — events reach a given target in hook order, and a slow or unreachable target never delays the others."]
+        }), ". Hook preparation and emission are serialized per source entity, and each target has its own serialized in-memory queue. Slow or unreachable targets do not delay other targets."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
           children: "Fire-and-forget hooks"
-        }), ": deliveries run in the background and failures are retried (1s, 2s, 4s, capped at 10s) then logged, so a sync outage cannot break n8n operations. The publisher never throws."]
+        }), ": deliveries run in the background and failures are retried with exponential backoff (1s, 2s, 4s, capped at 10s) then logged, so a sync outage cannot break n8n operations. Publisher hooks never throw."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
-        children: ["The subscriber applies events ", (0,jsx_runtime.jsx)(_components.strong, {
-          children: "idempotently with source IDs preserved"
-        }), ", using the target instance's own TypeORM repositories (resolved from n8n's DI container at runtime)."]
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Durable event identity"
+        }), ": every emitted event includes ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "sourceId"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "eventId"
+        }), ", and a monotonic per-entity ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "entityRevision"
+        }), ". Publisher counters live under ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_PUBLISHER_STATE_PATH"
+        }), "; subscriber checkpoints and tombstones live under ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_SUBSCRIBER_STATE_PATH"
+        }), "."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
-        children: ["Credential ", (0,jsx_runtime.jsx)(_components.code, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Idempotent subscriber"
+        }), ": the subscriber applies events through the target instance's own TypeORM repositories, resolved from n8n's DI container inside ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "n8n.ready"
+        }), "."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Encrypted credentials only"
+        }), ": credential ", (0,jsx_runtime.jsx)(_components.code, {
           children: "data"
-        }), " is passed through ", (0,jsx_runtime.jsx)(_components.strong, {
-          children: "encrypted"
-        }), " — all instances must share the same ", (0,jsx_runtime.jsx)(_components.code, {
+        }), " is passed through as the stored encrypted string blob. All instances must share the same ", (0,jsx_runtime.jsx)(_components.code, {
           children: "N8N_ENCRYPTION_KEY"
         }), " so targets can decrypt secrets at runtime."]
       }), "\n"]
@@ -207,7 +225,28 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["★ ", (0,jsx_runtime.jsx)(_components.code, {
         children: "workflow.postExecute"
-      }), " fires per execution (high volume) and the publisher handler is fire-and-forget so it never blocks n8n. Only scalar lifecycle columns are mirrored; per-step run data is dropped."]
+      }), " fires per execution (high volume) and the publisher handler is fire-and-forget so it never blocks n8n. Only scalar lifecycle columns are mirrored; per-step ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "fullRunData"
+      }), " is dropped. ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "executions"
+      }), " requires ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "workflows"
+      }), " to be enabled."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "supported-runtime",
+      children: "Supported runtime"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["The subscriber runtime adapter is pinned and contract-tested against n8n ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "2.31.2"
+      }), ". The package lazy-loads ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "@n8n/di"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "@n8n/db"
+      }), " from the official Docker image paths by default, with ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "N8N_DI_PATH"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "N8N_DB_PATH"
+      }), " overrides for custom layouts."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "where-to-go-next",
       children: "Where to go next"
@@ -238,6 +277,11 @@ function _createMdxContent(props) {
         }), " and ", (0,jsx_runtime.jsx)(_components.code, {
           children: "N8N_*"
         }), " knob."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.a, {
+          href: "/n8n-sync/sync/persistence-readiness/",
+          children: "Persistence & Readiness"
+        }), " — state files, readiness probes, and recovery guidance."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.a, {
           href: "/n8n-sync/sync/limitations/",

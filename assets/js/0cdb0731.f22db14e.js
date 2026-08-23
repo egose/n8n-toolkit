@@ -48,6 +48,10 @@ const toc = [{
   "id": "sync_entities-gating",
   "level": 2
 }, {
+  "value": "Credential hook contract",
+  "id": "credential-hook-contract",
+  "level": 2
+}, {
   "value": "Filtering by tag",
   "id": "filtering-by-tag",
   "level": 2
@@ -202,7 +206,11 @@ function _createMdxContent(props) {
         children: [(0,jsx_runtime.jsx)(_components.code, {
           children: "SYNC_ENTITIES"
         }), " setting"]
-      }), " below."]
+      }), " below. ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "executions"
+      }), " requires ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "workflows"
+      }), "."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "hook-selection-rationale",
       children: "Hook selection rationale"
@@ -324,21 +332,64 @@ function _createMdxContent(props) {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "executions"
             })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "Invalid. Startup fails because execution sync requires workflow sync."
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "workflows,executions"
+            })
           }), (0,jsx_runtime.jsxs)(_components.td, {
-            children: ["Only ", (0,jsx_runtime.jsx)(_components.code, {
+            children: ["Workflow hooks plus ", (0,jsx_runtime.jsx)(_components.code, {
               children: "workflow.postExecute"
-            }), " (wired under the ", (0,jsx_runtime.jsx)(_components.code, {
-              children: "workflow"
-            }), " key)."]
+            }), "; credentials hooks are absent."]
           })]
         })]
       })]
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Unknown names are dropped. Empty ", (0,jsx_runtime.jsx)(_components.code, {
+      children: ["Explicit invalid names fail startup instead of being ignored. An absent or blank ", (0,jsx_runtime.jsx)(_components.code, {
         children: "SYNC_ENTITIES"
       }), " falls back to the default (", (0,jsx_runtime.jsx)(_components.code, {
         children: "workflows,credentials"
-      }), ")."]
+      }), "), but an explicit comma-only empty value is rejected after parsing."]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["On the subscriber, a valid event for a disabled family returns non-retryable ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "422"
+      }), " with ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "SYNC_ENTITY_DISABLED"
+      }), " before repository access, ordering inspection, or execution identity access."]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "credential-hook-contract",
+      children: "Credential hook contract"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Credential sync only publishes when the hook payload or resolved repository row includes both a stable credential ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "id"
+      }), " and encrypted string ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "data"
+      }), "."]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "credentials.create"
+        }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "credentials.update"
+        }), " drop object-form credential payloads instead of relying on repository-side encryption."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["When ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "credentials.create"
+        }), " includes an ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "id"
+        }), " but the row is not yet queryable, the publisher briefly retries ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "dbCollections.Credentials.findOne({ where: { id } })"
+        }), " and emits only that exact row."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Payloads without a stable credential ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "id"
+        }), " are logged and dropped. The publisher never guesses by mutable fields like ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "{ name, type }"
+        }), "."]
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "filtering-by-tag",
       children: "Filtering by tag"

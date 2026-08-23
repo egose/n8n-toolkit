@@ -122,7 +122,7 @@ function _createMdxContent(props) {
           }), (0,jsx_runtime.jsxs)(_components.td, {
             children: ["Per-request HMAC-SHA256 of ", (0,jsx_runtime.jsx)(_components.code, {
               children: "<timestamp>.<rawBody>"
-            }), " keyed with the shared secret. Replay-protected: the subscriber rejects timestamps outside a 5-minute tolerance. Every retry re-signs with a fresh timestamp."]
+            }), " keyed with the shared secret. Replay-protected by timestamp tolerance plus an in-memory exact-request replay cache. Every retry re-signs with a fresh timestamp."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
@@ -133,11 +133,21 @@ function _createMdxContent(props) {
             children: (0,jsx_runtime.jsx)(_components.code, {
               children: "x-sync-token"
             })
-          }), (0,jsx_runtime.jsx)(_components.td, {
-            children: "Static shared-secret bearer token. Simpler; use only over TLS."
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Static shared-secret bearer token. Simpler; use only over TLS or another protected transport. Delivery remains idempotent via ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "eventId"
+            }), " / ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "entityRevision"
+            }), ", but token mode does not reject request replay at the auth boundary."]
           })]
         })]
       })]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Requests must use ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "Content-Type: application/json"
+      }), ". Unsupported ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "Content-Encoding"
+      }), " values are rejected before application."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "hmac-mode-recommended",
       children: "HMAC mode (recommended)"
@@ -159,21 +169,31 @@ function _createMdxContent(props) {
           children: (0,jsx_runtime.jsx)(_components.code, {
             children: "<rawBody>"
           })
-        }), " is the exact bytes sent on the wire. The publisher uses the JSON it serialized; the subscriber reads from n8n's global ", (0,jsx_runtime.jsx)(_components.code, {
+        }), " is the exact bytes sent on the wire. The publisher signs the JSON string it serialized. The subscriber reads n8n's global ", (0,jsx_runtime.jsx)(_components.code, {
           children: "rawBodyReader"
-        }), " (", (0,jsx_runtime.jsx)(_components.code, {
+        }), " value (", (0,jsx_runtime.jsx)(_components.code, {
           children: "req.rawBody"
-        }), ") when available, falling back to a zero-dep stream read, and finally to ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "JSON.stringify(req.body)"
-        }), "."]
+        }), ") when available, otherwise it reads the unread request stream."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Fail-closed parsing"
+        }), " — in HMAC mode the subscriber does not verify a re-serialized ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "req.body"
+        }), ". If only a pre-parsed body remains, the request fails closed because the exact signed bytes are no longer available. If both ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "req.rawBody"
+        }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "req.body"
+        }), " exist, ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "req.body"
+        }), " is ignored and the raw bytes are parsed and applied."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
           children: "Replay protection"
-        }), " — the subscriber rejects a request when the timestamp is older than ", (0,jsx_runtime.jsx)(_components.code, {
+        }), " — the subscriber rejects a request when the timestamp is outside ", (0,jsx_runtime.jsx)(_components.code, {
           children: "SYNC_SIGNATURE_TOLERANCE_MS"
         }), " (default ", (0,jsx_runtime.jsx)(_components.code, {
           children: "300000"
-        }), " ms = 5 minutes) or in the future beyond a small skew. Because the timestamp is part of the signed message, replaying an old signed payload at a later time fails the freshness check."]
+        }), " ms = 5 minutes). It also rejects an exact re-send of the same signed request while an identical request is in flight and after a successful application while the process-local replay cache remembers it."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
           children: "Re-signing on retry"
@@ -182,6 +202,10 @@ function _createMdxContent(props) {
         }), ") generates a fresh ", (0,jsx_runtime.jsx)(_components.code, {
           children: "<timestamp>.<rawBody>"
         }), " pair and re-signs it. A retried request never reuses a previous signature."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Retryable failures release reservations"
+        }), " — parse, validation, and application failures release the replay reservation so the exact request can be retried."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.pre, {
       children: (0,jsx_runtime.jsx)(_components.code, {
@@ -198,9 +222,7 @@ function _createMdxContent(props) {
         children: "JSON.stringify(...)"
       }), " is ", (0,jsx_runtime.jsx)(_components.strong, {
         children: "not"
-      }), " byte-identical to the original in general (key reordering, whitespace). HMAC over a re-serialized body would mismatch the publisher's signature. The subscriber therefore verifies against ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "req.rawBody"
-      }), " as set by n8n's global middleware. See ", (0,jsx_runtime.jsx)(_components.code, {
+      }), " byte-identical to the original in general (key reordering, whitespace). HMAC over a re-serialized body could verify bytes different from what is applied. The subscriber therefore authenticates the exact raw bytes first, then parses and applies those same bytes. See ", (0,jsx_runtime.jsx)(_components.code, {
         children: "src/shared/body.ts"
       }), " and ", (0,jsx_runtime.jsx)(_components.code, {
         children: "src/shared/auth.ts"
@@ -237,8 +259,12 @@ function _createMdxContent(props) {
         }), " in both modes — it is the HMAC key in hmac mode and the bearer token in token mode."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
-          children: "The subscriber still reads raw bytes in token mode."
-        }), " The same body reader powers both paths; this is harmless in token mode and required for hmac mode."]
+          children: "Token mode may reuse parsed JSON."
+        }), " Authentication does not depend on raw bytes in token mode, but the subscriber still enforces JSON content type and request size limits."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Replay rejection is process-local."
+        }), " HMAC replay cache entries are not shared across OS processes and do not survive restart. Durable ordering still makes stale re-delivery a no-op after cache expiry or restart."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "reference",

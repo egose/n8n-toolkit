@@ -83,6 +83,7 @@ function _createMdxContent(props) {
     h3: "h3",
     header: "header",
     li: "li",
+    ol: "ol",
     p: "p",
     pre: "pre",
     strong: "strong",
@@ -143,9 +144,7 @@ function _createMdxContent(props) {
           })
         }), " (", (0,jsx_runtime.jsx)(_components.code, {
           children: "publisher/sender.ts"
-        }), ") maintains a per-target ", (0,jsx_runtime.jsx)(_components.strong, {
-          children: "serialized in-memory queue"
-        }), ". Events for a given target are delivered one at a time in hook order; a slow target never delays others. Hooks themselves only enqueue (fire-and-forget) so n8n stays responsive."]
+        }), ") maintains a per-target serialized in-memory queue. Events for a given target are delivered one at a time in emitted hook order; a slow target never delays others. Exact queued duplicates of the same semantic operation may be coalesced, but mixed operations stay ordered. Hooks themselves only enqueue (fire-and-forget) so n8n stays responsive."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
           children: (0,jsx_runtime.jsx)(_components.code, {
@@ -156,6 +155,20 @@ function _createMdxContent(props) {
         }), ") performs a ", (0,jsx_runtime.jsx)(_components.code, {
           children: "fetch"
         }), " POST with timeout and exponential-backoff retry (1s, 2s, 4s, capped at 10s). Every attempt re-signs the request (HMAC mode) so a retried request gets a fresh timestamp."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Event ordering"
+        }), " (", (0,jsx_runtime.jsx)(_components.code, {
+          children: "publisher/order-state.ts"
+        }), ") allocates a unique source-scoped ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "eventId"
+        }), " and monotonic per-entity ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "entityRevision"
+        }), ". When delivery is enabled, ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_SOURCE_ID"
+        }), " is required and persisted with the counters under ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_PUBLISHER_STATE_PATH"
+        }), "."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "wired-hooks--events",
@@ -277,9 +290,13 @@ function _createMdxContent(props) {
         children: "src/shared/config.ts"
       }), " as a ", (0,jsx_runtime.jsx)(_components.code, {
         children: "ReadonlySet<'workflows' | 'credentials' | 'executions'>"
-      }), ". Unknown names are dropped; when the env var is empty it defaults to ", (0,jsx_runtime.jsx)(_components.code, {
+      }), ". When the env var is absent or blank, it defaults to ", (0,jsx_runtime.jsx)(_components.code, {
         children: "workflows,credentials"
-      }), " (executions are off)."]
+      }), " (executions are off). Explicit invalid names fail startup, and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "executions"
+      }), " requires ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "workflows"
+      }), "."]
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["When an entity is disabled, the corresponding hook handler is ", (0,jsx_runtime.jsx)(_components.strong, {
         children: "not wired at all"
@@ -296,9 +313,11 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
       children: ["The subscriber mounts ", (0,jsx_runtime.jsx)(_components.code, {
         children: "POST /rest/sync/v1/events"
-      }), " (+ ", (0,jsx_runtime.jsx)(_components.code, {
+      }), " plus ", (0,jsx_runtime.jsx)(_components.code, {
         children: "GET …/health"
-      }), ") on n8n's own server inside the ", (0,jsx_runtime.jsx)(_components.code, {
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "GET …/ready"
+      }), " on n8n's own server inside the ", (0,jsx_runtime.jsx)(_components.code, {
         children: "n8n.ready"
       }), " hook, and applies events via n8n's internal repositories."]
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
@@ -309,21 +328,7 @@ function _createMdxContent(props) {
           })
         }), " is the only hook the subscriber wires. It resolves n8n's DI ", (0,jsx_runtime.jsx)(_components.code, {
           children: "Container"
-        }), " and from it pulls the ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "WorkflowRepository"
-        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "CredentialsRepository"
-        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "ProjectRepository"
-        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "UserRepository"
-        }), ", and — only when ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "executions"
-        }), " is in ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "SYNC_ENTITIES"
-        }), " — ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "ExecutionRepository"
-        }), ". Resolving DI earlier crashes; nothing in the bundle touches the container before ", (0,jsx_runtime.jsx)(_components.code, {
+        }), " and from it pulls only the repository services needed for enabled entity families. Resolving DI earlier crashes; nothing in the bundle touches the container before ", (0,jsx_runtime.jsx)(_components.code, {
           children: "ready"
         }), " fires."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
@@ -333,7 +338,7 @@ function _createMdxContent(props) {
           })
         }), " (", (0,jsx_runtime.jsx)(_components.code, {
           children: "subscriber/applier.ts"
-        }), ") is the heart of the subscriber. It is idempotent and last-write-wins on a monotonic timestamp."]
+        }), ") is the heart of the subscriber. It enforces source-scoped revision ordering before repository writes, then uses row timestamp guards for last-write-wins behavior."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
           children: (0,jsx_runtime.jsx)(_components.code, {
@@ -345,7 +350,9 @@ function _createMdxContent(props) {
           })
         }), " (", (0,jsx_runtime.jsx)(_components.code, {
           children: "subscriber/routes.ts"
-        }), ") wire the HTTP entry point. The flow per request is: authenticate → validate → apply → 204 No Content."]
+        }), ") wire the HTTP entry point. The flow per request is: readiness → authenticate → validate → apply → ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "200 { \"ok\": true }"
+        }), "."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "wire-format",
@@ -363,14 +370,18 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsx)(_components.h3, {
       id: "idempotency-and-ordering",
       children: "Idempotency and ordering"
-    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
-      children: ["Upserts are ", (0,jsx_runtime.jsx)(_components.strong, {
-        children: "last-write-wins on a monotonic timestamp"
-      }), " (", (0,jsx_runtime.jsx)(_components.code, {
-        children: "isStaleEvent"
-      }), " in ", (0,jsx_runtime.jsx)(_components.code, {
-        children: "applier.ts"
-      }), "):"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Ordering has two layers:"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ol, {
+      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Source-scoped ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "entityRevision"
+        }), " ordering is persisted under ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_SUBSCRIBER_STATE_PATH"
+        }), ", including delete tombstones."]
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "Accepted upserts then use a row timestamp guard to avoid regressing target rows."
+      }), "\n"]
     }), "\n", (0,jsx_runtime.jsxs)(_components.table, {
       children: [(0,jsx_runtime.jsx)(_components.thead, {
         children: (0,jsx_runtime.jsxs)(_components.tr, {
@@ -419,8 +430,20 @@ function _createMdxContent(props) {
           })]
         })]
       })]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["Exact duplicate deliveries with the same ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "eventId"
+      }), " and ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "entityRevision"
+      }), " are no-ops. A distinct ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "eventId"
+      }), " that reuses an already-applied ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "entityRevision"
+      }), " returns ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "409 SYNC_REVISION_CONFLICT"
+      }), " and does not modify the entity or checkpoint. After revision ordering accepts a newer event, equal timestamps may update the row; older timestamps are rejected without advancing the checkpoint."]
     }), "\n", (0,jsx_runtime.jsx)(_components.p, {
-      children: "This guards out-of-order delivery and makes retry re-deliveries no-ops. Deletes and archives are applied unconditionally; a delete for an unknown id is a no-op."
+      children: "Deletes and archives for unknown ids are no-ops. Workflow deletion also removes mapped synced execution rows for that source/workflow before deleting the workflow."
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "conventions",
       children: "Conventions"
@@ -452,9 +475,9 @@ function _createMdxContent(props) {
           children: "rawBodyReader"
         }), " middleware, reading request bodies from ", (0,jsx_runtime.jsx)(_components.code, {
           children: "req.rawBody"
-        }), " when available, with a zero-dep stream read and a ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "JSON.stringify"
-        }), " body fallback. HMAC verification uses the exact raw bytes — never a re-serialized body when rawBody is available."]
+        }), " when available, with a zero-dep stream read fallback. HMAC mode fails closed if only a pre-parsed ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "req.body"
+        }), " remains, because verification must use the exact raw bytes that are parsed and applied."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "before-and-after",
@@ -475,7 +498,7 @@ function _createMdxContent(props) {
         children: (0,jsx_runtime.jsx)(_components.pre, {
           children: (0,jsx_runtime.jsx)(_components.code, {
             className: "language-bash",
-            children: "# source instance\nexport EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs\nexport SYNC_SUBSCRIBER_URLS=https://target.example.com\nexport SYNC_SHARED_SECRET=<secret>\n\n# target instance\nexport EXTERNAL_HOOK_FILES=/opt/n8n-sync/subscriber.cjs\nexport SYNC_SHARED_SECRET=<secret>\n"
+            children: "# source instance\nexport EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs\nexport SYNC_SUBSCRIBER_URLS=https://target.example.com\nexport SYNC_SOURCE_ID=prod-source-a\nexport SYNC_SHARED_SECRET=<secret>\n\n# target instance\nexport EXTERNAL_HOOK_FILES=/opt/n8n-sync/subscriber.cjs\nexport SYNC_SHARED_SECRET=<secret>\n"
           })
         })
       })]

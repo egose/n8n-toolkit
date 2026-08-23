@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-n-8-n-sync-sync-limitations-mdx-c57.json
-var site_docs_n_8_n_sync_sync_limitations_mdx_c57_namespaceObject = JSON.parse('{"id":"n8n-sync/sync/limitations","title":"Limitations","description":"n8n-sync is intentionally narrow: it is a one-way, eventually-consistent mirror of workflow, credential, and (opt-in) execution state across n8n instances. These are the things it explicitly does not do, and the platform reasons why.","source":"@site/docs/n8n-sync/sync/limitations.mdx","sourceDirName":"n8n-sync/sync","slug":"/n8n-sync/sync/limitations","permalink":"/n8n-sync/sync/limitations","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":5,"frontMatter":{"sidebar_label":"Limitations","sidebar_position":5},"sidebar":"n8nSync","previous":{"title":"Tag-based Filtering","permalink":"/n8n-sync/sync/tag-filtering"}}')
+var site_docs_n_8_n_sync_sync_limitations_mdx_c57_namespaceObject = JSON.parse('{"id":"n8n-sync/sync/limitations","title":"Limitations","description":"n8n-sync is intentionally narrow: it is a one-way, eventually-consistent mirror of workflow, credential, and (opt-in) execution state across n8n instances. These are the things it explicitly does not do, and the platform reasons why.","source":"@site/docs/n8n-sync/sync/limitations.mdx","sourceDirName":"n8n-sync/sync","slug":"/n8n-sync/sync/limitations","permalink":"/n8n-sync/sync/limitations","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":6,"frontMatter":{"sidebar_label":"Limitations","sidebar_position":6},"sidebar":"n8nSync","previous":{"title":"Persistence & Readiness","permalink":"/n8n-sync/sync/persistence-readiness"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -25,7 +25,7 @@ var lib = __webpack_require__(1137);
 
 const frontMatter = {
 	sidebar_label: 'Limitations',
-	sidebar_position: 5
+	sidebar_position: 6
 };
 const contentTitle = 'Limitations';
 
@@ -125,16 +125,22 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
-          children: "One-way, last-write-wins."
-        }), " Sync is directional. Upserts carry the source monotonic timestamp (", (0,jsx_runtime.jsx)(_components.code, {
+          children: "One-way, revision-ordered, last-write-wins."
+        }), " Sync is directional. The subscriber first enforces source-scoped ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "entityRevision"
+        }), " ordering, then row timestamp guards (", (0,jsx_runtime.jsx)(_components.code, {
           children: "updatedAt"
         }), " for workflows/credentials, ", (0,jsx_runtime.jsx)(_components.code, {
           children: "stoppedAt"
-        }), " for executions) and are skipped when the target row is already at or beyond it, so out-of-order or duplicate deliveries cannot regress state. Deletes and archives are applied unconditionally."]
+        }), " for executions). Exact duplicate deliveries are no-ops; conflicting revision reuse returns ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "409 SYNC_REVISION_CONFLICT"
+        }), "."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
-          children: "The delivery queue is in-memory."
-        }), " Events queued but not yet delivered when the source instance restarts are lost; state converges on the next event for that entity (or stays divergent until then)."]
+          children: "The delivery queue is in-memory and bounded."
+        }), " Events queued but not yet delivered when the source instance restarts are lost. If ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_MAX_QUEUE_SIZE"
+        }), " is exceeded, the oldest queued event for that target is dropped and logged. Later upserts may converge state, but dropped deletes, archives, or mixed operations are not reconstructed automatically."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
           children: "Active state is DB-only."
@@ -153,6 +159,13 @@ function _createMdxContent(props) {
         }), "/", (0,jsx_runtime.jsx)(_components.code, {
           children: "delete"
         }), " on missing rows return early; sync is eventually consistent by design."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "State is file-backed."
+        }), " Publisher and subscriber JSON state writes are atomic per file only; they are not atomic with n8n database mutations or other sync state files. See ", (0,jsx_runtime.jsx)(_components.a, {
+          href: "/n8n-sync/sync/persistence-readiness/",
+          children: "Persistence & Readiness"
+        }), "."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "credentials",
@@ -173,13 +186,23 @@ function _createMdxContent(props) {
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Execution sync requires workflow sync."
+        }), " ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_ENTITIES"
+        }), " cannot enable ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "executions"
+        }), " without also enabling ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "workflows"
+        }), "; startup fails fast."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
           children: "Execution sync is summary-only."
         }), " ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "SYNC_ENTITIES=…,executions"
+          children: "SYNC_ENTITIES=...,executions"
         }), " upserts a row in the target's ", (0,jsx_runtime.jsx)(_components.code, {
           children: "execution_entity"
-        }), " table with the source ID and scalar lifecycle columns (", (0,jsx_runtime.jsx)(_components.code, {
-          children: "id"
+        }), " table with a target-generated id recorded in the file-backed source-execution mapping, plus scalar lifecycle columns (", (0,jsx_runtime.jsx)(_components.code, {
+          children: "source id"
         }), ", ", (0,jsx_runtime.jsx)(_components.code, {
           children: "workflowId"
         }), ", ", (0,jsx_runtime.jsx)(_components.code, {
@@ -192,9 +215,7 @@ function _createMdxContent(props) {
           children: "startedAt"
         }), ", ", (0,jsx_runtime.jsx)(_components.code, {
           children: "stoppedAt"
-        }), ", retry ids, ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "workflowVersionId"
-        }), ") plus a best-effort workflow snapshot. The ", (0,jsx_runtime.jsx)(_components.code, {
+        }), ") and a best-effort workflow snapshot. The ", (0,jsx_runtime.jsx)(_components.code, {
           children: "execution_data"
         }), " blob (per-step ", (0,jsx_runtime.jsx)(_components.code, {
           children: "fullRunData"
@@ -227,6 +248,12 @@ function _createMdxContent(props) {
         }), " — the applier mirrors n8n's own ", (0,jsx_runtime.jsx)(_components.code, {
           children: "updateExistingExecution"
         }), " semantics and drops them from update payloads."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Workflow deletion removes synced executions first."
+        }), " Before applying ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "workflow.delete"
+        }), ", the subscriber deletes mapped synced execution rows for that source/workflow so the target workflow delete does not fail on dependent execution rows."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "auth",
@@ -241,25 +268,27 @@ function _createMdxContent(props) {
           href: "/n8n-sync/sync/authentication/",
           children: "Authentication"
         }), "."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Replay rejection is HMAC-only and process-local."
+        }), " Exact signed replays are rejected only in ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "hmac"
+        }), " mode and only while this process's replay cache remembers the signature. The cache is not shared across OS processes and is cleared on restart."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "project-assignment",
       children: "Project assignment"
     }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
       children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
-        children: [(0,jsx_runtime.jsxs)(_components.strong, {
-          children: [(0,jsx_runtime.jsx)(_components.code, {
-            children: "SYNC_TARGET_PROJECT_ID"
-          }), " (default empty)"]
-        }), " — when set, newly created workflows/credentials are linked to that project. When empty, the applier falls back to the target instance owner's ", (0,jsx_runtime.jsx)(_components.strong, {
-          children: "personal project"
-        }), " (resolved lazily via ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "UserRepository"
-        }), " + ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "ProjectRepository.getPersonalProjectForUser"
-        }), ", cached for the process lifetime including the negative case). The fallback makes synced entities visible through the target's Public API without explicit configuration. An explicit ", (0,jsx_runtime.jsx)(_components.code, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Workflow and credential ownership is best effort."
+        }), " When ", (0,jsx_runtime.jsx)(_components.code, {
           children: "SYNC_TARGET_PROJECT_ID"
-        }), " always wins."]
+        }), " is set, newly created workflows/credentials are linked to that project. When empty, the applier falls back to the target instance owner's personal project, resolved lazily and cached for the process lifetime including lookup misses. Owner-link failures are logged and are not currently retryable or transactional with the entity mutation."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Source ownership policy is provisional in production."
+        }), " Workflow and credential upserts, archives, and deletes still operate on source-provided target IDs after authentication and ordering checks. Native-row and cross-source collision risks remain until source-bound workflow/credential identity mappings are implemented."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "filtering",
@@ -300,6 +329,11 @@ function _createMdxContent(props) {
         }), ", ", (0,jsx_runtime.jsx)(_components.code, {
           children: "SYNC_ENTITIES"
         }), "."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.a, {
+          href: "/n8n-sync/sync/persistence-readiness/",
+          children: "Persistence & Readiness"
+        }), " — state files, readiness, and recovery guidance."]
       }), "\n"]
     })]
   });

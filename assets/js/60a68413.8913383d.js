@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 ;// CONCATENATED MODULE: ./.docusaurus/docusaurus-plugin-content-docs/default/site-docs-n-8-n-sync-sync-tag-filtering-mdx-60a.json
-var site_docs_n_8_n_sync_sync_tag_filtering_mdx_60a_namespaceObject = JSON.parse('{"id":"n8n-sync/sync/tag-filtering","title":"Tag-based Filtering","description":"Source-side opt-in: only the publisher inspects tags, the subscriber remains tag-agnostic.","source":"@site/docs/n8n-sync/sync/tag-filtering.mdx","sourceDirName":"n8n-sync/sync","slug":"/n8n-sync/sync/tag-filtering","permalink":"/n8n-sync/sync/tag-filtering","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":4,"frontMatter":{"sidebar_label":"Tag-based Filtering","sidebar_position":4},"sidebar":"n8nSync","previous":{"title":"Environment Variables","permalink":"/n8n-sync/sync/environment"},"next":{"title":"Limitations","permalink":"/n8n-sync/sync/limitations"}}')
+var site_docs_n_8_n_sync_sync_tag_filtering_mdx_60a_namespaceObject = JSON.parse('{"id":"n8n-sync/sync/tag-filtering","title":"Tag-based Filtering","description":"Source-side opt-in: only the publisher inspects tags, the subscriber remains tag-agnostic.","source":"@site/docs/n8n-sync/sync/tag-filtering.mdx","sourceDirName":"n8n-sync/sync","slug":"/n8n-sync/sync/tag-filtering","permalink":"/n8n-sync/sync/tag-filtering","draft":false,"unlisted":false,"tags":[],"version":"current","sidebarPosition":4,"frontMatter":{"sidebar_label":"Tag-based Filtering","sidebar_position":4},"sidebar":"n8nSync","previous":{"title":"Environment Variables","permalink":"/n8n-sync/sync/environment"},"next":{"title":"Persistence & Readiness","permalink":"/n8n-sync/sync/persistence-readiness"}}')
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@19.2.5/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(4934);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mdx-js+react@3.1.1_@types+react@19.2.14_react@19.2.5/node_modules/@mdx-js/react/lib/index.js
@@ -205,11 +205,11 @@ function _createMdxContent(props) {
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
           children: "Tag resolution"
-        }), " — the publisher prefers inline ", (0,jsx_runtime.jsx)(_components.code, {
+        }), " — the publisher uses inline ", (0,jsx_runtime.jsx)(_components.code, {
           children: "workflowData.tags"
-        }), " from the hook payload; when n8n passes only a workflow id, it falls back to ", (0,jsx_runtime.jsx)(_components.code, {
+        }), " when available; otherwise it falls back to ", (0,jsx_runtime.jsx)(_components.code, {
           children: "dbCollections.Workflow.findOne({ where: { id }, relations: ['tags'] })"
-        }), "."]
+        }), ". If tag state cannot be resolved in filtered mode, the event is skipped rather than turned into a delete."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsxs)(_components.h2, {
       id: "when-sync_filter_by_tagfalse-default",
@@ -221,7 +221,7 @@ function _createMdxContent(props) {
         children: "tags"
       }), " field is omitted from the DTO, no ", (0,jsx_runtime.jsx)(_components.code, {
         children: "meta.active_real"
-      }), " is set, and no tag-resolution queries run. There is no overhead."]
+      }), " is set, and no tag-resolution queries run."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "asymmetry",
       children: "Asymmetry"
