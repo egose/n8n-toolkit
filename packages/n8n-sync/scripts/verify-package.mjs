@@ -106,6 +106,8 @@ function verifyTarballContents(tarballPath) {
     './publisher': { require: './dist/publisher.cjs' },
     './subscriber': { require: './dist/subscriber.cjs' },
   });
+
+  return packedManifest;
 }
 
 function verifyExamplePaths() {
@@ -154,10 +156,13 @@ function installAndVerifyConsumer(tarballPath) {
   run(process.execPath, ['check.cjs'], consumerDir);
 }
 
-function verifyPublishDryRun(tarballPath) {
-  run('npm', ['publish', '--dry-run', '--ignore-scripts', '--tag', 'pack-verify', tarballPath]);
+function verifyPublishMetadata(packedManifest) {
+  assert.equal(packedManifest.name, '@egose/n8n-sync');
+  assert.match(packedManifest.version, /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/);
+  assert.notEqual(packedManifest.private, true, 'Packed manifest must be publishable');
 }
 
+run('npm', ['run', 'release:materialize']);
 rmSync(distDir, { recursive: true, force: true });
 assert.ok(!existsSync(distDir), 'Expected dist/ to be absent before packing');
 
@@ -168,7 +173,8 @@ assert.ok(tarballFileName, 'npm pack did not return a tarball filename');
 
 const tarballPath = resolve(packedDir, tarballFileName);
 
-verifyTarballContents(tarballPath);
+const packedManifest = verifyTarballContents(tarballPath);
+assert.equal(packResult[0]?.version, packedManifest.version, 'npm pack result version must match packed manifest version');
 verifyExamplePaths();
 installAndVerifyConsumer(tarballPath);
-verifyPublishDryRun(tarballPath);
+verifyPublishMetadata(packedManifest);
