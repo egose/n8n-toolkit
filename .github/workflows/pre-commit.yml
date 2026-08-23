@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
     - name: Setup Tools
       uses: ./.github/actions/setup-tools
@@ -20,7 +20,7 @@ jobs:
       uses: ./.github/actions/setup-npm
 
     - name: Run pre-commit
-      uses: egose/actions/pre-commit@799b388fb3497236093c6eb7e3eac0b4c8f956ce
+      uses: egose/actions/pre-commit@7a010fcf15d592c751df049c071db109b3e4e6eb
       with:
         config: .pre-commit-config.yaml
         commit-on-push: true

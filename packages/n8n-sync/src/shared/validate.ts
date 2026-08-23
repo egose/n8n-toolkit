@@ -1,10 +1,17 @@
 import { isDecimalString } from './ordering';
-import type { SyncCredentialDto, SyncExecutionDto, SyncEvent, SyncWorkflowDto } from './types';
+import type {
+  ExecutionMode,
+  ExecutionStatus,
+  SyncCredentialDto,
+  SyncExecutionDto,
+  SyncEvent,
+  SyncWorkflowDto,
+} from './types';
 
 const ISO_UTC_DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
-const MAX_ID_LENGTH = 512;
+export const MAX_ID_LENGTH = 512;
 const MAX_NAME_LENGTH = 1024;
-const MAX_EVENT_ID_LENGTH = 1024;
+export const MAX_EVENT_ID_LENGTH = 1024;
 const MAX_REVISION_LENGTH = 128;
 const MAX_DESCRIPTION_LENGTH = 16_384;
 const MAX_ARRAY_LENGTH = 1_000;
@@ -12,8 +19,17 @@ const MAX_OBJECT_KEYS = 1_000;
 const MAX_NESTING_DEPTH = 32;
 const MAX_JSON_NODES = 20_000;
 
-const EXECUTION_STATUSES = new Set(['canceled', 'crashed', 'error', 'new', 'running', 'success', 'unknown', 'waiting']);
-const EXECUTION_MODES = new Set([
+const EXECUTION_STATUSES = new Set<ExecutionStatus>([
+  'canceled',
+  'crashed',
+  'error',
+  'new',
+  'running',
+  'success',
+  'unknown',
+  'waiting',
+]);
+const EXECUTION_MODES = new Set<ExecutionMode>([
   'chat',
   'cli',
   'error',
@@ -23,6 +39,7 @@ const EXECUTION_MODES = new Set([
   'manual',
   'retry',
   'trigger',
+  'unknown',
   'webhook',
 ]);
 
@@ -45,6 +62,11 @@ function hasOwn(value: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
 
+function hasOnlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  const allowed = new Set(keys);
+  return Object.keys(value).every((key) => allowed.has(key));
+}
+
 function isBoundedString(value: unknown, maxLength: number): value is string {
   return typeof value === 'string' && value.length > 0 && value.trim().length > 0 && value.length <= maxLength;
 }
@@ -63,6 +85,14 @@ function isValidIsoDateString(value: unknown): value is string {
 
 function isBoundedDecimalString(value: unknown): value is string {
   return isDecimalString(value) && value.length > 0 && value.length <= MAX_REVISION_LENGTH;
+}
+
+function isExecutionStatus(value: unknown): value is ExecutionStatus {
+  return typeof value === 'string' && EXECUTION_STATUSES.has(value as ExecutionStatus);
+}
+
+function isExecutionMode(value: unknown): value is ExecutionMode {
+  return typeof value === 'string' && EXECUTION_MODES.has(value as ExecutionMode);
 }
 
 function isJsonValue(value: unknown, state: JsonValidationState, depth: number): boolean {
@@ -136,13 +166,17 @@ function isOptionalPropertyValid(
 
 function isValidTag(value: unknown): boolean {
   return (
-    isPlainRecord(value) && isBoundedString(value.id, MAX_ID_LENGTH) && isBoundedString(value.name, MAX_NAME_LENGTH)
+    isPlainRecord(value) &&
+    hasOnlyKeys(value, ['id', 'name']) &&
+    isBoundedString(value.id, MAX_ID_LENGTH) &&
+    isBoundedString(value.name, MAX_NAME_LENGTH)
   );
 }
 
 function isValidWorkflowSnapshot(value: unknown): boolean {
   return (
     isPlainRecord(value) &&
+    hasOnlyKeys(value, ['id', 'name', 'nodes', 'connections']) &&
     isBoundedString(value.id, MAX_ID_LENGTH) &&
     isBoundedString(value.name, MAX_NAME_LENGTH) &&
     isJsonArray(value.nodes) &&
@@ -153,6 +187,24 @@ function isValidWorkflowSnapshot(value: unknown): boolean {
 function isValidWorkflowDto(value: unknown): value is SyncWorkflowDto {
   return (
     isPlainRecord(value) &&
+    hasOnlyKeys(value, [
+      'id',
+      'name',
+      'description',
+      'active',
+      'isArchived',
+      'nodes',
+      'connections',
+      'settings',
+      'staticData',
+      'pinData',
+      'meta',
+      'versionId',
+      'activeVersionId',
+      'tags',
+      'createdAt',
+      'updatedAt',
+    ]) &&
     isBoundedString(value.id, MAX_ID_LENGTH) &&
     isBoundedString(value.name, MAX_NAME_LENGTH) &&
     typeof value.active === 'boolean' &&
@@ -183,6 +235,7 @@ function isValidWorkflowDto(value: unknown): value is SyncWorkflowDto {
 function isValidCredentialDto(value: unknown): value is SyncCredentialDto {
   return (
     isPlainRecord(value) &&
+    hasOnlyKeys(value, ['id', 'name', 'type', 'data', 'isGlobal', 'isManaged', 'createdAt', 'updatedAt']) &&
     isBoundedString(value.id, MAX_ID_LENGTH) &&
     isBoundedString(value.name, MAX_NAME_LENGTH) &&
     isBoundedString(value.type, MAX_NAME_LENGTH) &&
@@ -197,6 +250,21 @@ function isValidCredentialDto(value: unknown): value is SyncCredentialDto {
 
 function isValidExecutionDto(value: unknown): value is SyncExecutionDto {
   if (!isPlainRecord(value)) return false;
+  if (
+    !hasOnlyKeys(value, [
+      'id',
+      'workflowId',
+      'status',
+      'mode',
+      'finished',
+      'startedAt',
+      'stoppedAt',
+      'createdAt',
+      'workflowSnapshot',
+    ])
+  ) {
+    return false;
+  }
   const startedAt = value.startedAt;
   const stoppedAt = value.stoppedAt;
   const createdAt = value.createdAt;
@@ -205,10 +273,8 @@ function isValidExecutionDto(value: unknown): value is SyncExecutionDto {
   return (
     isBoundedString(value.id, MAX_ID_LENGTH) &&
     isBoundedString(value.workflowId, MAX_ID_LENGTH) &&
-    typeof value.status === 'string' &&
-    EXECUTION_STATUSES.has(value.status) &&
-    typeof value.mode === 'string' &&
-    EXECUTION_MODES.has(value.mode) &&
+    isExecutionStatus(value.status) &&
+    isExecutionMode(value.mode) &&
     typeof value.finished === 'boolean' &&
     hasLifecycleTimestamp &&
     (!hasOwn(value, 'startedAt') || isValidIsoDateString(startedAt)) &&
@@ -224,6 +290,7 @@ function isValidExecutionDto(value: unknown): value is SyncExecutionDto {
  */
 export function parseSyncEvent(payload: unknown): SyncEvent | null {
   if (!isPlainRecord(payload)) return null;
+  if (!isJsonValue(payload, { seen: new WeakSet(), nodes: 0 }, 0)) return null;
   if (
     !isValidIsoDateString(payload.at) ||
     !isBoundedString(payload.sourceId, MAX_ID_LENGTH) ||
@@ -235,20 +302,37 @@ export function parseSyncEvent(payload: unknown): SyncEvent | null {
 
   switch (payload.type) {
     case 'credentials.upsert':
-      return isValidCredentialDto(payload.credential) ? (payload as unknown as SyncEvent) : null;
+      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'credential']) &&
+        isValidCredentialDto(payload.credential)
+        ? (payload as unknown as SyncEvent)
+        : null;
     case 'credentials.delete':
-      return isBoundedString(payload.credentialId, MAX_ID_LENGTH) ? (payload as unknown as SyncEvent) : null;
+      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'credentialId']) &&
+        isBoundedString(payload.credentialId, MAX_ID_LENGTH)
+        ? (payload as unknown as SyncEvent)
+        : null;
     case 'workflow.upsert':
     case 'workflow.activate':
-      return isValidWorkflowDto(payload.workflow) ? (payload as unknown as SyncEvent) : null;
+      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'workflow']) &&
+        isValidWorkflowDto(payload.workflow)
+        ? (payload as unknown as SyncEvent)
+        : null;
     case 'workflow.delete':
-      return isBoundedString(payload.workflowId, MAX_ID_LENGTH) ? (payload as unknown as SyncEvent) : null;
+      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'workflowId']) &&
+        isBoundedString(payload.workflowId, MAX_ID_LENGTH)
+        ? (payload as unknown as SyncEvent)
+        : null;
     case 'workflow.archive':
-      return isBoundedString(payload.workflowId, MAX_ID_LENGTH) && typeof payload.archived === 'boolean'
+      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'workflowId', 'archived']) &&
+        isBoundedString(payload.workflowId, MAX_ID_LENGTH) &&
+        typeof payload.archived === 'boolean'
         ? (payload as unknown as SyncEvent)
         : null;
     case 'execution.upsert':
-      return isValidExecutionDto(payload.execution) ? (payload as unknown as SyncEvent) : null;
+      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'execution']) &&
+        isValidExecutionDto(payload.execution)
+        ? (payload as unknown as SyncEvent)
+        : null;
     default:
       return null;
   }

@@ -8,6 +8,8 @@ const MAX_BACKOFF_MS = 10_000;
 const MAX_DISCARD_BYTES = 64 * 1024;
 const JITTER_RATIO = 0.25;
 
+type BodyLike = ReadableStream<Uint8Array> & { cancel?: (reason?: unknown) => Promise<void> };
+
 export class SyncSendError extends Error {
   readonly status: number | undefined;
   readonly retryable: boolean;
@@ -96,20 +98,84 @@ function retryDelayMs(response: Response, attempt: number, random: () => number,
   return withJitter(backoffMs(attempt), random);
 }
 
-async function disposeResponseBody(response: Response): Promise<void> {
+function createAbortError(): Error {
+  const error = new Error('Request timed out');
+  error.name = 'AbortError';
+  return error;
+}
+
+function remainingMs(deadlineAtMs: number): number {
+  return Math.max(0, deadlineAtMs - Date.now());
+}
+
+async function withAttemptDeadline<T>(
+  operationFactory: () => Promise<T>,
+  deadlineAtMs: number,
+  signal: AbortSignal,
+  abortAttempt: () => void,
+): Promise<T> {
+  const operation = operationFactory();
+
+  if (signal.aborted || remainingMs(deadlineAtMs) <= 0) {
+    abortAttempt();
+    operation.catch(() => undefined);
+    throw createAbortError();
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let abortListener: (() => void) | undefined;
+
+  const timeout = new Promise<never>((_resolve, reject) => {
+    const fail = () => {
+      abortAttempt();
+      reject(createAbortError());
+    };
+
+    abortListener = fail;
+    signal.addEventListener('abort', fail, { once: true });
+    timer = setTimeout(fail, remainingMs(deadlineAtMs));
+  });
+
+  try {
+    return await Promise.race([operation, timeout]);
+  } finally {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+    if (abortListener) {
+      signal.removeEventListener('abort', abortListener);
+    }
+  }
+}
+
+async function cancelBody(
+  cancel: () => Promise<void>,
+  deadlineAtMs: number,
+  signal: AbortSignal,
+  abortAttempt: () => void,
+): Promise<void> {
+  try {
+    await withAttemptDeadline(cancel, deadlineAtMs, signal, abortAttempt);
+  } catch {
+    // Best effort only; retry behavior should not depend on body disposal.
+  }
+}
+
+async function disposeResponseBody(
+  response: Response,
+  deadlineAtMs: number,
+  signal: AbortSignal,
+  abortAttempt: () => void,
+): Promise<void> {
   const body = response.body;
   if (!body) {
     return;
   }
 
-  const readableBody = body as ReadableStream<Uint8Array> & { cancel?: (reason?: unknown) => Promise<void> };
+  const readableBody = body as BodyLike;
   if (typeof readableBody.getReader !== 'function') {
     if (typeof readableBody.cancel === 'function') {
-      try {
-        await readableBody.cancel();
-      } catch {
-        // Best effort only; retry behavior should not depend on body disposal.
-      }
+      await cancelBody(() => readableBody.cancel!(), deadlineAtMs, signal, abortAttempt);
     }
     return;
   }
@@ -119,23 +185,19 @@ async function disposeResponseBody(response: Response): Promise<void> {
 
   try {
     while (discardedBytes <= MAX_DISCARD_BYTES) {
-      const { done, value } = await reader.read();
+      const { done, value } = await withAttemptDeadline(() => reader.read(), deadlineAtMs, signal, abortAttempt);
       if (done) {
         return;
       }
 
       discardedBytes += value?.byteLength ?? 0;
       if (discardedBytes > MAX_DISCARD_BYTES) {
-        await reader.cancel();
+        await cancelBody(() => reader.cancel(), deadlineAtMs, signal, abortAttempt);
         return;
       }
     }
   } catch {
-    try {
-      await reader.cancel();
-    } catch {
-      // Best effort only; retry behavior should not depend on body disposal.
-    }
+    await cancelBody(() => reader.cancel(), deadlineAtMs, signal, abortAttempt);
   } finally {
     try {
       reader.releaseLock();
@@ -181,25 +243,25 @@ export async function sendSyncEvent(event: SyncEvent, options: SendSyncEventOpti
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const controller = new AbortController();
+    const deadlineAtMs = Date.now() + timeoutMs;
+    const abortAttempt = () => controller.abort();
+    const timer = setTimeout(abortAttempt, timeoutMs);
 
-      let response: Response;
-      try {
-        response = await fetchImpl(options.url, {
-          method: 'POST',
-          headers: buildHeaders(),
-          body,
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timer);
+    try {
+      const response = await fetchImpl(options.url, {
+        method: 'POST',
+        headers: buildHeaders(),
+        body,
+        signal: controller.signal,
+      });
+
+      if (response.ok) {
+        await disposeResponseBody(response, deadlineAtMs, controller.signal, abortAttempt);
+        return;
       }
 
-      if (response.ok) return;
-
-      await disposeResponseBody(response);
+      await disposeResponseBody(response, deadlineAtMs, controller.signal, abortAttempt);
 
       const retryable = RETRYABLE_STATUSES.has(response.status);
       throw new SyncSendError(`Subscriber responded with status ${response.status}`, {
@@ -224,6 +286,8 @@ export async function sendSyncEvent(event: SyncEvent, options: SendSyncEventOpti
             : withJitter(backoffMs(attempt), random);
         await sleep(delayMs);
       }
+    } finally {
+      clearTimeout(timer);
     }
   }
 

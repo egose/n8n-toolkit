@@ -4,7 +4,8 @@
 #   n8n1 (publisher)  →  http://localhost:${N8N1_PORT:-5678}
 #   n8n2 (subscriber) →  http://localhost:${N8N2_PORT:-5679}
 #
-# Copy .env.example to .env before running `docker compose up`.
+# Test-safe defaults are provided below; copy .env.example to .env to override
+# them for local runs.
 # ----------------------------------------------------------------------------
 
 volumes:
@@ -24,11 +25,11 @@ x-common-props: &common-props
 x-n8n-env: &n8n-env
   DB_TYPE: postgresdb
   DB_POSTGRESDB_HOST: postgres
-  DB_POSTGRESDB_USER: ${POSTGRES_USER}
-  DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
-  N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
-  N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET}
-  N8N_BASE_URL: ${N8N_BASE_URL}
+  DB_POSTGRESDB_USER: ${POSTGRES_USER:-postgres}
+  DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-super-secret-key}
+  N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET:-even-more-secret}
+  N8N_BASE_URL: ${N8N_BASE_URL:-http://localhost:5678}
   N8N_PORT: '5678'
   NODE_ENV: development
   N8N_PROTOCOL: http
@@ -38,7 +39,7 @@ x-n8n-env: &n8n-env
   # harmless and makes provisioning deterministic).
   N8N_PUBLIC_API_DISABLED: 'false'
   # Shared auth secret between publisher and subscriber.
-  SYNC_SHARED_SECRET: ${SYNC_SHARED_SECRET}
+  SYNC_SHARED_SECRET: ${SYNC_SHARED_SECRET:-sync-shared-secret}
   SYNC_AUTH_MODE: ${SYNC_AUTH_MODE:-hmac}
   LOG_LEVEL: debug
 
@@ -48,9 +49,9 @@ services:
     container_name: n8tool_postgres
     image: postgres:18.4-alpine3.22
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-n8n}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
     - ${POSTGRES_PORT:-5433}:5432
@@ -155,7 +156,7 @@ services:
       # api-keys.json as the `baseUrl` the tests connect to.
       N8N1_PUBLISHED_URL: http://localhost:${N8N1_PORT:-5678}
       N8N2_PUBLISHED_URL: http://localhost:${N8N2_PORT:-5679}
-      N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET}
+      N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET:-even-more-secret}
       OWNER_EMAIL: ${OWNER_EMAIL:-owner@example.com}
       OWNER_FIRST_NAME: ${OWNER_FIRST_NAME:-Owner}
       OWNER_LAST_NAME: ${OWNER_LAST_NAME:-User}

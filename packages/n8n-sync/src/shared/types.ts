@@ -66,8 +66,8 @@ export interface ICredentialsDb {
 export interface IRunPayload {
   /** @deprecated on n8n's side; mirrored for parity. Use `status` instead. */
   finished?: boolean;
-  mode: string;
-  status: string;
+  mode: ExecutionMode;
+  status: ExecutionStatus;
   startedAt: Date;
   stoppedAt?: Date;
   waitTill?: Date | null;
@@ -81,14 +81,50 @@ export interface N8nServer {
   app: Express;
 }
 
-/** Shape n8n's external-hook loader expects from a required hook file. */
-export type HookHandler = (...args: never[]) => Promise<void>;
+/** Execution lifecycle statuses accepted on the sync wire contract. */
+export type ExecutionStatus = 'canceled' | 'crashed' | 'error' | 'new' | 'running' | 'success' | 'unknown' | 'waiting';
 
-export interface IExternalHooksFileData {
-  [resource: string]: {
-    [operation: string]: HookHandler[];
+/** Execution modes accepted on the sync wire contract. */
+export type ExecutionMode =
+  | 'chat'
+  | 'cli'
+  | 'error'
+  | 'evaluation'
+  | 'integrated'
+  | 'internal'
+  | 'manual'
+  | 'retry'
+  | 'trigger'
+  | 'unknown'
+  | 'webhook';
+
+/** Shape n8n's external-hook loader expects from a required hook file. */
+export type HookHandler<Args extends unknown[] = unknown[]> = (...args: Args) => Promise<void>;
+
+export interface PublisherExternalHooks {
+  credentials?: {
+    create?: HookHandler<[Partial<ICredentialsDb>]>[];
+    update?: HookHandler<[Partial<ICredentialsDb>]>[];
+    delete?: HookHandler<[string]>[];
+  };
+  workflow?: {
+    afterCreate?: HookHandler<[IWorkflowBase | string]>[];
+    afterUpdate?: HookHandler<[IWorkflowBase | string]>[];
+    afterDelete?: HookHandler<[string]>[];
+    activate?: HookHandler<[IWorkflowBase | string]>[];
+    afterArchive?: HookHandler<[string]>[];
+    afterUnarchive?: HookHandler<[string]>[];
+    postExecute?: HookHandler<[IRunPayload | undefined, WorkflowSnapshot | IWorkflowBase | undefined, string]>[];
   };
 }
+
+export interface SubscriberExternalHooks {
+  n8n?: {
+    ready?: HookHandler<[N8nServer]>[];
+  };
+}
+
+export type IExternalHooksFileData = PublisherExternalHooks & SubscriberExternalHooks;
 
 // ---------------------------------------------------------------------------
 // Sync event envelope
@@ -150,9 +186,9 @@ export interface SyncCredentialDto {
  */
 export interface SyncExecutionDto {
   id: string;
-  workflowId?: string | null;
-  status: string;
-  mode: string;
+  workflowId: string;
+  status: ExecutionStatus;
+  mode: ExecutionMode;
   /** @deprecated on n8n's side; mirrored for parity with `status`. */
   finished: boolean;
   startedAt?: string;
@@ -164,7 +200,7 @@ export interface SyncExecutionDto {
 interface SyncEventBase {
   /** ISO timestamp of when the publisher emitted the event. */
   at: string;
-  /** Identifier of the publishing instance (SYNC_SOURCE_ID or hostname). */
+  /** Stable logical publisher identifier from SYNC_SOURCE_ID. */
   sourceId: string;
   /** Unique source-scoped event identifier. */
   eventId: string;

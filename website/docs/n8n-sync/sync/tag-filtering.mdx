@@ -21,11 +21,11 @@ Three env vars live in `src/shared/config.ts`:
 - **Sync tag present, `active` tag missing** → DTO `active` is rewritten to `false`; the real source value is preserved in `meta.active_real`.
 - **Sync tag present, `active` tag present** → DTO `active` is rewritten to `true`; the real source value is preserved in `meta.active_real`.
 - **Execution events** (`workflow.postExecute`) are also gated by the sync tag — events for workflows that lack the sync tag are dropped (no `workflow.delete` is emitted for executions, the event is simply suppressed).
-- **Tag resolution** — the publisher prefers inline `workflowData.tags` from the hook payload; when n8n passes only a workflow id, it falls back to `dbCollections.Workflow.findOne({ where: { id }, relations: ['tags'] })`.
+- **Tag resolution** — the publisher uses inline `workflowData.tags` when available; otherwise it falls back to `dbCollections.Workflow.findOne({ where: { id }, relations: ['tags'] })`. If tag state cannot be resolved in filtered mode, the event is skipped rather than turned into a delete.
 
 ## When `SYNC_FILTER_BY_TAG=false` (default)
 
-Workflows pass through unmodified, the `tags` field is omitted from the DTO, no `meta.active_real` is set, and no tag-resolution queries run. There is no overhead.
+Workflows pass through unmodified, the `tags` field is omitted from the DTO, no `meta.active_real` is set, and no tag-resolution queries run.
 
 ## Asymmetry
 

@@ -25,6 +25,7 @@ function makeEnv(overrides: Record<string, string | undefined> = {}): Record<str
   return {
     SYNC_SHARED_SECRET: SECRET,
     SYNC_SUBSCRIBER_URLS: 'https://target.example.com',
+    SYNC_SOURCE_ID: 'source-1',
     ...overrides,
   };
 }
@@ -127,11 +128,44 @@ describe('parseConfig', () => {
     expectConfigError({ SYNC_ENTITIES: 'none' }, 'SYNC_ENTITIES');
   });
 
+  it.each([
+    ['workflows', ['workflows']],
+    ['credentials', ['credentials']],
+    ['workflows,credentials', ['workflows', 'credentials']],
+    ['workflows,executions', ['workflows', 'executions']],
+    ['workflows,credentials,executions', ['workflows', 'credentials', 'executions']],
+  ])('accepts valid SYNC_ENTITIES=%s', (raw, expected) => {
+    const config = parseConfig(makeEnv({ SYNC_ENTITIES: raw }));
+
+    expect([...config.entities]).toEqual(expected);
+  });
+
+  it('rejects executions without workflows', () => {
+    expectConfigError({ SYNC_ENTITIES: 'executions' }, 'requires workflows');
+    expectConfigError({ SYNC_ENTITIES: 'credentials,executions' }, 'requires workflows');
+  });
+
   it('rejects duplicate subscriber URLs after normalization', () => {
     expectConfigError(
       { SYNC_SUBSCRIBER_URLS: 'https://target.example.com, https://target.example.com/' },
       'duplicate target URL',
     );
+  });
+
+  it('requires an explicit source id when publisher delivery is enabled', () => {
+    expectConfigError({ SYNC_SOURCE_ID: undefined }, 'SYNC_SOURCE_ID must be set');
+    expectConfigError({ SYNC_SOURCE_ID: '   ' }, 'SYNC_SOURCE_ID must be set');
+  });
+
+  it('rejects source ids longer than the subscriber wire limit', () => {
+    expectConfigError({ SYNC_SOURCE_ID: 's'.repeat(513) }, 'SYNC_SOURCE_ID must be 512 characters or fewer');
+  });
+
+  it('allows omitted source id when publisher delivery is disabled', () => {
+    const config = parseConfig(makeEnv({ SYNC_SUBSCRIBER_URLS: undefined, SYNC_SOURCE_ID: undefined }));
+
+    expect(config.publisher.sourceId).toBe('');
+    expect(config.publisher.subscriberUrls).toEqual([]);
   });
 
   it('rejects subscriber URLs with userinfo', () => {
@@ -173,16 +207,20 @@ describe('parseConfig', () => {
 
 describe('parsed config runtime factories', () => {
   it('builds different publisher hook maps from different parsed config objects in the same process', () => {
-    const defaultHooks = createPublisherHookConfig(parseConfig(makeEnv()));
-    const executionHooks = createPublisherHookConfig(parseConfig(makeEnv({ SYNC_ENTITIES: 'workflows,executions' })));
+    const defaultHooks = createPublisherHookConfig(parseConfig(makeEnv({ SYNC_SUBSCRIBER_URLS: undefined })));
+    const executionHooks = createPublisherHookConfig(
+      parseConfig(makeEnv({ SYNC_SUBSCRIBER_URLS: undefined, SYNC_ENTITIES: 'workflows,executions' })),
+    );
 
     expect(defaultHooks.workflow.postExecute).toBeUndefined();
     expect(Array.isArray(executionHooks.workflow.postExecute)).toBe(true);
   });
 
   it('builds publisher entry hooks directly from injected env objects', () => {
-    const defaultHooks = createPublisherEntryHooks(makeEnv());
-    const executionHooks = createPublisherEntryHooks(makeEnv({ SYNC_ENTITIES: 'workflows,executions' }));
+    const defaultHooks = createPublisherEntryHooks(makeEnv({ SYNC_SUBSCRIBER_URLS: undefined }));
+    const executionHooks = createPublisherEntryHooks(
+      makeEnv({ SYNC_SUBSCRIBER_URLS: undefined, SYNC_ENTITIES: 'workflows,executions' }),
+    );
 
     expect(defaultHooks.workflow.postExecute).toBeUndefined();
     expect(Array.isArray(executionHooks.workflow.postExecute)).toBe(true);
@@ -238,7 +276,26 @@ describe('parsed config runtime factories', () => {
     await firstHooks.n8n.ready[0]({ app } as never);
     await secondHooks.n8n.ready[0]({ app } as never);
 
-    expect(mountSyncRoutes).toHaveBeenNthCalledWith(1, app, expect.any(Function), '/rest/sync/one');
-    expect(mountSyncRoutes).toHaveBeenNthCalledWith(2, app, expect.any(Function), '/rest/sync/two');
+    expect(buildN8nSyncRepositories).toHaveBeenCalledWith(
+      expect.objectContaining({ entities: expect.any(Set), includeExecutions: false }),
+    );
+    expect(createApplier).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ allowedEntities: expect.any(Set) }),
+    );
+    expect(mountSyncRoutes).toHaveBeenNthCalledWith(
+      1,
+      app,
+      expect.any(Function),
+      '/rest/sync/one',
+      expect.any(Function),
+    );
+    expect(mountSyncRoutes).toHaveBeenNthCalledWith(
+      2,
+      app,
+      expect.any(Function),
+      '/rest/sync/two',
+      expect.any(Function),
+    );
   });
 });

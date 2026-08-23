@@ -59,7 +59,7 @@ function sqlLiteral(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
-async function queryTargetJson(sql: string): Promise<unknown | null> {
+export async function queryTargetJson(sql: string): Promise<unknown | null> {
   return queryDatabaseJson('n8n2', sql);
 }
 
@@ -85,7 +85,7 @@ async function queryDatabaseJson(database: 'n8n1' | 'n8n2', sql: string): Promis
   return raw ? JSON.parse(raw) : null;
 }
 
-async function execTargetSql(sql: string): Promise<string> {
+export async function execTargetSql(sql: string): Promise<string> {
   return execDatabaseSql('n8n2', sql);
 }
 

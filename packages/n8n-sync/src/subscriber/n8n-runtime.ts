@@ -1,4 +1,4 @@
-import { DEFAULT_N8N_DB_PATH, DEFAULT_N8N_DI_PATH } from '../shared/config';
+import { DEFAULT_N8N_DB_PATH, DEFAULT_N8N_DI_PATH, type SyncEntity } from '../shared/config';
 
 export const SUPPORTED_N8N_RUNTIME_VERSION_MATRIX = Object.freeze([{ label: 'current', version: '2.31.2' }] as const);
 
@@ -22,7 +22,7 @@ export interface WorkflowRepositoryLike {
   conditionalUpdate?(
     id: string,
     partial: Record<string, unknown>,
-    options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt' },
+    options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt'; allowEqualTimestamp?: boolean },
   ): Promise<ConditionalUpdateResult>;
 }
 
@@ -34,7 +34,7 @@ export interface CredentialsRepositoryLike {
   conditionalUpdate?(
     id: string,
     partial: Record<string, unknown>,
-    options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt' },
+    options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt'; allowEqualTimestamp?: boolean },
   ): Promise<ConditionalUpdateResult>;
 }
 
@@ -81,11 +81,11 @@ export interface ExecutionRepositoryLike {
   conditionalUpdate?(
     id: string | number,
     partial: Record<string, unknown>,
-    options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt' },
+    options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt'; allowEqualTimestamp?: boolean },
   ): Promise<ConditionalUpdateResult>;
 }
 
-export type ConditionalUpdateResult = 'updated' | 'stale' | 'missing';
+export type ConditionalUpdateResult = 'updated' | 'stale' | 'missing' | 'conflict';
 
 interface TypeOrmUpdateResultLike {
   affected?: number | null;
@@ -109,6 +109,7 @@ interface TypeOrmConnectionLike {
 
 interface TypeOrmEntityManagerLike {
   connection?: TypeOrmConnectionLike;
+  query?(sql: string, parameters?: unknown[]): Promise<unknown>;
   transaction?<T>(work: (manager: TypeOrmEntityManagerLike) => Promise<T>): Promise<T>;
   withRepository?<T>(repository: T): T;
   getRepository?<T>(target: unknown): T;
@@ -130,13 +131,59 @@ interface TransactionCapableRepositoryLike {
   createQueryBuilder?(): TypeOrmUpdateQueryBuilderLike;
 }
 
+export interface SyncMetadataTransactionCapability {
+  supported: boolean;
+  manager?: TypeOrmEntityManagerLike;
+  reason?: string;
+}
+
+export const SYNC_METADATA_SCHEMA_SQL = Object.freeze([
+  `create table if not exists n8n_sync_source (
+    source_id text primary key,
+    source_epoch text not null,
+    first_seen_at timestamptz not null default now(),
+    last_seen_at timestamptz not null default now()
+  )`,
+  `create table if not exists n8n_sync_entity_state (
+    source_id text not null,
+    entity_kind text not null check (entity_kind in ('workflow', 'credential', 'execution')),
+    source_entity_id text not null,
+    target_entity_id text,
+    last_event_id text not null,
+    last_revision numeric(78, 0) not null,
+    last_event_type text not null,
+    entity_updated_at timestamptz,
+    deleted_at timestamptz,
+    archived_at timestamptz,
+    updated_at timestamptz not null default now(),
+    primary key (source_id, entity_kind, source_entity_id),
+    unique (entity_kind, target_entity_id)
+  )`,
+  `create table if not exists n8n_sync_execution_identity (
+    source_id text not null,
+    source_execution_id text not null,
+    target_execution_id text not null,
+    source_workflow_id text not null,
+    target_workflow_id text not null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    primary key (source_id, source_execution_id),
+    unique (target_execution_id)
+  )`,
+  `create table if not exists n8n_sync_schema_migration (
+    id integer primary key,
+    version integer not null,
+    applied_at timestamptz not null default now()
+  )`,
+] as const);
+
 export interface N8nSyncRepositories {
-  workflow: WorkflowRepositoryLike;
-  credentials: CredentialsRepositoryLike;
-  sharedWorkflow: SharedWorkflowRepositoryLike;
-  sharedCredentials: SharedCredentialsRepositoryLike;
-  user: UserRepositoryLike;
-  project: ProjectRepositoryLike;
+  workflow?: WorkflowRepositoryLike;
+  credentials?: CredentialsRepositoryLike;
+  sharedWorkflow?: SharedWorkflowRepositoryLike;
+  sharedCredentials?: SharedCredentialsRepositoryLike;
+  user?: UserRepositoryLike;
+  project?: ProjectRepositoryLike;
   /**
    * Only present when executions are enabled on the subscriber
    * (`SYNC_ENTITIES` includes "executions"). When absent, the applier drops
@@ -248,6 +295,27 @@ function getColumnName(repo: TransactionCapableRepositoryLike, propertyName: str
   }
 }
 
+function toDate(value: unknown): Date | undefined {
+  if (!value) return undefined;
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function classifyTimestampMiss(
+  existing: unknown,
+  incomingTimestamp: Date | undefined,
+  timestampField: 'updatedAt' | 'stoppedAt',
+  allowConflict: boolean,
+): Exclude<ConditionalUpdateResult, 'updated' | 'missing'> {
+  if (!incomingTimestamp) return 'stale';
+  const existingTimestamp = toDate(
+    (existing as { updatedAt?: Date | string; stoppedAt?: Date | string } | null)?.[timestampField],
+  );
+  return allowConflict && existingTimestamp !== undefined && existingTimestamp.getTime() > incomingTimestamp.getTime()
+    ? 'conflict'
+    : 'stale';
+}
+
 function withConditionalUpdate<
   R extends TransactionCapableRepositoryLike & { findOneBy(where: { id: string | number }): Promise<unknown | null> },
 >(
@@ -256,7 +324,7 @@ function withConditionalUpdate<
   conditionalUpdate(
     id: string | number,
     partial: Record<string, unknown>,
-    options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt' },
+    options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt'; allowEqualTimestamp?: boolean },
   ): Promise<ConditionalUpdateResult>;
 } {
   if (!repo.createQueryBuilder || !repo.manager) {
@@ -264,7 +332,7 @@ function withConditionalUpdate<
       conditionalUpdate(
         id: string | number,
         partial: Record<string, unknown>,
-        options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt' },
+        options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt'; allowEqualTimestamp?: boolean },
       ): Promise<ConditionalUpdateResult>;
     };
   }
@@ -273,14 +341,15 @@ function withConditionalUpdate<
     async conditionalUpdate(
       id: string | number,
       partial: Record<string, unknown>,
-      options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt' },
+      options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt'; allowEqualTimestamp?: boolean },
     ): Promise<ConditionalUpdateResult> {
       const idColumn = quoteIdentifier(repo, getColumnName(repo, 'id'));
       const timestampColumn = quoteIdentifier(repo, getColumnName(repo, options.timestampField));
       const query = repo.createQueryBuilder!().update().set(partial).where(`${idColumn} = :id`, { id });
 
       if (options.incomingTimestamp) {
-        query.andWhere(`(${timestampColumn} IS NULL OR ${timestampColumn} < :incomingTimestamp)`, {
+        const operator = options.allowEqualTimestamp ? '<=' : '<';
+        query.andWhere(`(${timestampColumn} IS NULL OR ${timestampColumn} ${operator} :incomingTimestamp)`, {
           incomingTimestamp: options.incomingTimestamp,
         });
       }
@@ -289,7 +358,14 @@ function withConditionalUpdate<
       if ((result.affected ?? 0) > 0) return 'updated';
 
       const existing = await repo.findOneBy({ id });
-      return existing ? 'stale' : 'missing';
+      return existing
+        ? classifyTimestampMiss(
+            existing,
+            options.incomingTimestamp,
+            options.timestampField,
+            options.allowEqualTimestamp === true,
+          )
+        : 'missing';
     },
   });
 }
@@ -312,16 +388,39 @@ function bindRepository<T extends object>(manager: TypeOrmEntityManagerLike, rep
   return repository;
 }
 
+export function probeSyncMetadataTransactionCapability(repos: N8nSyncRepositories): SyncMetadataTransactionCapability {
+  const candidates = [repos.workflow, repos.credentials, repos.execution] as Array<
+    TransactionCapableRepositoryLike | undefined
+  >;
+  const manager = candidates.find((repo) => repo?.manager !== undefined)?.manager;
+
+  if (!manager) {
+    return { supported: false, reason: 'No resolved n8n repository exposes a TypeORM manager' };
+  }
+  if (typeof manager.transaction !== 'function') {
+    return { supported: false, manager, reason: 'Resolved n8n repository manager does not expose transaction()' };
+  }
+  if (typeof manager.query !== 'function') {
+    return { supported: false, manager, reason: 'Resolved n8n repository manager does not expose raw query()' };
+  }
+
+  return { supported: true, manager };
+}
+
 function decorateRepositories(
   rawRepos: Omit<N8nSyncRepositories, 'transaction'>,
 ): Omit<N8nSyncRepositories, 'transaction'> {
   return {
-    workflow: withConditionalUpdate(
-      rawRepos.workflow as WorkflowRepositoryLike & TransactionCapableRepositoryLike,
-    ) as WorkflowRepositoryLike,
-    credentials: withConditionalUpdate(
-      rawRepos.credentials as CredentialsRepositoryLike & TransactionCapableRepositoryLike,
-    ) as CredentialsRepositoryLike,
+    workflow: rawRepos.workflow
+      ? (withConditionalUpdate(
+          rawRepos.workflow as WorkflowRepositoryLike & TransactionCapableRepositoryLike,
+        ) as WorkflowRepositoryLike)
+      : undefined,
+    credentials: rawRepos.credentials
+      ? (withConditionalUpdate(
+          rawRepos.credentials as CredentialsRepositoryLike & TransactionCapableRepositoryLike,
+        ) as CredentialsRepositoryLike)
+      : undefined,
     sharedWorkflow: rawRepos.sharedWorkflow,
     sharedCredentials: rawRepos.sharedCredentials,
     user: rawRepos.user,
@@ -342,14 +441,17 @@ function decorateRepositories(
  * Module locations default to the official n8n docker image layout and can be
  * overridden with the N8N_DI_PATH / N8N_DB_PATH environment variables.
  *
- * `execution` is only resolved when `includeExecutions` is true (the caller
- * gates this on `SYNC_ENTITIES`); the resolver tolerates the symbol being
- * absent from the loaded `@n8n/db` module without throwing.
+ * Repositories for disabled entity families are not resolved where the
+ * selected entity set permits it. `execution` is only resolved when
+ * `includeExecutions` is true (or `entities` includes `executions`); the
+ * resolver tolerates the symbol being absent from the loaded `@n8n/db` module
+ * without throwing when executions are disabled.
  *
  * @param includeExecutions when true, also resolve `ExecutionRepository`.
  */
 export function buildN8nSyncRepositories(
   options: {
+    entities?: ReadonlySet<SyncEntity>;
     includeExecutions?: boolean;
     diPath?: string;
     dbPath?: string;
@@ -359,32 +461,58 @@ export function buildN8nSyncRepositories(
   const diPath = options.diPath ?? DEFAULT_N8N_DI_PATH;
   const dbPath = options.dbPath ?? DEFAULT_N8N_DB_PATH;
   const adapter = options.adapter ?? createN8nRuntimeAdapter();
+  const includeWorkflows = options.entities
+    ? options.entities.has('workflows') || options.entities.has('executions')
+    : true;
+  const includeCredentials = options.entities ? options.entities.has('credentials') : true;
+  const includeExecutions = options.entities
+    ? options.entities.has('executions')
+    : (options.includeExecutions ?? false);
+  const includeOwnerRepositories = includeWorkflows || includeCredentials;
   const container = adapter.loadContainer(diPath);
   const dbModule = adapter.loadDbModule(dbPath);
-  const workflowToken = requireDbExport(dbModule, 'WorkflowRepository');
-  const credentialsToken = requireDbExport(dbModule, 'CredentialsRepository');
-  const sharedWorkflowToken = requireDbExport(dbModule, 'SharedWorkflowRepository');
-  const sharedCredentialsToken = requireDbExport(dbModule, 'SharedCredentialsRepository');
-  const userToken = requireDbExport(dbModule, 'UserRepository');
-  const projectToken = requireDbExport(dbModule, 'ProjectRepository');
-  const executionToken = options.includeExecutions ? requireDbExport(dbModule, 'ExecutionRepository') : undefined;
+  const workflowToken = includeWorkflows ? requireDbExport(dbModule, 'WorkflowRepository') : undefined;
+  const credentialsToken = includeCredentials ? requireDbExport(dbModule, 'CredentialsRepository') : undefined;
+  const sharedWorkflowToken = includeWorkflows ? requireDbExport(dbModule, 'SharedWorkflowRepository') : undefined;
+  const sharedCredentialsToken = includeCredentials
+    ? requireDbExport(dbModule, 'SharedCredentialsRepository')
+    : undefined;
+  const userToken = includeOwnerRepositories ? requireDbExport(dbModule, 'UserRepository') : undefined;
+  const projectToken = includeOwnerRepositories ? requireDbExport(dbModule, 'ProjectRepository') : undefined;
+  const executionToken = includeExecutions ? requireDbExport(dbModule, 'ExecutionRepository') : undefined;
 
-  const rawRepos: Omit<N8nSyncRepositories, 'transaction'> = {
-    workflow: adapter.getService<WorkflowRepositoryLike>(container, workflowToken, 'WorkflowRepository'),
-    credentials: adapter.getService<CredentialsRepositoryLike>(container, credentialsToken, 'CredentialsRepository'),
-    sharedWorkflow: adapter.getService<SharedWorkflowRepositoryLike>(
+  const rawRepos: Omit<N8nSyncRepositories, 'transaction'> = {};
+
+  if (workflowToken !== undefined) {
+    rawRepos.workflow = adapter.getService<WorkflowRepositoryLike>(container, workflowToken, 'WorkflowRepository');
+  }
+  if (credentialsToken !== undefined) {
+    rawRepos.credentials = adapter.getService<CredentialsRepositoryLike>(
+      container,
+      credentialsToken,
+      'CredentialsRepository',
+    );
+  }
+  if (sharedWorkflowToken !== undefined) {
+    rawRepos.sharedWorkflow = adapter.getService<SharedWorkflowRepositoryLike>(
       container,
       sharedWorkflowToken,
       'SharedWorkflowRepository',
-    ),
-    sharedCredentials: adapter.getService<SharedCredentialsRepositoryLike>(
+    );
+  }
+  if (sharedCredentialsToken !== undefined) {
+    rawRepos.sharedCredentials = adapter.getService<SharedCredentialsRepositoryLike>(
       container,
       sharedCredentialsToken,
       'SharedCredentialsRepository',
-    ),
-    user: adapter.getService<UserRepositoryLike>(container, userToken, 'UserRepository'),
-    project: adapter.getService<ProjectRepositoryLike>(container, projectToken, 'ProjectRepository'),
-  };
+    );
+  }
+  if (userToken !== undefined) {
+    rawRepos.user = adapter.getService<UserRepositoryLike>(container, userToken, 'UserRepository');
+  }
+  if (projectToken !== undefined) {
+    rawRepos.project = adapter.getService<ProjectRepositoryLike>(container, projectToken, 'ProjectRepository');
+  }
 
   if (executionToken !== undefined) {
     rawRepos.execution = adapter.getService<ExecutionRepositoryLike>(container, executionToken, 'ExecutionRepository');

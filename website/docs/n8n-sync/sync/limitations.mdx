@@ -1,6 +1,6 @@
 ---
 sidebar_label: Limitations
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 # Limitations
@@ -15,10 +15,11 @@ sidebar_position: 5
 
 ## Wire / delivery semantics
 
-- **One-way, last-write-wins.** Sync is directional. Upserts carry the source monotonic timestamp (`updatedAt` for workflows/credentials, `stoppedAt` for executions) and are skipped when the target row is already at or beyond it, so out-of-order or duplicate deliveries cannot regress state. Deletes and archives are applied unconditionally.
-- **The delivery queue is in-memory.** Events queued but not yet delivered when the source instance restarts are lost; state converges on the next event for that entity (or stays divergent until then).
+- **One-way, revision-ordered, last-write-wins.** Sync is directional. The subscriber first enforces source-scoped `entityRevision` ordering, then row timestamp guards (`updatedAt` for workflows/credentials, `stoppedAt` for executions). Exact duplicate deliveries are no-ops; conflicting revision reuse returns `409 SYNC_REVISION_CONFLICT`.
+- **The delivery queue is in-memory and bounded.** Events queued but not yet delivered when the source instance restarts are lost. If `SYNC_MAX_QUEUE_SIZE` is exceeded, the oldest queued event for that target is dropped and logged. Later upserts may converge state, but dropped deletes, archives, or mixed operations are not reconstructed automatically.
 - **Active state is DB-only.** With `SYNC_APPLY_ACTIVE_STATE=true`, the target's `active` flag is written to the database, but triggers/webhooks are not registered with the target's active workflow manager until restart or manual toggle. Keep it `false` (the default) for passive-standby targets.
 - **Deletes and archives for unknown IDs are no-ops.** `update`/`delete` on missing rows return early; sync is eventually consistent by design.
+- **State is file-backed.** Publisher and subscriber JSON state writes are atomic per file only; they are not atomic with n8n database mutations or other sync state files. See [Persistence & Readiness](/n8n-sync/sync/persistence-readiness/).
 
 ## Credentials
 
@@ -26,17 +27,21 @@ sidebar_position: 5
 
 ## Executions
 
-- **Execution sync is summary-only.** `SYNC_ENTITIES=…,executions` upserts a row in the target's `execution_entity` table with the source ID and scalar lifecycle columns (`id`, `workflowId`, `status`, `mode`, `finished`, `startedAt`, `stoppedAt`, retry ids, `workflowVersionId`) plus a best-effort workflow snapshot. The `execution_data` blob (per-step `fullRunData`) is **not** written to keep payloads small; target-side reads via the Public API will see the execution summary but not its run detail.
+- **Execution sync requires workflow sync.** `SYNC_ENTITIES` cannot enable `executions` without also enabling `workflows`; startup fails fast.
+- **Execution sync is summary-only.** `SYNC_ENTITIES=...,executions` upserts a row in the target's `execution_entity` table with a target-generated id recorded in the file-backed source-execution mapping, plus scalar lifecycle columns (`source id`, `workflowId`, `status`, `mode`, `finished`, `startedAt`, `stoppedAt`) and a best-effort workflow snapshot. The `execution_data` blob (per-step `fullRunData`) is **not** written to keep payloads small; target-side reads via the Public API will see the execution summary but not its run detail.
 - **Execution staleness is based on `stoppedAt`.** In-flight executions (`running`, `waiting`, `new`) carry `stoppedAt: null`; for them the last-write-wins guard is skipped so a later delivery can still converge state. Re-deliveries of the same event are no-ops.
 - **`startedAt` / `createdAt` are immutable post-insert** on `execution_entity` — the applier mirrors n8n's own `updateExistingExecution` semantics and drops them from update payloads.
+- **Workflow deletion removes synced executions first.** Before applying `workflow.delete`, the subscriber deletes mapped synced execution rows for that source/workflow so the target workflow delete does not fail on dependent execution rows.
 
 ## Auth
 
 - **Auth modes do not cross-accept.** A token-mode subscriber rejects hmac-signed requests and vice versa. Both sides must use the same `SYNC_AUTH_MODE`. See [Authentication](/n8n-sync/sync/authentication/).
+- **Replay rejection is HMAC-only and process-local.** Exact signed replays are rejected only in `hmac` mode and only while this process's replay cache remembers the signature. The cache is not shared across OS processes and is cleared on restart.
 
 ## Project assignment
 
-- **`SYNC_TARGET_PROJECT_ID` (default empty)** — when set, newly created workflows/credentials are linked to that project. When empty, the applier falls back to the target instance owner's **personal project** (resolved lazily via `UserRepository` + `ProjectRepository.getPersonalProjectForUser`, cached for the process lifetime including the negative case). The fallback makes synced entities visible through the target's Public API without explicit configuration. An explicit `SYNC_TARGET_PROJECT_ID` always wins.
+- **Workflow and credential ownership is best effort.** When `SYNC_TARGET_PROJECT_ID` is set, newly created workflows/credentials are linked to that project. When empty, the applier falls back to the target instance owner's personal project, resolved lazily and cached for the process lifetime including lookup misses. Owner-link failures are logged and are not currently retryable or transactional with the entity mutation.
+- **Source ownership policy is provisional in production.** Workflow and credential upserts, archives, and deletes still operate on source-provided target IDs after authentication and ordering checks. Native-row and cross-source collision risks remain until source-bound workflow/credential identity mappings are implemented.
 
 ## Filtering
 
@@ -47,3 +52,4 @@ sidebar_position: 5
 - [Architecture](/n8n-sync/sync/architecture/) — the design that produces these behaviors.
 - [Wired Hooks](/n8n-sync/sync/hooks/) — the hook surface selection rationale.
 - [Environment variables](/n8n-sync/sync/environment/) — `SYNC_APPLY_ACTIVE_STATE`, `SYNC_TARGET_PROJECT_ID`, `SYNC_ENTITIES`.
+- [Persistence & Readiness](/n8n-sync/sync/persistence-readiness/) — state files, readiness, and recovery guidance.

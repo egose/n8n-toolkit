@@ -1,4 +1,5 @@
-import { getSourceEntityStateKey } from '../shared/ordering';
+import { getSourceEntityStateKey, getSyncEventEntityRef, type AppliedEventState } from '../shared/ordering';
+import type { SyncEntity } from '../shared/config';
 import type { Logger } from '../shared/logger';
 import type { SyncCredentialDto, SyncEvent, SyncExecutionDto, SyncWorkflowDto } from '../shared/types';
 import { createExecutionIdentityStore, type ExecutionIdentityStore } from './execution-identity';
@@ -17,10 +18,76 @@ export interface ApplierOptions {
   applyActiveState?: boolean;
   ordering?: SyncOrderingStore;
   executionIdentity?: ExecutionIdentityStore;
+  allowedEntities?: ReadonlySet<SyncEntity>;
   log: Logger;
 }
 
-export type ApplySyncEvent = (event: SyncEvent) => Promise<void>;
+export type ApplySyncEventResult =
+  | { status: 'applied' }
+  | { status: 'duplicate' }
+  | { status: 'stale' }
+  | { status: 'disabled'; error: SyncEntityDisabledError }
+  | { status: 'conflict'; error: SyncRevisionConflictError };
+
+export type ApplySyncEvent = (event: SyncEvent) => Promise<ApplySyncEventResult>;
+
+export class SyncRevisionConflictError extends Error {
+  readonly code = 'SYNC_REVISION_CONFLICT';
+  readonly event: Pick<SyncEvent, 'type' | 'sourceId' | 'eventId' | 'entityRevision'>;
+  readonly entity: { kind: string; id: string };
+  readonly previous: AppliedEventState;
+
+  constructor(event: SyncEvent, previous: AppliedEventState) {
+    const entity = getSyncEventEntityRef(event);
+    super('Sync event revision was already applied by a different event');
+    this.name = 'SyncRevisionConflictError';
+    this.event = {
+      type: event.type,
+      sourceId: event.sourceId,
+      eventId: event.eventId,
+      entityRevision: event.entityRevision,
+    };
+    this.entity = { kind: entity.kind, id: entity.id };
+    this.previous = previous;
+  }
+}
+
+export class SyncEntityDisabledError extends Error {
+  readonly code = 'SYNC_ENTITY_DISABLED';
+  readonly entity: SyncEntity;
+  readonly event: Pick<SyncEvent, 'type' | 'sourceId' | 'eventId' | 'entityRevision'>;
+
+  constructor(event: SyncEvent, entity: SyncEntity) {
+    super(`Sync entity family is disabled: ${entity}`);
+    this.name = 'SyncEntityDisabledError';
+    this.entity = entity;
+    this.event = {
+      type: event.type,
+      sourceId: event.sourceId,
+      eventId: event.eventId,
+      entityRevision: event.entityRevision,
+    };
+  }
+}
+
+export class SyncEntityTimestampConflictError extends Error {
+  readonly code = 'SYNC_ENTITY_TIMESTAMP_CONFLICT';
+  readonly event: Pick<SyncEvent, 'type' | 'sourceId' | 'eventId' | 'entityRevision'>;
+  readonly entity: { kind: string; id: string };
+
+  constructor(event: SyncEvent, message = 'Sync entity timestamp is older than the target row') {
+    const entity = getSyncEventEntityRef(event);
+    super(message);
+    this.name = 'SyncEntityTimestampConflictError';
+    this.event = {
+      type: event.type,
+      sourceId: event.sourceId,
+      eventId: event.eventId,
+      entityRevision: event.entityRevision,
+    };
+    this.entity = { kind: entity.kind, id: entity.id };
+  }
+}
 
 type PersistenceContext = {
   repos: N8nSyncRepositories;
@@ -28,6 +95,20 @@ type PersistenceContext = {
 };
 
 const TERMINAL_EXECUTION_STATUSES = new Set(['success', 'error', 'crashed', 'canceled']);
+const ALL_SYNC_ENTITIES = new Set<SyncEntity>(['workflows', 'credentials', 'executions']) as ReadonlySet<SyncEntity>;
+
+function getSyncEventEntityFamily(event: SyncEvent): SyncEntity {
+  if (event.type.startsWith('workflow.')) return 'workflows';
+  if (event.type.startsWith('credentials.')) return 'credentials';
+  return 'executions';
+}
+
+function requireRepository<T>(repo: T | undefined, capabilityName: string): T {
+  if (repo === undefined) {
+    throw new Error(`Required n8n repository is not available: ${capabilityName}`);
+  }
+  return repo;
+}
 
 function toExecutionRepositoryId(value: unknown): string | number | undefined {
   return typeof value === 'string' || typeof value === 'number' ? value : undefined;
@@ -78,30 +159,40 @@ function shouldSkipExecutionLifecycleRegression(existing: unknown, incoming: Syn
  * terminal state). Callers pick the field matching the entity via
  * `timestampField` — defaults to `updatedAt` for back-compat.
  */
-function isStaleEvent(
+function getTimestampGuardResult(
   existing: unknown,
   incomingTimestamp: Date | undefined,
   timestampField: 'updatedAt' | 'stoppedAt' = 'updatedAt',
-): boolean {
-  if (!incomingTimestamp) return false;
+  allowEqualTimestamp = false,
+): 'allow' | 'stale' | 'conflict' {
+  if (!incomingTimestamp) return 'allow';
   const existingTimestamp = toDate(
     (existing as { updatedAt?: Date | string; stoppedAt?: Date | string } | null)?.[timestampField],
   );
-  return existingTimestamp !== undefined && existingTimestamp.getTime() >= incomingTimestamp.getTime();
+  if (existingTimestamp === undefined) return 'allow';
+  const existingTime = existingTimestamp.getTime();
+  const incomingTime = incomingTimestamp.getTime();
+  if (existingTime > incomingTime) return allowEqualTimestamp ? 'conflict' : 'stale';
+  if (existingTime === incomingTime) return allowEqualTimestamp ? 'allow' : 'stale';
+  return 'allow';
 }
 
 /**
  * Create the sync-event applier. Events are applied idempotently via the
- * target instance's own repositories. Workflow and credential ids are
- * preserved; execution rows always use a target-generated id behind a durable
- * `(sourceId, sourceExecutionId)` mapping.
+ * target instance's own repositories. Current production workflow and
+ * credential paths use source-provided ids as target ids; the source ownership
+ * ADR is not enforced until IDENTITY-02. Execution rows use target-generated
+ * ids behind a file-backed `(sourceId, sourceExecutionId)` mapping, which is
+ * durable but not committed atomically with the execution row.
  */
 export function createApplier(repos: N8nSyncRepositories, options: ApplierOptions): ApplySyncEvent {
   const { log } = options;
+  const allowedEntities = options.allowedEntities ?? ALL_SYNC_ENTITIES;
   const applyActiveState = options.applyActiveState ?? false;
   const targetProjectId = options.targetProjectId || undefined;
   const ordering = options.ordering ?? createSyncOrderingStore();
-  const executionIdentity = options.executionIdentity ?? createExecutionIdentityStore();
+  const executionIdentity =
+    options.executionIdentity ?? (allowedEntities.has('executions') ? createExecutionIdentityStore() : undefined);
   const entityChains = new Map<string, Promise<void>>();
 
   function withEntityLock<T>(key: string, work: () => Promise<T>): Promise<T> {
@@ -135,8 +226,10 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   async function resolveLinkProjectId(): Promise<string | undefined> {
     if (targetProjectId) return targetProjectId;
     if (cachedFallbackProjectId !== undefined) return cachedFallbackProjectId ?? undefined;
+    const userRepo = requireRepository(repos.user, 'UserRepository');
+    const projectRepo = requireRepository(repos.project, 'ProjectRepository');
     try {
-      const owner = await repos.user.findOne({
+      const owner = await userRepo.findOne({
         where: { role: { slug: 'global:owner' } },
         relations: ['role'],
         order: { createdAt: 'ASC' },
@@ -147,7 +240,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
         cachedFallbackProjectId = null;
         return undefined;
       }
-      const project = await repos.project.getPersonalProjectForUser(owner.id);
+      const project = await projectRepo.getPersonalProjectForUser(owner.id);
       if (!project) {
         log.warn('Owner fallback: owner has no personal project', { ownerId: owner.id });
         cachedFallbackProjectId = null;
@@ -207,7 +300,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   async function ensureWorkflowProjectLink(context: PersistenceContext, workflowId: string): Promise<void> {
     try {
       await ensureOwnerLink(
-        context.repos.sharedWorkflow,
+        requireRepository(context.repos.sharedWorkflow, 'SharedWorkflowRepository'),
         'workflowId',
         workflowId,
         'workflow:owner',
@@ -225,7 +318,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   async function ensureCredentialProjectLink(context: PersistenceContext, credentialId: string): Promise<void> {
     try {
       await ensureOwnerLink(
-        context.repos.sharedCredentials,
+        requireRepository(context.repos.sharedCredentials, 'SharedCredentialsRepository'),
         'credentialsId',
         credentialId,
         'credential:owner',
@@ -253,13 +346,14 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
     workflow: SyncWorkflowDto,
     entity: Record<string, unknown>,
   ): Promise<'created'> {
-    await context.repos.workflow.save(entity);
+    const workflowRepo = requireRepository(context.repos.workflow, 'WorkflowRepository');
+    await workflowRepo.save(entity);
 
     try {
       await ensureWorkflowProjectLink(context, workflow.id);
     } catch (error) {
       if (!context.transactional) {
-        await context.repos.workflow.delete(workflow.id);
+        await workflowRepo.delete(workflow.id);
       }
       throw error;
     }
@@ -272,13 +366,14 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
     credential: SyncCredentialDto,
     entity: Record<string, unknown>,
   ): Promise<'created'> {
-    await context.repos.credentials.save(entity);
+    const credentialsRepo = requireRepository(context.repos.credentials, 'CredentialsRepository');
+    await credentialsRepo.save(entity);
 
     try {
       await ensureCredentialProjectLink(context, credential.id);
     } catch (error) {
       if (!context.transactional) {
-        await context.repos.credentials.delete(credential.id);
+        await credentialsRepo.delete(credential.id);
       }
       throw error;
     }
@@ -289,13 +384,19 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   async function applyConditionalUpdate(
     result: ConditionalUpdateResult,
     ensureLink: () => Promise<void>,
+    event: SyncEvent,
   ): Promise<'updated' | 'stale' | undefined> {
     if (result === 'missing') return undefined;
+    if (result === 'conflict') throw new SyncEntityTimestampConflictError(event);
     await ensureLink();
     return result;
   }
 
-  async function upsertWorkflow(workflow: SyncWorkflowDto): Promise<void> {
+  async function upsertWorkflow(
+    workflow: SyncWorkflowDto,
+    event: SyncEvent,
+    allowEqualTimestamp: boolean,
+  ): Promise<void> {
     const fields: Record<string, unknown> = {
       name: workflow.name,
       nodes: workflow.nodes ?? [],
@@ -325,24 +426,29 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
 
     try {
       const outcome = await withPersistenceContext(async (context) => {
-        if (context.repos.workflow.conditionalUpdate) {
-          const conditional = await context.repos.workflow.conditionalUpdate(workflow.id, fields, {
+        const workflowRepo = requireRepository(context.repos.workflow, 'WorkflowRepository');
+        if (workflowRepo.conditionalUpdate) {
+          const conditional = await workflowRepo.conditionalUpdate(workflow.id, fields, {
             incomingTimestamp: updatedAt,
             timestampField: 'updatedAt',
+            allowEqualTimestamp,
           });
           const handled = await applyConditionalUpdate(
             conditional,
             async () => await ensureWorkflowProjectLink(context, workflow.id),
+            event,
           );
           if (handled) return handled;
         } else {
-          const existing = await context.repos.workflow.findOneBy({ id: workflow.id });
+          const existing = await workflowRepo.findOneBy({ id: workflow.id });
           if (existing) {
-            if (isStaleEvent(existing, updatedAt)) {
+            const guard = getTimestampGuardResult(existing, updatedAt, 'updatedAt', allowEqualTimestamp);
+            if (guard === 'conflict') throw new SyncEntityTimestampConflictError(event);
+            if (guard === 'stale') {
               await ensureWorkflowProjectLink(context, workflow.id);
               return 'stale';
             }
-            await context.repos.workflow.update(workflow.id, fields);
+            await workflowRepo.update(workflow.id, fields);
             await ensureWorkflowProjectLink(context, workflow.id);
             return 'updated';
           }
@@ -361,17 +467,23 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
       if (!isUniqueConstraintError(error)) throw error;
 
       await withPersistenceContext(async (context) => {
-        const concurrent = await context.repos.workflow.findOneBy({ id: workflow.id });
+        const workflowRepo = requireRepository(context.repos.workflow, 'WorkflowRepository');
+        const concurrent = await workflowRepo.findOneBy({ id: workflow.id });
         if (!concurrent) throw error;
 
-        if (context.repos.workflow.conditionalUpdate) {
-          const conditional = await context.repos.workflow.conditionalUpdate(workflow.id, fields, {
+        if (workflowRepo.conditionalUpdate) {
+          const conditional = await workflowRepo.conditionalUpdate(workflow.id, fields, {
             incomingTimestamp: updatedAt,
             timestampField: 'updatedAt',
+            allowEqualTimestamp,
           });
           if (conditional === 'missing') throw error;
-        } else if (!isStaleEvent(concurrent, updatedAt)) {
-          await context.repos.workflow.update(workflow.id, fields);
+          if (conditional === 'conflict') throw new SyncEntityTimestampConflictError(event);
+        } else {
+          const guard = getTimestampGuardResult(concurrent, updatedAt, 'updatedAt', allowEqualTimestamp);
+          if (guard === 'conflict') throw new SyncEntityTimestampConflictError(event);
+          if (guard === 'stale') return;
+          await workflowRepo.update(workflow.id, fields);
         }
 
         await ensureWorkflowProjectLink(context, workflow.id);
@@ -381,16 +493,20 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   }
 
   async function deleteWorkflow(workflowId: string, sourceId: string): Promise<void> {
-    const executionMappings = repos.execution
-      ? await executionIdentity.listBySourceWorkflow({ sourceId, workflowId })
-      : [];
+    const workflowRepo = requireRepository(repos.workflow, 'WorkflowRepository');
+    const executionMappings =
+      repos.execution && executionIdentity
+        ? await executionIdentity.listBySourceWorkflow({ sourceId, workflowId })
+        : [];
 
     for (const mapping of executionMappings) {
       await repos.execution?.delete(mapping.targetExecutionId);
     }
 
-    await repos.workflow.delete(workflowId);
-    const removedExecutionMappings = await executionIdentity.deleteBySourceWorkflow({ sourceId, workflowId });
+    await workflowRepo.delete(workflowId);
+    const removedExecutionMappings = executionIdentity
+      ? await executionIdentity.deleteBySourceWorkflow({ sourceId, workflowId })
+      : 0;
     log.debug('Workflow deleted', {
       workflowId,
       sourceId,
@@ -400,17 +516,22 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   }
 
   async function archiveWorkflow(workflowId: string, archived: boolean): Promise<void> {
+    const workflowRepo = requireRepository(repos.workflow, 'WorkflowRepository');
     const fields: Record<string, unknown> = { isArchived: archived };
     // Archived workflows cannot be active; mirror that when state sync is on.
     if (archived && applyActiveState) {
       fields.active = false;
       fields.activeVersionId = null;
     }
-    await repos.workflow.update(workflowId, fields);
+    await workflowRepo.update(workflowId, fields);
     log.debug(archived ? 'Workflow archived' : 'Workflow unarchived', { workflowId });
   }
 
-  async function upsertCredential(credential: SyncCredentialDto): Promise<void> {
+  async function upsertCredential(
+    credential: SyncCredentialDto,
+    event: SyncEvent,
+    allowEqualTimestamp: boolean,
+  ): Promise<void> {
     assertEncryptedCredentialData(credential.data);
 
     const fields: Record<string, unknown> = {
@@ -429,24 +550,29 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
 
     try {
       const outcome = await withPersistenceContext(async (context) => {
-        if (context.repos.credentials.conditionalUpdate) {
-          const conditional = await context.repos.credentials.conditionalUpdate(credential.id, fields, {
+        const credentialsRepo = requireRepository(context.repos.credentials, 'CredentialsRepository');
+        if (credentialsRepo.conditionalUpdate) {
+          const conditional = await credentialsRepo.conditionalUpdate(credential.id, fields, {
             incomingTimestamp: updatedAt,
             timestampField: 'updatedAt',
+            allowEqualTimestamp,
           });
           const handled = await applyConditionalUpdate(
             conditional,
             async () => await ensureCredentialProjectLink(context, credential.id),
+            event,
           );
           if (handled) return handled;
         } else {
-          const existing = await context.repos.credentials.findOneBy({ id: credential.id });
+          const existing = await credentialsRepo.findOneBy({ id: credential.id });
           if (existing) {
-            if (isStaleEvent(existing, updatedAt)) {
+            const guard = getTimestampGuardResult(existing, updatedAt, 'updatedAt', allowEqualTimestamp);
+            if (guard === 'conflict') throw new SyncEntityTimestampConflictError(event);
+            if (guard === 'stale') {
               await ensureCredentialProjectLink(context, credential.id);
               return 'stale';
             }
-            await context.repos.credentials.update(credential.id, fields);
+            await credentialsRepo.update(credential.id, fields);
             await ensureCredentialProjectLink(context, credential.id);
             return 'updated';
           }
@@ -465,17 +591,23 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
       if (!isUniqueConstraintError(error)) throw error;
 
       await withPersistenceContext(async (context) => {
-        const concurrent = await context.repos.credentials.findOneBy({ id: credential.id });
+        const credentialsRepo = requireRepository(context.repos.credentials, 'CredentialsRepository');
+        const concurrent = await credentialsRepo.findOneBy({ id: credential.id });
         if (!concurrent) throw error;
 
-        if (context.repos.credentials.conditionalUpdate) {
-          const conditional = await context.repos.credentials.conditionalUpdate(credential.id, fields, {
+        if (credentialsRepo.conditionalUpdate) {
+          const conditional = await credentialsRepo.conditionalUpdate(credential.id, fields, {
             incomingTimestamp: updatedAt,
             timestampField: 'updatedAt',
+            allowEqualTimestamp,
           });
           if (conditional === 'missing') throw error;
-        } else if (!isStaleEvent(concurrent, updatedAt)) {
-          await context.repos.credentials.update(credential.id, fields);
+          if (conditional === 'conflict') throw new SyncEntityTimestampConflictError(event);
+        } else {
+          const guard = getTimestampGuardResult(concurrent, updatedAt, 'updatedAt', allowEqualTimestamp);
+          if (guard === 'conflict') throw new SyncEntityTimestampConflictError(event);
+          if (guard === 'stale') return;
+          await credentialsRepo.update(credential.id, fields);
         }
 
         await ensureCredentialProjectLink(context, credential.id);
@@ -485,7 +617,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   }
 
   async function deleteCredential(credentialId: string): Promise<void> {
-    await repos.credentials.delete(credentialId);
+    await requireRepository(repos.credentials, 'CredentialsRepository').delete(credentialId);
     log.debug('Credential deleted', { credentialId });
   }
 
@@ -503,16 +635,21 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
    * last-write-wins-on-stop semantics). In-flight executions may have no
    * `stoppedAt`; in that case the guard is skipped and the update proceeds.
    */
-  async function upsertExecution(execution: SyncExecutionDto, sourceId: string): Promise<void> {
-    if (!repos.execution) {
-      throw new Error('Received execution event but executions are not enabled on this subscriber');
-    }
+  async function upsertExecution(
+    execution: SyncExecutionDto,
+    sourceId: string,
+    event: SyncEvent,
+    allowEqualTimestamp: boolean,
+  ): Promise<void> {
+    const executionRepo = requireRepository(repos.execution, 'ExecutionRepository');
+    const workflowRepo = requireRepository(repos.workflow, 'WorkflowRepository');
+    const identityStore = requireRepository(executionIdentity, 'ExecutionIdentityStore');
 
     if (!execution.workflowId) {
       throw new Error('Execution sync event is missing workflowId');
     }
 
-    const targetWorkflow = await repos.workflow.findOneBy({ id: execution.workflowId });
+    const targetWorkflow = await workflowRepo.findOneBy({ id: execution.workflowId });
     if (!targetWorkflow) {
       throw new Error(`Target workflow ${execution.workflowId} does not exist for synced execution ${execution.id}`);
     }
@@ -534,14 +671,14 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
     }
 
     const sourceExecutionId = execution.id;
-    const mapping = await executionIdentity.get({ sourceId, sourceExecutionId });
+    const mapping = await identityStore.get({ sourceId, sourceExecutionId });
     let targetExecutionId = mapping?.targetExecutionId;
     let existing: unknown | null = null;
 
     if (targetExecutionId !== undefined) {
-      existing = await repos.execution.findOneBy({ id: targetExecutionId });
+      existing = await executionRepo.findOneBy({ id: targetExecutionId });
       if (!existing) {
-        await executionIdentity.delete({ sourceId, sourceExecutionId });
+        await identityStore.delete({ sourceId, sourceExecutionId });
         targetExecutionId = undefined;
       }
     }
@@ -556,7 +693,9 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
         });
         return;
       }
-      if (isStaleEvent(existing, updatedAt, 'stoppedAt')) {
+      const guard = getTimestampGuardResult(existing, updatedAt, 'stoppedAt', allowEqualTimestamp);
+      if (guard === 'conflict') throw new SyncEntityTimestampConflictError(event);
+      if (guard === 'stale') {
         log.debug('Skipping stale execution upsert', { sourceId, sourceExecutionId, targetExecutionId });
         return;
       }
@@ -564,8 +703,25 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
       const { startedAt: _startedAt, createdAt: _createdAt, ...updateFields } = fields;
       void _startedAt;
       void _createdAt;
-      await repos.execution.update({ id: targetExecutionId! }, updateFields);
-      await executionIdentity.set({
+      if (executionRepo.conditionalUpdate) {
+        const conditional = await executionRepo.conditionalUpdate(targetExecutionId!, updateFields, {
+          incomingTimestamp: updatedAt,
+          timestampField: 'stoppedAt',
+          allowEqualTimestamp,
+        });
+        if (conditional === 'missing') {
+          await identityStore.delete({ sourceId, sourceExecutionId });
+          throw new Error(`Mapped target execution ${String(targetExecutionId)} disappeared during update`);
+        }
+        if (conditional === 'conflict') throw new SyncEntityTimestampConflictError(event);
+        if (conditional === 'stale') {
+          log.debug('Skipping stale execution upsert', { sourceId, sourceExecutionId, targetExecutionId });
+          return;
+        }
+      } else {
+        await executionRepo.update({ id: targetExecutionId! }, updateFields);
+      }
+      await identityStore.set({
         sourceId,
         sourceExecutionId,
         targetExecutionId: targetExecutionId!,
@@ -576,7 +732,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
     }
 
     const createdAt = toDate(execution.createdAt ?? execution.startedAt);
-    const created = await repos.execution.save({
+    const created = await executionRepo.save({
       ...fields,
       storedAt: 'db',
       deduplicationKey: null,
@@ -589,7 +745,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
     if (savedExecutionId === undefined) {
       throw new Error('Execution repository save did not return a target execution id');
     }
-    await executionIdentity.set({
+    await identityStore.set({
       sourceId,
       sourceExecutionId,
       targetExecutionId: savedExecutionId,
@@ -598,37 +754,54 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
     log.debug('Execution created', { sourceId, sourceExecutionId, targetExecutionId: savedExecutionId });
   }
 
-  return async function applySyncEvent(event: SyncEvent): Promise<void> {
+  return async function applySyncEvent(event: SyncEvent): Promise<ApplySyncEventResult> {
+    const entityFamily = getSyncEventEntityFamily(event);
+    if (!allowedEntities.has(entityFamily)) {
+      const error = new SyncEntityDisabledError(event, entityFamily);
+      log.warn('Rejecting sync event for disabled entity family', {
+        type: event.type,
+        sourceId: event.sourceId,
+        eventId: event.eventId,
+        entity: entityFamily,
+      });
+      return { status: 'disabled', error };
+    }
+
     const sourceEntityKey = getSourceEntityStateKey(event);
 
-    await withEntityLock(sourceEntityKey, async () => {
-      const decision = await ordering.inspect(event);
+    return await withEntityLock(sourceEntityKey, async (): Promise<ApplySyncEventResult> => {
+      const inspection = await ordering.inspect(event);
+      const decision = inspection.decision;
       if (decision === 'duplicate') {
         log.debug('Skipping duplicate sync event', {
           type: event.type,
           sourceId: event.sourceId,
           eventId: event.eventId,
         });
-        return;
+        return { status: 'duplicate' };
       }
       if (decision === 'stale') {
         log.debug('Skipping stale sync event', { type: event.type, sourceId: event.sourceId, eventId: event.eventId });
-        return;
+        return { status: 'stale' };
       }
       if (decision === 'conflict') {
+        const error = new SyncRevisionConflictError(event, inspection.previous!);
         log.warn('Rejecting conflicting sync event revision', {
           type: event.type,
           sourceId: event.sourceId,
           eventId: event.eventId,
           entityRevision: event.entityRevision,
+          previousEventId: error.previous.eventId,
         });
-        return;
+        return { status: 'conflict', error };
       }
+
+      const allowEqualTimestamp = decision === 'apply' && inspection.previous !== undefined;
 
       switch (event.type) {
         case 'workflow.upsert':
         case 'workflow.activate':
-          await upsertWorkflow(event.workflow);
+          await upsertWorkflow(event.workflow, event, allowEqualTimestamp);
           break;
         case 'workflow.delete':
           await deleteWorkflow(event.workflowId, event.sourceId);
@@ -637,17 +810,18 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
           await archiveWorkflow(event.workflowId, event.archived);
           break;
         case 'credentials.upsert':
-          await upsertCredential(event.credential);
+          await upsertCredential(event.credential, event, allowEqualTimestamp);
           break;
         case 'credentials.delete':
           await deleteCredential(event.credentialId);
           break;
         case 'execution.upsert':
-          await upsertExecution(event.execution, event.sourceId);
+          await upsertExecution(event.execution, event.sourceId, event, allowEqualTimestamp);
           break;
       }
 
       await ordering.recordApplied(event);
+      return { status: 'applied' };
     });
   };
 }

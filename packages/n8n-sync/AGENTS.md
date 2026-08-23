@@ -8,7 +8,7 @@ Purpose: n8n external-hook bundles that sync credentials and workflows between n
 Build two self-contained CJS hook bundles and point n8n's `EXTERNAL_HOOK_FILES` at them:
 
 - `dist/publisher.cjs` — source instance; lifecycle hooks fan sync events out to every target in `SYNC_SUBSCRIBER_URLS`
-- `dist/subscriber.cjs` — target instance; mounts `POST /rest/sync/v1/events` (+ `GET …/health`) on n8n's own server in the `n8n.ready` hook and applies events via n8n's internal repositories
+- `dist/subscriber.cjs` — target instance; mounts `POST /rest/sync/v1/events` plus `GET …/health` and `GET …/ready` on n8n's own server in the `n8n.ready` hook and applies events via n8n's internal repositories
 
 ## Architecture
 
@@ -24,10 +24,12 @@ subscriber/index.ts ── export = createSubscriberHooks({ ready })
 
 ### Delivery semantics
 
-- **Per-target serialized queue** (`publisher/sender.ts`): events for a given target are delivered one at a time in hook order; a slow target never delays others. Hooks only enqueue (fire-and-forget) so n8n stays responsive.
-- **The queue is still in-memory** — undelivered events are lost on restart, but every emitted event now carries a durable `eventId` and monotonic per-entity `entityRevision`, persisted by the publisher under `SYNC_PUBLISHER_STATE_PATH`.
-- **Subscriber ordering is durable** (`subscriber/order-state.ts`): the last applied revision for each `(sourceId, entity)` is persisted under `SYNC_SUBSCRIBER_STATE_PATH`, including delete tombstones, so stale upserts / archives / deletes are rejected after restart.
-- **Auth is dual-mode** (`SYNC_AUTH_MODE`, default `hmac`): per-request HMAC-SHA256 of `<timestamp>.<rawBody>` (replay-protected, re-signed per retry attempt) or static `x-sync-token` bearer. In hmac mode the subscriber also rejects an exact replay of the same signed request from a bounded in-memory cache. Subscriber authenticates exact raw bytes from n8n's global `rawBodyReader` (`req.rawBody`) when available, otherwise from the unread request stream, and fails closed if only a pre-parsed body remains.
+- **Per-entity preparation order** (`publisher/hooks.ts`): async hook preparation and emission are serialized per source entity from hook entry, so a blocked workflow/credential/execution lookup cannot let a later same-entity archive/delete/update allocate and emit first. Unrelated entities prepare concurrently. Dropped preparations emit no event and consume no revision, but they release the same-entity chain.
+- **Per-target serialized queue** (`publisher/sender.ts`): events for a given target are delivered one at a time in emitted hook order; a slow target never delays others. Hooks only enqueue (fire-and-forget) so n8n stays responsive.
+- **The queue is still in-memory** — undelivered events are lost on restart, but every emitted event now carries a durable `eventId` and monotonic per-entity `entityRevision`, persisted with the explicit `SYNC_SOURCE_ID` by the publisher under `SYNC_PUBLISHER_STATE_PATH`.
+- **Subscriber ordering is durable** (`subscriber/order-state.ts`): the last applied revision for each `(sourceId, entity)` is persisted under `SYNC_SUBSCRIBER_STATE_PATH`, including delete tombstones, so stale upserts / archives / deletes are rejected after restart. Format `2` stores keys as JSON tuples `[sourceId, entityKind, entityId]`; format `1` subscriber state is refused with backup/reset/resync guidance because its colon-separated keys are ambiguous.
+- **Current persistence is file-backed**: JSON state writes are atomic per file only; they are not atomic with n8n database mutations or other JSON files, and they do not make multi-process subscriber or publisher topologies safe. Keep docs explicit about these residual crash windows until STATE-01/IDENTITY-02/EXECUTION-01 are implemented and Docker-verified.
+- **Auth is dual-mode** (`SYNC_AUTH_MODE`, default `hmac`): per-request HMAC-SHA256 of `<timestamp>.<rawBody>` (replay-protected, re-signed per retry attempt) or static `x-sync-token` bearer. In hmac mode the subscriber rejects an exact replay of the same signed request from a process-local in-memory cache after success and while an identical request is in flight. `SYNC_REPLAY_CACHE_SIZE` bounds completed entries; in-flight entries are transient and are not evicted before completion/release. Parse, validation, and application failures release the replay reservation so the exact request can be retried. Subscriber authenticates exact raw bytes from n8n's global `rawBodyReader` (`req.rawBody`) when available, otherwise from the unread request stream, and fails closed if only a pre-parsed body remains. If `req.rawBody` and `req.body` both exist, HMAC mode parses and applies `req.rawBody` and ignores the pre-parsed object.
 
 ### Entry pattern
 
@@ -65,7 +67,7 @@ Deliberately not wired: `workflow.preExecute` (fires per execution with no execu
 All `process.env.SYNC_ENTITIES` access lives in `src/shared/config.ts` as a `ReadonlySet<'workflows' | 'credentials' | 'executions'>`. When the env var is absent or blank it defaults to `workflows,credentials` (legacy behavior — executions are off). Explicit invalid names fail startup instead of silently falling back. Both sides gate on it:
 
 - **Publisher** (`publisher/hooks.ts` + `publisher/index.ts`): when an entity is disabled, the corresponding hook handler is **not wired at all** (key absent from the returned hook map), so n8n pays zero fan-out overhead for it. E.g. with the default value the publisher emits no execution events — `workflow.postExecute` is re-registered only when `SYNC_ENTITIES` includes `executions`.
-- **Subscriber** (`subscriber/applier.ts` + `subscriber/index.ts`): when `executions` is disabled, `buildN8nSyncRepositories` skips resolving the `ExecutionRepository` entirely (so the symbol can be absent from the loaded `@n8n/db`), and the applier logs + drops any stray `execution.*` events that arrive.
+- **Subscriber** (`subscriber/applier.ts` + `subscriber/index.ts`): `buildN8nSyncRepositories` skips disabled workflow, credential, and execution repository services where the selected entity set does not require them. The applier enforces the allowed set before ordering inspection or repository access; valid events for disabled families return non-retryable HTTP `422` with `{ "error": "sync entity disabled", "code": "SYNC_ENTITY_DISABLED", "entity": "workflows" | "credentials" | "executions" }`.
 
 ## Key Gotchas
 
@@ -73,14 +75,16 @@ All `process.env.SYNC_ENTITIES` access lives in `src/shared/config.ts` as a `Rea
 - **`workflow.activate` fires before commit** — the applier treats it as an upsert so state converges on the next event.
 - **Credential `data` sync is encrypted-string-only** — publish and accept only the stored encrypted blob. Drop or reject object-form payloads rather than assuming repository `save()` will encrypt them. All instances must share `N8N_ENCRYPTION_KEY`. Never attempt to decrypt it.
 - **Credential create publication is id-only** — on the pinned n8n `2.31.2` contract used by this repo's example images, publish immediately when the hook payload includes `credential.id` and `data`, or briefly retry `dbCollections.Credentials.findOne({ where: { id } })` when only the stable id is available. Never fall back to `{name, type}`; payloads without `id` must be logged and dropped to avoid cross-publishing another credential.
-- **`SYNC_TARGET_PROJECT_ID` (default empty)** — when set, newly created workflows/credentials are linked to that project. When empty, the applier falls back to the target instance owner's personal project (resolved lazily via `UserRepository` + `ProjectRepository.getPersonalProjectForUser`, cached for the process lifetime including the negative case). The fallback makes synced entities visible through the target's Public API without explicit configuration. An explicit `SYNC_TARGET_PROJECT_ID` always wins.
+- **`SYNC_TARGET_PROJECT_ID` (default empty)** — when set, newly created workflows/credentials are linked to that project on a best-effort basis. When empty, the applier falls back to the target instance owner's personal project (resolved lazily via `UserRepository` + `ProjectRepository.getPersonalProjectForUser`, cached for the process lifetime including the negative case). Owner-link failures are logged but are not currently retryable or transactional with the entity mutation. An explicit `SYNC_TARGET_PROJECT_ID` always wins.
 - **`SYNC_APPLY_ACTIVE_STATE` (default false)** — writing `active`/`activeVersionId` to the target DB does not register triggers with the target's active workflow manager.
 - **Repository access** happens only inside the `n8n.ready` hook, where n8n's DI `Container` is initialized. Resolving it earlier crashes.
 - Deletes/archives for unknown IDs are no-ops (`update`/`delete` on missing rows) — sync is eventually consistent by design.
-- **Mutation ordering is two-layered.** The subscriber first enforces source-scoped `entityRevision` ordering (durable across restart, including delete tombstones), then the upsert paths still use the row timestamp guard (`updatedAt` for workflows/credentials, `stoppedAt` for executions) to avoid regressing a newer stored snapshot.
+- **Mutation ordering is two-layered.** After subscriber entity selection accepts the event family, the subscriber enforces source-scoped `entityRevision` ordering (durable across restart, including delete tombstones), then the upsert paths use the row timestamp guard (`updatedAt` for workflows/credentials, `stoppedAt` for executions). After revision ordering accepts a newer event, equal timestamps may update the row; older timestamps are rejected without advancing the checkpoint. A valid event for a disabled family returns `422 SYNC_ENTITY_DISABLED` before ordering/repository/identity access. A distinct `eventId` that reuses an already-applied `entityRevision` returns `409 SYNC_REVISION_CONFLICT`; the entity and checkpoint stay unchanged. Treat both as non-retryable protocol/configuration failures, not retryable subscriber failures.
+- **Publisher source identity is explicit and source-bound.** When `SYNC_SUBSCRIBER_URLS` enables delivery, `SYNC_SOURCE_ID` must be non-blank and no longer than the subscriber's 512-character ID limit. Publisher state format `3` stores that `sourceId` with JSON tuple entity keys; legacy publisher formats `1` and `2` migrate to format `3` using the configured source ID. A later configured/stored mismatch fails startup with source-rotation guidance instead of silently changing identity. The file-backed publisher allocator also creates a best-effort `.lock` next to `SYNC_PUBLISHER_STATE_PATH` and rejects another live process using the same path; remove only verified stale lock files after stopping duplicate publishers.
+- **Source ownership enforcement is not complete.** IDENTITY-01 selected multi-source aggregation with source-bound credentials, target-generated workflow/credential IDs, and durable ownership mappings, but production workflow/credential writes still use source-provided target IDs until IDENTITY-02 lands. Do not document native-row or cross-source collision safety as implemented.
 - **Execution payloads are intentionally minimal** — the publisher's `workflow.postExecute` handler maps only the scalar lifecycle columns exposed by that hook (`id`, `workflowId`, `status`, `mode`, `finished`, `startedAt`, `stoppedAt`) and a best-effort `workflowSnapshot`. Per-step `fullRunData` is dropped to keep payloads small; the target gains an `execution_entity` row but not the `execution_data` blob. Subscriber-side reads via the Public API will see the summary but not the run detail.
 - **StartedAt / createdAt are immutable post-insert** on `execution_entity` — the applier mirrors n8n's own `updateExistingExecution` semantics and drops them from update payloads.
-- **HMAC verification needs exact raw bytes** — authenticate before JSON parsing. Use `req.rawBody` (n8n sets this globally) or the unread stream. Do not verify against a re-serialized `req.body`; in hmac mode that path must fail closed. Token mode may still reuse `req.body` after token verification.
+- **HMAC verification needs exact raw bytes** — authenticate before JSON parsing, then parse and apply those same bytes. Use `req.rawBody` (n8n sets this globally) or the unread stream. Do not verify against a re-serialized `req.body`; in hmac mode that path must fail closed, and any divergent pre-parsed `req.body` must be ignored. Token mode may still reuse `req.body` after token verification.
 - **Auth modes do not cross-accept** — a token-mode subscriber rejects hmac-signed requests and vice versa. Both sides must use the same `SYNC_AUTH_MODE`.
 - **Tag-based filtering on the source only** — `SYNC_FILTER_BY_TAG` rewrites the publisher's `active` field and may emit `workflow.delete` in place of `workflow.upsert`; the subscriber never sees or honors tag fields. Preserve this asymmetry when modifying either side.
 
@@ -110,10 +114,14 @@ When `SYNC_FILTER_BY_TAG=false` (default): workflows pass through unmodified, th
 
 ```bash
 pnpm build       # tsup → dist/publisher.cjs + dist/subscriber.cjs
-pnpm test        # vitest unit tests (9 files, 140 tests)
+pnpm test        # vitest unit tests
 npx tsc --noEmit -p tsconfig.json         # typecheck src
 npx tsc --noEmit -p tsconfig.tests.json   # typecheck src + tests
+npx tsc --noEmit -p tsconfig.contract-tests.json # typecheck compile-only contract fixtures
+pnpm pack:verify # materialize release metadata, pack, inspect, CJS-consume, verify publish metadata
 ```
+
+Release metadata is materialized by `scripts/materialize-release-metadata.mjs` from the repo-root `VERSION` and root package metadata before packing. The release workflow must run `pnpm --filter @egose/n8n-sync build` and `pnpm --filter @egose/n8n-sync pack:verify` before publication.
 
 Smoke-check bundle shape after building:
 
@@ -139,7 +147,7 @@ src/
     http.ts       — fetch POST with backoff retry, timeout, per-attempt auth headers
     body.ts       — zero-dep request-body reader preserving raw bytes (rawBody → stream → re-serialize)
     auth.ts       — HMAC sign/verify + exact-request replay cache + bearer token check + SyncAuthMode dispatcher
-    ordering.ts   — entity key derivation, decimal revision helpers, atomic JSON persistence helpers
+    ordering.ts   — entity key derivation, decimal revision helpers, per-file atomic JSON persistence helpers
     validate.ts   — parseSyncEvent payload guard
   publisher/
     hooks.ts      — createPublisherHooks(deps) → IExternalHooksFileData (gates per-resource on SYNC_ENTITIES; respects SYNC_FILTER_BY_TAG; stamps eventId/entityRevision)
@@ -148,10 +156,11 @@ src/
     index.ts      — wires one sender per SYNC_SUBSCRIBER_URLS entry, fan-out emit; reads filterByTag/syncWorkflowTag/activeTag from config; export =
   subscriber/
     hooks.ts      — createSubscriberHooks(deps) → n8n.ready
-    n8n-runtime.ts— lazy require of @n8n/di + @n8n/db repositories (ExecutionRepository resolved only when SYNC_ENTITIES includes executions)
+    n8n-runtime.ts— lazy require of @n8n/di + @n8n/db repositories (disabled entity-family repositories are not resolved where possible)
     applier.ts    — createApplier(repos, opts): idempotent upsert/delete/archive/execution-upsert with durable per-source/entity ordering before the row timestamp guard
     order-state.ts— durable subscriber ordering/tombstone store keyed by `(sourceId, entity)`
-    routes.ts     — createSyncRouteHandler (auth → validate → apply) + mountSyncRoutes (events + health)
+    execution-identity.ts — file-backed source-execution to target-execution mapping, derived from `SYNC_SUBSCRIBER_STATE_PATH`
+    routes.ts     — createSyncRouteHandler (readiness → auth → validate → apply) + mountSyncRoutes (events + health + ready)
     index.ts      — wires ready handler; export =
 tests/            — vitest unit tests (factories only, never entry files)
 ```

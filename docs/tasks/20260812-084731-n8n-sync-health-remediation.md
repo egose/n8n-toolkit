@@ -384,6 +384,10 @@ Verification status:
 - Passed: `pnpm --filter @egose/n8n-sync build`
 - Blocked: docker-backed execution integration verification
 
+Resolution note 2026-08-23:
+
+- This task remains `blocked`, not completed. Later `INTEGRATION-01` evidence proved the then-current file-backed execution mapping path against the pinned Docker stack, but the residual plan in `20260823-114633-n8n-sync-residual-health-remediation.md` supersedes the acceptance criteria with an atomic transactional identity requirement tracked by its `EXECUTION-01` task. That task is still blocked by `STATE-01`/`DESIGN-01` integration verification.
+
 ### Task EXECUTION-02: Define A Safe Execution Summary Lifecycle
 
 Status: blocked
@@ -451,6 +455,10 @@ Verification status:
 - Passed: `pnpm --filter @egose/n8n-sync build`
 - Blocked: `docker compose -f sandbox/docker-compose.yml ps`
 - Blocked: docker-backed execution integration verification
+
+Resolution note 2026-08-23:
+
+- This task remains `blocked`, not completed. Later `INTEGRATION-01` evidence covered the prior execution lifecycle/API scope on the file-backed implementation, but the residual plan now tracks annotation/tag/pruning restart coverage and atomic execution identity under `ASSURANCE-01` and `EXECUTION-01`. Those items remain blocked until `STATE-01`/`DESIGN-01` are verified with root Docker integration.
 
 ## Wave 3: Subscriber Boundaries And Persistence
 

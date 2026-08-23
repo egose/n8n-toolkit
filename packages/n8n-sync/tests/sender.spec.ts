@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '../src/shared/logger';
 import type { SyncEvent, SyncWorkflowDto } from '../src/shared/types';
@@ -88,13 +88,16 @@ function eventResourceId(event: SyncEvent): string {
   }
 }
 
-function makeSenderOptions(fetchImpl: typeof fetch, overrides: Partial<{ maxQueueSize: number }> = {}) {
+function makeSenderOptions(
+  fetchImpl: typeof fetch,
+  overrides: Partial<{ maxAttempts: number; maxQueueSize: number; timeoutMs: number }> = {},
+) {
   return {
     baseUrl: 'https://target.example.com',
     eventsPath: '/rest/sync/v1/events',
     auth: { mode: 'hmac', secret: 's3cret' } as const, // pragma: allowlist secret
-    timeoutMs: 1000,
-    maxAttempts: 1,
+    timeoutMs: overrides.timeoutMs ?? 1000,
+    maxAttempts: overrides.maxAttempts ?? 1,
     maxQueueSize: overrides.maxQueueSize,
     log,
     fetchImpl,
@@ -105,6 +108,10 @@ function makeSenderOptions(fetchImpl: typeof fetch, overrides: Partial<{ maxQueu
 describe('createEventSender', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('posts to <baseUrl><eventsPath>', async () => {
@@ -169,6 +176,61 @@ describe('createEventSender', () => {
     sender.send(makeEvent('wf-2'));
     await sender.drain();
 
+    expect(delivered).toEqual(['wf-2']);
+    expect(log.error).toHaveBeenCalled();
+  });
+
+  it('does not let stalled failed response disposal block subsequent queued events', async () => {
+    vi.useFakeTimers();
+
+    const delivered: string[] = [];
+    const readers: Array<{
+      read: ReturnType<typeof vi.fn>;
+      cancel: ReturnType<typeof vi.fn>;
+      releaseLock: ReturnType<typeof vi.fn>;
+    }> = [];
+    const fetchImpl = vi.fn().mockImplementation(((_url: string, init: RequestInit) => {
+      const id = JSON.parse(init.body as string).workflowId as string;
+      if (id === 'wf-1') {
+        const reader = {
+          read: vi.fn(() => new Promise<ReadableStreamReadResult<Uint8Array>>(() => undefined)),
+          cancel: vi.fn(() => new Promise<void>(() => undefined)),
+          releaseLock: vi.fn(),
+        };
+        readers.push(reader);
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          headers: new Headers(),
+          body: {
+            getReader: () => reader,
+          } as unknown as Response['body'],
+        } as Response);
+      }
+
+      delivered.push(id);
+      return Promise.resolve({ ok: true, status: 200, headers: new Headers(), body: null } as Response);
+    }) as unknown as typeof fetch);
+
+    const sender = createEventSender(makeSenderOptions(fetchImpl, { maxAttempts: 2, timeoutMs: 50 }));
+
+    sender.send(makeEvent('wf-1'));
+    sender.send(makeEvent('wf-2'));
+    const drained = sender.drain();
+
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(50);
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(50);
+    await drained;
+
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(readers).toHaveLength(2);
+    for (const reader of readers) {
+      expect(reader.read).toHaveBeenCalledTimes(1);
+      expect(reader.cancel).toHaveBeenCalledTimes(1);
+      expect(reader.releaseLock).toHaveBeenCalledTimes(1);
+    }
     expect(delivered).toEqual(['wf-2']);
     expect(log.error).toHaveBeenCalled();
   });

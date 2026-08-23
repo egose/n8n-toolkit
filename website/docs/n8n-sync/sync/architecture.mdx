@@ -24,8 +24,9 @@ subscriber/index.ts ── export = createSubscriberHooks({ ready })
 
 - **Entry file** (`publisher/index.ts`) ends with `export = createPublisherHooks(...)`. n8n loads hook files via `require()` and expects the hook map directly (`IExternalHooksFileData`).
 - **`emit`** is a fan-out function that enqueues one event per target URL into one `createEventSender` per entry in `SYNC_SUBSCRIBER_URLS`.
-- **`createEventSender`** (`publisher/sender.ts`) maintains a per-target **serialized in-memory queue**. Events for a given target are delivered one at a time in hook order; a slow target never delays others. Hooks themselves only enqueue (fire-and-forget) so n8n stays responsive.
+- **`createEventSender`** (`publisher/sender.ts`) maintains a per-target serialized in-memory queue. Events for a given target are delivered one at a time in emitted hook order; a slow target never delays others. Exact queued duplicates of the same semantic operation may be coalesced, but mixed operations stay ordered. Hooks themselves only enqueue (fire-and-forget) so n8n stays responsive.
 - **`sendSyncEvent`** (`shared/http.ts`) performs a `fetch` POST with timeout and exponential-backoff retry (1s, 2s, 4s, capped at 10s). Every attempt re-signs the request (HMAC mode) so a retried request gets a fresh timestamp.
+- **Event ordering** (`publisher/order-state.ts`) allocates a unique source-scoped `eventId` and monotonic per-entity `entityRevision`. When delivery is enabled, `SYNC_SOURCE_ID` is required and persisted with the counters under `SYNC_PUBLISHER_STATE_PATH`.
 
 ### Wired hooks → events
 
@@ -45,17 +46,17 @@ Deliberately **not** wired: `workflow.preExecute` (fires per execution with no e
 
 ### `SYNC_ENTITIES` gating
 
-All `SYNC_ENTITIES` access lives in `src/shared/config.ts` as a `ReadonlySet<'workflows' | 'credentials' | 'executions'>`. Unknown names are dropped; when the env var is empty it defaults to `workflows,credentials` (executions are off).
+All `SYNC_ENTITIES` access lives in `src/shared/config.ts` as a `ReadonlySet<'workflows' | 'credentials' | 'executions'>`. When the env var is absent or blank, it defaults to `workflows,credentials` (executions are off). Explicit invalid names fail startup, and `executions` requires `workflows`.
 
 When an entity is disabled, the corresponding hook handler is **not wired at all** — the key is absent from the returned hook map. n8n pays zero fan-out overhead for it. For example, with the default value the publisher emits no execution events; `workflow.postExecute` is re-registered only when `executions` is in `SYNC_ENTITIES`.
 
 ## Subscriber side
 
-The subscriber mounts `POST /rest/sync/v1/events` (+ `GET …/health`) on n8n's own server inside the `n8n.ready` hook, and applies events via n8n's internal repositories.
+The subscriber mounts `POST /rest/sync/v1/events` plus `GET …/health` and `GET …/ready` on n8n's own server inside the `n8n.ready` hook, and applies events via n8n's internal repositories.
 
-- **`n8n.ready`** is the only hook the subscriber wires. It resolves n8n's DI `Container` and from it pulls the `WorkflowRepository`, `CredentialsRepository`, `ProjectRepository`, `UserRepository`, and — only when `executions` is in `SYNC_ENTITIES` — `ExecutionRepository`. Resolving DI earlier crashes; nothing in the bundle touches the container before `ready` fires.
-- **`createApplier(repos, opts)`** (`subscriber/applier.ts`) is the heart of the subscriber. It is idempotent and last-write-wins on a monotonic timestamp.
-- **`createSyncRouteHandler`** + **`mountSyncRoutes`** (`subscriber/routes.ts`) wire the HTTP entry point. The flow per request is: authenticate → validate → apply → 204 No Content.
+- **`n8n.ready`** is the only hook the subscriber wires. It resolves n8n's DI `Container` and from it pulls only the repository services needed for enabled entity families. Resolving DI earlier crashes; nothing in the bundle touches the container before `ready` fires.
+- **`createApplier(repos, opts)`** (`subscriber/applier.ts`) is the heart of the subscriber. It enforces source-scoped revision ordering before repository writes, then uses row timestamp guards for last-write-wins behavior.
+- **`createSyncRouteHandler`** + **`mountSyncRoutes`** (`subscriber/routes.ts`) wire the HTTP entry point. The flow per request is: readiness → authenticate → validate → apply → `200 { "ok": true }`.
 
 ### Wire format
 
@@ -63,7 +64,10 @@ The wire payload is the `SyncEvent` discriminated union in `src/shared/types.ts`
 
 ### Idempotency and ordering
 
-Upserts are **last-write-wins on a monotonic timestamp** (`isStaleEvent` in `applier.ts`):
+Ordering has two layers:
+
+1. Source-scoped `entityRevision` ordering is persisted under `SYNC_SUBSCRIBER_STATE_PATH`, including delete tombstones.
+2. Accepted upserts then use a row timestamp guard to avoid regressing target rows.
 
 | Entity      | Invariant column | Note                                                                |
 | ----------- | ----------------- | ------------------------------------------------------------------- |
@@ -71,14 +75,16 @@ Upserts are **last-write-wins on a monotonic timestamp** (`isStaleEvent` in `app
 | Credentials | `updatedAt`       | Same guard.                                                          |
 | Executions  | `stoppedAt`       | In-flight executions (`stoppedAt: null`) skip the guard so a later delivery can still converge state. |
 
-This guards out-of-order delivery and makes retry re-deliveries no-ops. Deletes and archives are applied unconditionally; a delete for an unknown id is a no-op.
+Exact duplicate deliveries with the same `eventId` and `entityRevision` are no-ops. A distinct `eventId` that reuses an already-applied `entityRevision` returns `409 SYNC_REVISION_CONFLICT` and does not modify the entity or checkpoint. After revision ordering accepts a newer event, equal timestamps may update the row; older timestamps are rejected without advancing the checkpoint.
+
+Deletes and archives for unknown ids are no-ops. Workflow deletion also removes mapped synced execution rows for that source/workflow before deleting the workflow.
 
 ## Conventions
 
 - All `process.env` access lives in `src/shared/config.ts` — nowhere else in the bundle.
 - n8n payload types (`IWorkflowBase`, `ICredentialsDb`, `N8nServer`) are local minimal copies in `src/shared/types.ts`. The package must stay free of n8n dependencies.
 - The logger is the zero-dep structured JSON logger in `src/shared/logger.ts` (`createLogger(module)`).
-- The subscriber uses n8n's global `rawBodyReader` middleware, reading request bodies from `req.rawBody` when available, with a zero-dep stream read and a `JSON.stringify` body fallback. HMAC verification uses the exact raw bytes — never a re-serialized body when rawBody is available.
+- The subscriber uses n8n's global `rawBodyReader` middleware, reading request bodies from `req.rawBody` when available, with a zero-dep stream read fallback. HMAC mode fails closed if only a pre-parsed `req.body` remains, because verification must use the exact raw bytes that are parsed and applied.
 
 ## Before and after
 
@@ -103,6 +109,7 @@ This guards out-of-order delivery and makes retry re-deliveries no-ops. Deletes 
     # source instance
     export EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs
     export SYNC_SUBSCRIBER_URLS=https://target.example.com
+    export SYNC_SOURCE_ID=prod-source-a
     export SYNC_SHARED_SECRET=<secret>
 
     # target instance

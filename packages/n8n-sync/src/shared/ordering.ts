@@ -29,6 +29,31 @@ export interface AppliedEventState {
 
 export type OrderedEventDecision = 'apply' | 'duplicate' | 'stale' | 'conflict';
 
+export type StateStoreStatusReason = 'not_initialized' | 'invalid_state' | 'unwritable' | 'storage_error';
+
+export type StateStoreStatus =
+  | { ready: true }
+  | { ready: false; reason: StateStoreStatusReason; degradedSince?: string };
+
+export interface StatefulStore {
+  initialize(): Promise<void>;
+  getStatus(): StateStoreStatus;
+}
+
+const SYNC_EVENT_TYPES = new Set<SyncEventType>([
+  'credentials.upsert',
+  'credentials.delete',
+  'workflow.upsert',
+  'workflow.activate',
+  'workflow.delete',
+  'workflow.archive',
+  'execution.upsert',
+]);
+
+export function isSyncEventType(value: unknown): value is SyncEventType {
+  return typeof value === 'string' && SYNC_EVENT_TYPES.has(value as SyncEventType);
+}
+
 export function compareDecimalStrings(left: string, right: string): number {
   const leftValue = BigInt(left);
   const rightValue = BigInt(right);
@@ -44,26 +69,82 @@ export function isDecimalString(value: unknown): value is string {
   return typeof value === 'string' && /^[0-9]+$/.test(value);
 }
 
+export function isValidIsoTimestamp(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length === 0) return false;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed);
+}
+
+export function decodeOrderingTupleKey(key: string, length: 2): readonly [SyncEntityKind, string] | undefined;
+export function decodeOrderingTupleKey(key: string, length: 3): readonly [string, SyncEntityKind, string] | undefined;
+export function decodeOrderingTupleKey(key: string, length: 2 | 3): readonly string[] | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(key);
+  } catch {
+    return undefined;
+  }
+
+  if (!Array.isArray(parsed) || parsed.length !== length || !parsed.every((part) => typeof part === 'string')) {
+    return undefined;
+  }
+
+  const kind = length === 2 ? parsed[0] : parsed[1];
+  return kind === 'workflow' || kind === 'credential' || kind === 'execution' ? parsed : undefined;
+}
+
+export function encodeOrderingTupleKey(parts: readonly string[]): string {
+  return JSON.stringify(parts);
+}
+
+export function getEntityOrderingKey(entity: { kind: SyncEntityKind; id: string }): string {
+  return encodeOrderingTupleKey([entity.kind, entity.id]);
+}
+
+export function getSourceEntityOrderingKey(sourceId: string, entity: { kind: SyncEntityKind; id: string }): string {
+  return encodeOrderingTupleKey([sourceId, entity.kind, entity.id]);
+}
+
 export function getSyncEventEntityRef(event: SyncEventLike): SyncEventEntityRef {
   switch (event.type) {
     case 'workflow.upsert':
     case 'workflow.activate':
-      return { kind: 'workflow', id: event.workflow.id, key: `workflow:${event.workflow.id}` };
+      return {
+        kind: 'workflow',
+        id: event.workflow.id,
+        key: getEntityOrderingKey({ kind: 'workflow', id: event.workflow.id }),
+      };
     case 'workflow.delete':
     case 'workflow.archive':
-      return { kind: 'workflow', id: event.workflowId, key: `workflow:${event.workflowId}` };
+      return {
+        kind: 'workflow',
+        id: event.workflowId,
+        key: getEntityOrderingKey({ kind: 'workflow', id: event.workflowId }),
+      };
     case 'credentials.upsert':
-      return { kind: 'credential', id: event.credential.id, key: `credential:${event.credential.id}` };
+      return {
+        kind: 'credential',
+        id: event.credential.id,
+        key: getEntityOrderingKey({ kind: 'credential', id: event.credential.id }),
+      };
     case 'credentials.delete':
-      return { kind: 'credential', id: event.credentialId, key: `credential:${event.credentialId}` };
+      return {
+        kind: 'credential',
+        id: event.credentialId,
+        key: getEntityOrderingKey({ kind: 'credential', id: event.credentialId }),
+      };
     case 'execution.upsert':
-      return { kind: 'execution', id: event.execution.id, key: `execution:${event.execution.id}` };
+      return {
+        kind: 'execution',
+        id: event.execution.id,
+        key: getEntityOrderingKey({ kind: 'execution', id: event.execution.id }),
+      };
   }
 }
 
 export function getSourceEntityStateKey(event: SyncEvent): string {
   const entity = getSyncEventEntityRef(event);
-  return `${event.sourceId}:${entity.key}`;
+  return getSourceEntityOrderingKey(event.sourceId, entity);
 }
 
 export function classifyOrderedEvent(existing: AppliedEventState | undefined, event: SyncEvent): OrderedEventDecision {

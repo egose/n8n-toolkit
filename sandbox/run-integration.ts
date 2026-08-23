@@ -39,6 +39,7 @@ const INTEGRATION_SCENARIOS = [
     label: 'workspace-default',
     env: {
       N8N_SYNC_BUNDLE_SOURCE: 'workspace',
+      N8N_SYNC_METADATA_PROTOTYPE: '1',
       SYNC_FILTER_BY_TAG: 'false',
       SYNC_MAX_QUEUE_SIZE: '1000',
     },
@@ -47,6 +48,7 @@ const INTEGRATION_SCENARIOS = [
     label: 'packed-filtered',
     env: {
       N8N_SYNC_BUNDLE_SOURCE: 'packed',
+      N8N_SYNC_METADATA_PROTOTYPE: '1',
       SYNC_FILTER_BY_TAG: 'true',
       SYNC_WORKFLOW_TAG: 'sync',
       SYNC_ACTIVE_TAG: 'active',

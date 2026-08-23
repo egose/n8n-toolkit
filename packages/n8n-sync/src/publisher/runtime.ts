@@ -1,7 +1,5 @@
-import { hostname } from 'node:os';
-
 import type { SyncConfig } from '../shared/config';
-import { createLogger } from '../shared/logger';
+import { createLogger, logError } from '../shared/logger';
 import type { SyncEvent } from '../shared/types';
 import { createPublisherHooks } from './hooks';
 import { createEventOrderingAllocator } from './order-state';
@@ -12,7 +10,6 @@ export interface PublisherHookRuntimeDeps {
   createEventSender?: typeof createEventSender;
   createEventOrderingAllocator?: typeof createEventOrderingAllocator;
   createPublisherHooks?: typeof createPublisherHooks;
-  hostname?: () => string;
 }
 
 export function createPublisherHookConfig(config: SyncConfig, deps: PublisherHookRuntimeDeps = {}) {
@@ -20,9 +17,8 @@ export function createPublisherHookConfig(config: SyncConfig, deps: PublisherHoo
   const eventSenderFactory = deps.createEventSender ?? createEventSender;
   const orderingFactory = deps.createEventOrderingAllocator ?? createEventOrderingAllocator;
   const hooksFactory = deps.createPublisherHooks ?? createPublisherHooks;
-  const getHostname = deps.hostname ?? hostname;
   const log = loggerFactory('N8nSyncPublisher', { minLevel: config.logLevel });
-  const sourceId = config.publisher.sourceId || getHostname();
+  const sourceId = config.publisher.sourceId || 'disabled';
 
   // One serialized sender per target: deliveries to a given target happen in
   // hook order, and a slow/unreachable target never delays the others.
@@ -72,7 +68,7 @@ export function createPublisherHookConfig(config: SyncConfig, deps: PublisherHoo
     statePath: config.publisher.publisherStatePath,
   });
 
-  log.info('n8n-sync publisher hooks registered', {
+  const logContext = {
     sourceId,
     authMode: config.auth.mode,
     targets: senders.length ? config.publisher.subscriberUrls : '(disabled)',
@@ -80,7 +76,34 @@ export function createPublisherHookConfig(config: SyncConfig, deps: PublisherHoo
     orderingStatePath: config.publisher.publisherStatePath,
     entities,
     ...tagFilter,
-  });
+  };
 
-  return hooksFactory({ emit, log, sourceId, ordering, entities, ...tagFilter });
+  if (senders.length > 0) {
+    log.info('Initializing n8n-sync publisher state...', logContext);
+    void ordering
+      .initialize()
+      .then(() => {
+        log.info('n8n-sync publisher hooks registered', logContext);
+      })
+      .catch((error) => {
+        logError(log, error, { context: 'publisher state readiness initialization' });
+        const status = ordering.getStatus();
+        log.warn('n8n-sync publisher hooks registered in degraded state', {
+          ...logContext,
+          ...(status.ready === true ? {} : { reason: status.reason }),
+        });
+      });
+  } else {
+    log.info('n8n-sync publisher hooks registered', logContext);
+  }
+
+  return hooksFactory({
+    emit,
+    log,
+    sourceId,
+    ordering,
+    orderingStatus: () => ordering.getStatus(),
+    entities,
+    ...tagFilter,
+  });
 }

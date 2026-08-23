@@ -17,7 +17,7 @@ sidebar_position: 1
 | `workflow.afterArchive` / `workflow.afterUnarchive`      | `workflow.archive`   | workflows    |
 | `workflow.postExecute` ★                                | `execution.upsert`   | executions ★ |
 
-★ `workflow.postExecute` is **opt-in** — see the [`SYNC_ENTITIES` setting](/n8n-sync/sync/environment/) below.
+★ `workflow.postExecute` is **opt-in** — see the [`SYNC_ENTITIES` setting](/n8n-sync/sync/environment/) below. `executions` requires `workflows`.
 
 ## Hook selection rationale
 
@@ -41,9 +41,20 @@ When an entity is **not** in `SYNC_ENTITIES`, the corresponding hook handler is 
 | `workflows,credentials,executions` | Above, plus `workflow.postExecute`. The subscriber resolves `ExecutionRepository`. |
 | `workflows`                       | Workflow hooks only; credentials hooks are absent.                          |
 | `credentials`                     | Credentials hooks only; workflow hooks are entirely absent.                  |
-| `executions`                      | Only `workflow.postExecute` (wired under the `workflow` key).               |
+| `executions`                      | Invalid. Startup fails because execution sync requires workflow sync.       |
+| `workflows,executions`             | Workflow hooks plus `workflow.postExecute`; credentials hooks are absent.   |
 
-Unknown names are dropped. Empty `SYNC_ENTITIES` falls back to the default (`workflows,credentials`).
+Explicit invalid names fail startup instead of being ignored. An absent or blank `SYNC_ENTITIES` falls back to the default (`workflows,credentials`), but an explicit comma-only empty value is rejected after parsing.
+
+On the subscriber, a valid event for a disabled family returns non-retryable `422` with `SYNC_ENTITY_DISABLED` before repository access, ordering inspection, or execution identity access.
+
+## Credential hook contract
+
+Credential sync only publishes when the hook payload or resolved repository row includes both a stable credential `id` and encrypted string `data`.
+
+- `credentials.create` and `credentials.update` drop object-form credential payloads instead of relying on repository-side encryption.
+- When `credentials.create` includes an `id` but the row is not yet queryable, the publisher briefly retries `dbCollections.Credentials.findOne({ where: { id } })` and emits only that exact row.
+- Payloads without a stable credential `id` are logged and dropped. The publisher never guesses by mutable fields like `{ name, type }`.
 
 ## Filtering by tag
 

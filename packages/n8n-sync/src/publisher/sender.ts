@@ -28,6 +28,13 @@ export interface EventSender {
   drain(): Promise<void>;
 }
 
+interface QueueNode {
+  event: SyncEvent;
+  key: string;
+  previous: QueueNode | undefined;
+  next: QueueNode | undefined;
+}
+
 /**
  * Create a per-target sender with a serialized delivery queue: events are
  * delivered one at a time, in the exact order the hooks fired. Exact
@@ -38,8 +45,11 @@ export interface EventSender {
 export function createEventSender(options: EventSenderOptions): EventSender {
   const url = `${options.baseUrl}${options.eventsPath}`;
   const maxQueueSize = Math.max(1, options.maxQueueSize ?? 1000);
-  const queue: SyncEvent[] = [];
+  const queuedByKey = new Map<string, QueueNode>();
   const idleResolvers = new Set<() => void>();
+  let queueHead: QueueNode | undefined;
+  let queueTail: QueueNode | undefined;
+  let queueSize = 0;
   let draining = false;
 
   const deliver = (event: SyncEvent): Promise<void> =>
@@ -73,7 +83,7 @@ export function createEventSender(options: EventSenderOptions): EventSender {
   };
 
   const resolveIdle = () => {
-    if (draining || queue.length > 0) {
+    if (draining || queueSize > 0) {
       return;
     }
 
@@ -83,6 +93,50 @@ export function createEventSender(options: EventSenderOptions): EventSender {
     idleResolvers.clear();
   };
 
+  const removeNode = (node: QueueNode): void => {
+    if (node.previous) {
+      node.previous.next = node.next;
+    } else {
+      queueHead = node.next;
+    }
+
+    if (node.next) {
+      node.next.previous = node.previous;
+    } else {
+      queueTail = node.previous;
+    }
+
+    queuedByKey.delete(node.key);
+    queueSize -= 1;
+    node.previous = undefined;
+    node.next = undefined;
+  };
+
+  const appendEvent = (event: SyncEvent, key: string): void => {
+    const node: QueueNode = { event, key, previous: queueTail, next: undefined };
+
+    if (queueTail) {
+      queueTail.next = node;
+    } else {
+      queueHead = node;
+    }
+
+    queueTail = node;
+    queuedByKey.set(key, node);
+    queueSize += 1;
+  };
+
+  const shiftEvent = (): SyncEvent | undefined => {
+    const node = queueHead;
+    if (!node) {
+      return undefined;
+    }
+
+    const event = node.event;
+    removeNode(node);
+    return event;
+  };
+
   const pumpQueue = async (): Promise<void> => {
     if (draining) {
       return;
@@ -90,8 +144,8 @@ export function createEventSender(options: EventSenderOptions): EventSender {
 
     draining = true;
     try {
-      while (queue.length > 0) {
-        const event = queue.shift();
+      while (queueSize > 0) {
+        const event = shiftEvent();
         if (!event) {
           continue;
         }
@@ -106,7 +160,7 @@ export function createEventSender(options: EventSenderOptions): EventSender {
     } finally {
       draining = false;
       resolveIdle();
-      if (queue.length > 0) {
+      if (queueSize > 0) {
         void pumpQueue();
       }
     }
@@ -114,30 +168,30 @@ export function createEventSender(options: EventSenderOptions): EventSender {
 
   const send = (event: SyncEvent): void => {
     const key = coalescingKey(event);
-    const existingIndex = queue.findIndex((queuedEvent) => coalescingKey(queuedEvent) === key);
-    if (existingIndex >= 0) {
-      queue.splice(existingIndex, 1);
-      options.log.debug('Coalesced queued sync event', { type: event.type, target: url, key });
+    const existing = queuedByKey.get(key);
+    if (existing) {
+      removeNode(existing);
+      options.log.debug('Coalesced queued sync event', { type: event.type, target: url, queueDepth: queueSize });
     }
 
-    if (queue.length >= maxQueueSize) {
-      const dropped = queue.shift();
+    if (queueSize >= maxQueueSize) {
+      const dropped = shiftEvent();
       options.log.warn('Sync queue is full; dropping oldest queued event', {
         target: url,
         droppedType: dropped?.type,
-        droppedKey: dropped ? coalescingKey(dropped) : undefined,
+        queueDepth: queueSize,
         maxQueueSize,
       });
     }
 
-    queue.push(event);
+    appendEvent(event, key);
     void pumpQueue();
   };
 
   return {
     send,
     drain: () =>
-      !draining && queue.length === 0
+      !draining && queueSize === 0
         ? Promise.resolve()
         : new Promise<void>((resolve) => {
             idleResolvers.add(resolve);

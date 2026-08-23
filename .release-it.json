@@ -9,7 +9,7 @@
     "publish": false
   },
   "hooks": {
-    "after:bump": "pnpm changelog"
+    "after:bump": "pnpm changelog && pnpm --filter @egose/n8n-sync release:materialize"
   },
   "plugins": {
     "@release-it/bumper": {

@@ -5,7 +5,9 @@ sidebar_position: 1
 
 # Quick Start
 
-`n8n-sync` is a deployment-style package: you build two CommonJS hook bundles, copy them to your n8n instances, and point n8n at the right file with `EXTERNAL_HOOK_FILES`. There is no `npm install` step at runtime — the bundles are fully self-contained.
+`n8n-sync` is a deployment-style package: you build or download two CommonJS hook bundles, copy them to your n8n instances, and point n8n at the right file with `EXTERNAL_HOOK_FILES`. The hook files are fully self-contained at runtime.
+
+The supported n8n runtime is currently `2.31.2`.
 
 ## 1. Build the bundles
 
@@ -16,6 +18,8 @@ pnpm --filter @egose/n8n-sync build
 ```
 
 This produces `packages/n8n-sync/dist/publisher.cjs` and `packages/n8n-sync/dist/subscriber.cjs` via `tsup`. Each bundle is a single self-contained CJS file with no runtime dependencies.
+
+If you are building an image from the published package instead, use `packages/n8n-sync/examples/Dockerfile.npm` or `packages/n8n-sync/examples/Dockerfile.cdn` as the reference pattern.
 
 ## 2. Copy the bundles to your instances
 
@@ -34,13 +38,16 @@ The exact path is up to you — `n8n-sync` does not care where the bundles live 
 ```bash
 export EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs
 export SYNC_SUBSCRIBER_URLS=https://n8n-target-a.example.com,https://n8n-target-b.example.com
+export SYNC_SOURCE_ID=prod-source-a
 export SYNC_SHARED_SECRET=<shared-secret>
 # optional:
 export SYNC_AUTH_MODE=hmac     # default; or "token" for static bearer
-export SYNC_SOURCE_ID=$(hostname)
+export SYNC_PUBLISHER_STATE_PATH=/home/node/.n8n/sync-state/publisher-ordering.json
 ```
 
-Restart n8n on the source. From this point on, every workflow/credential lifecycle hook fans an event out to every subscriber over HTTPS.
+`SYNC_SOURCE_ID` is required when `SYNC_SUBSCRIBER_URLS` or legacy `SYNC_SUBSCRIBER_URL` is set. Use a stable logical name, not a container hostname or pod name that can change after replacement.
+
+Restart n8n on the source. From this point on, every enabled workflow/credential lifecycle hook fans an event out to every subscriber.
 
 ## 4. Configure each target instance (subscriber)
 
@@ -50,26 +57,30 @@ export SYNC_SHARED_SECRET=<shared-secret>
 # optional:
 export SYNC_AUTH_MODE=hmac    # must match the publisher
 export SYNC_TARGET_PROJECT_ID=<project-id>   # link synced entities to this project
+export SYNC_SUBSCRIBER_STATE_PATH=/home/node/.n8n/sync-state/subscriber-ordering.json
 ```
 
 Restart n8n on the target. On startup the subscriber logs:
 
-```
-info: n8n-sync subscriber routes active. {"module":"subscriber"}
+```json
+{"level":"info","module":"subscriber","msg":"n8n-sync subscriber routes active."}
 ```
 
-and serves an unauthenticated health probe at `GET /rest/sync/v1/health`.
+and serves unauthenticated probes at `GET /rest/sync/v1/health` and `GET /rest/sync/v1/ready`.
+
+`/health` returns 200 after the route is mounted. `/ready` returns 200 only while required file-backed sync state is loaded and writable; `POST /rest/sync/v1/events` returns `503 { "ok": false, "ready": false }` while readiness is false.
 
 ## 5. Verify
 
 Create or update a workflow on the source. Within seconds the same workflow should appear on the target under the same id.
 
-- The publisher writes structured JSON logs (`SYNC_SOURCE_ID`, target URL, event id, attempt count) for every delivery.
+- The publisher writes structured JSON logs with target URL, event type, attempt count, and delivery failures.
 - The subscriber writes structured logs for every applied event (upsert / delete / archive, with the source id and target project assignment).
-- Set `LOG_LEVEL=debug` on either side to see hook payloads, raw-body bytes, and HMAC computations.
+- Set `LOG_LEVEL=debug` on either side for more detailed routing, ordering, and repository logs. Do not log secrets in your own wrappers.
 
 ## Next steps
 
 - [Architecture](/n8n-sync/sync/architecture/) — how events flow and how the subscriber applies them.
 - [Authentication](/n8n-sync/sync/authentication/) — when to use HMAC vs. bearer token.
 - [Environment Variables](/n8n-sync/sync/environment/) — every tunable knob.
+- [Persistence & Readiness](/n8n-sync/sync/persistence-readiness/) — which state files must be persisted.

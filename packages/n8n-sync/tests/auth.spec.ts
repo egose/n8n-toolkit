@@ -123,8 +123,25 @@ describe('createRequestReplayGuard', () => {
     const req = reqWithHeaders(signedHeaders(SECRET, timestamp, BODY));
     const replayGuard = createRequestReplayGuard({ ttlMs: 60_000, nowMs: () => NOW });
 
-    expect(replayGuard.remember(req)).toBe('accepted');
-    expect(replayGuard.remember(req)).toBe('replayed');
+    const reservation = replayGuard.reserve(req);
+    expect(reservation.status).toBe('accepted');
+    reservation.complete();
+    expect(replayGuard.reserve(req).status).toBe('replayed');
+  });
+
+  it('blocks an in-flight exact request until the reservation is released', () => {
+    const timestamp = String(NOW);
+    const req = reqWithHeaders(signedHeaders(SECRET, timestamp, BODY));
+    const replayGuard = createRequestReplayGuard({ ttlMs: 60_000, nowMs: () => NOW });
+
+    const reservation = replayGuard.reserve(req);
+
+    expect(reservation.status).toBe('accepted');
+    expect(replayGuard.reserve(req).status).toBe('replayed');
+
+    reservation.release();
+
+    expect(replayGuard.reserve(req).status).toBe('accepted');
   });
 
   it('expires old entries and keeps the cache bounded', () => {
@@ -134,11 +151,15 @@ describe('createRequestReplayGuard', () => {
     const first = reqWithHeaders(signedHeaders(SECRET, String(NOW), BODY));
     const second = reqWithHeaders(signedHeaders(SECRET, String(NOW + 1), BODY));
 
-    expect(replayGuard.remember(first)).toBe('accepted');
-    expect(replayGuard.remember(second)).toBe('accepted');
+    const firstReservation = replayGuard.reserve(first);
+    const secondReservation = replayGuard.reserve(second);
+    expect(firstReservation.status).toBe('accepted');
+    expect(secondReservation.status).toBe('accepted');
+    firstReservation.complete();
+    secondReservation.complete();
 
     now += 20;
 
-    expect(replayGuard.remember(first)).toBe('accepted');
+    expect(replayGuard.reserve(first).status).toBe('accepted');
   });
 });

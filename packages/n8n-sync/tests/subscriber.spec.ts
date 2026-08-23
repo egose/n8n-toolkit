@@ -1,12 +1,19 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import type { IncomingMessage } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Readable } from 'node:stream';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { signPayload } from '../src/shared/auth';
+import type { SyncEntity } from '../src/shared/config';
 import type { Logger } from '../src/shared/logger';
 import type { SyncEvent } from '../src/shared/types';
+import { createApplier, SyncRevisionConflictError } from '../src/subscriber/applier';
 import { createSubscriberHooks } from '../src/subscriber/hooks';
+import type { N8nSyncRepositories } from '../src/subscriber/n8n-runtime';
+import { createSyncOrderingStore } from '../src/subscriber/order-state';
 import { createSyncRouteHandler, mountSyncRoutes } from '../src/subscriber/routes';
 
 const log: Logger = {
@@ -35,6 +42,69 @@ const validEvent: SyncEvent = {
   workflowId: 'wf-1',
 };
 
+const routeEvents: Record<SyncEntity, SyncEvent> = {
+  workflows: {
+    type: 'workflow.archive',
+    at: '2026-01-01T00:00:00.000Z',
+    sourceId: 'src-1',
+    eventId: 'src-1:wf:1',
+    entityRevision: '1',
+    workflowId: 'wf-1',
+    archived: true,
+  },
+  credentials: {
+    type: 'credentials.delete',
+    at: '2026-01-01T00:00:00.000Z',
+    sourceId: 'src-1',
+    eventId: 'src-1:cred:1',
+    entityRevision: '1',
+    credentialId: 'cred-1',
+  },
+  executions: {
+    type: 'execution.upsert',
+    at: '2026-01-01T00:00:00.000Z',
+    sourceId: 'src-1',
+    eventId: 'src-1:exec:1',
+    entityRevision: '1',
+    execution: {
+      id: 'exec-1',
+      workflowId: 'wf-1',
+      status: 'success',
+      mode: 'manual',
+      finished: true,
+      startedAt: '2026-01-01T00:00:00.000Z',
+      stoppedAt: '2026-01-01T00:00:01.000Z',
+    },
+  },
+};
+
+function makeRouteRepos() {
+  return {
+    workflow: {
+      findOneBy: vi.fn().mockResolvedValue({ id: 'wf-1' }),
+      save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+    },
+    credentials: {
+      findOneBy: vi.fn().mockResolvedValue({ id: 'cred-1' }),
+      save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+    },
+    sharedWorkflow: { findOneBy: vi.fn().mockResolvedValue(null), save: vi.fn(), delete: vi.fn() },
+    sharedCredentials: { findOneBy: vi.fn().mockResolvedValue(null), save: vi.fn(), delete: vi.fn() },
+    user: { findOne: vi.fn().mockResolvedValue(null) },
+    project: { getPersonalProjectForUser: vi.fn().mockResolvedValue(null) },
+    execution: {
+      findOneBy: vi.fn().mockResolvedValue(null),
+      save: vi.fn().mockResolvedValue({ id: 'target-exec-1' }),
+      update: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+    },
+  } as unknown as N8nSyncRepositories;
+}
+
 type TestReq = IncomingMessage & { body?: unknown; rawBody?: Buffer | string };
 
 function makeSignedReq(body: unknown, secret: string, timestamp = String(Date.now())): TestReq {
@@ -58,6 +128,16 @@ function makeRawReq(raw: string, headers: Record<string, string>): TestReq {
   const req = Readable.from([raw]) as TestReq;
   req.headers = headers;
   return req;
+}
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
 }
 
 function makeRes() {
@@ -169,6 +249,27 @@ describe('createSyncRouteHandler (hmac mode, default)', () => {
     expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 
+  it('returns 503 before parsing or applying traffic when readiness is degraded', async () => {
+    const apply = vi.fn().mockResolvedValue(undefined);
+    const readRawBody = vi.fn();
+    const handler = createSyncRouteHandler({
+      auth: HMAC_AUTH,
+      apply,
+      log,
+      ...DEFAULT_ROUTE_DEPS,
+      readRawBody,
+      readiness: () => ({ ready: false, reason: 'invalid_state' }),
+    });
+    const res = makeRes();
+
+    await handler(makeSignedReq(validEvent, SECRET) as never, res as never);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith({ ok: false, ready: false });
+    expect(readRawBody).not.toHaveBeenCalled();
+    expect(apply).not.toHaveBeenCalled();
+  });
+
   it('rejects an exact replay of the same signed request with 409', async () => {
     const apply = vi.fn().mockResolvedValue(undefined);
     const handler = createSyncRouteHandler({ auth: HMAC_AUTH, apply, log, ...DEFAULT_ROUTE_DEPS });
@@ -182,6 +283,59 @@ describe('createSyncRouteHandler (hmac mode, default)', () => {
     expect(res1.status).toHaveBeenCalledWith(200);
     expect(res2.status).toHaveBeenCalledWith(409);
     expect(apply).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows an exact retry after application fails', async () => {
+    const apply = vi.fn().mockRejectedValueOnce(new Error('db down')).mockResolvedValueOnce(undefined);
+    const handler = createSyncRouteHandler({ auth: HMAC_AUTH, apply, log, ...DEFAULT_ROUTE_DEPS });
+    const res1 = makeRes();
+    const res2 = makeRes();
+    const timestamp = String(Date.now());
+
+    await handler(makeSignedReq(validEvent, SECRET, timestamp) as never, res1 as never);
+    await handler(makeSignedReq(validEvent, SECRET, timestamp) as never, res2 as never);
+
+    expect(res1.status).toHaveBeenCalledWith(500);
+    expect(res2.status).toHaveBeenCalledWith(200);
+    expect(apply).toHaveBeenCalledTimes(2);
+  });
+
+  it('allows an exact retry after validation fails', async () => {
+    const apply = vi.fn();
+    const handler = createSyncRouteHandler({ auth: HMAC_AUTH, apply, log, ...DEFAULT_ROUTE_DEPS });
+    const res1 = makeRes();
+    const res2 = makeRes();
+    const timestamp = String(Date.now());
+    const invalid = { ...validEvent, type: 'nope' };
+
+    await handler(makeSignedReq(invalid, SECRET, timestamp) as never, res1 as never);
+    await handler(makeSignedReq(invalid, SECRET, timestamp) as never, res2 as never);
+
+    expect(res1.status).toHaveBeenCalledWith(400);
+    expect(res2.status).toHaveBeenCalledWith(400);
+    expect(apply).not.toHaveBeenCalled();
+  });
+
+  it('prevents concurrent exact signed requests from both applying', async () => {
+    const applying = deferred<void>();
+    const apply = vi.fn().mockReturnValue(applying.promise);
+    const handler = createSyncRouteHandler({ auth: HMAC_AUTH, apply, log, ...DEFAULT_ROUTE_DEPS });
+    const res1 = makeRes();
+    const res2 = makeRes();
+    const timestamp = String(Date.now());
+
+    const first = handler(makeSignedReq(validEvent, SECRET, timestamp) as never, res1 as never);
+    await Promise.resolve();
+    await Promise.resolve();
+    await handler(makeSignedReq(validEvent, SECRET, timestamp) as never, res2 as never);
+
+    expect(res2.status).toHaveBeenCalledWith(409);
+    expect(apply).toHaveBeenCalledTimes(1);
+
+    applying.resolve();
+    await first;
+
+    expect(res1.status).toHaveBeenCalledWith(200);
   });
 
   it('verifies the signature against the exact raw bytes from req.rawBody', async () => {
@@ -204,6 +358,29 @@ describe('createSyncRouteHandler (hmac mode, default)', () => {
     await handler(req as never, res as never);
 
     expect(apply).toHaveBeenCalledWith(validEvent);
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it('applies the signed raw body instead of a divergent pre-parsed body in hmac mode', async () => {
+    const apply = vi.fn().mockResolvedValue(undefined);
+    const handler = createSyncRouteHandler({ auth: HMAC_AUTH, apply, log, ...DEFAULT_ROUTE_DEPS });
+    const res = makeRes();
+    const raw = JSON.stringify(validEvent);
+    const divergentBody = { ...validEvent, workflowId: 'wf-from-unsigned-body' };
+    const timestamp = String(Date.now());
+    const req = Readable.from([]) as TestReq;
+    req.headers = {
+      'content-type': 'application/json',
+      'x-sync-timestamp': timestamp,
+      'x-sync-signature': signPayload(SECRET, timestamp, raw),
+    };
+    req.rawBody = Buffer.from(raw);
+    req.body = divergentBody;
+
+    await handler(req as never, res as never);
+
+    expect(apply).toHaveBeenCalledWith(validEvent);
+    expect(apply).not.toHaveBeenCalledWith(divergentBody);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
@@ -285,14 +462,113 @@ describe('createSyncRouteHandler (hmac mode, default)', () => {
     expect(log.error).toHaveBeenCalled();
   });
 
+  it('responds 409 when applying detects a revision conflict', async () => {
+    const conflict = new SyncRevisionConflictError(validEvent, {
+      entityRevision: '1',
+      eventId: 'src-1:applied',
+      type: 'workflow.delete',
+      at: '2026-01-01T00:00:00.000Z',
+    });
+    const apply = vi.fn().mockResolvedValue({ status: 'conflict', error: conflict });
+    const handler = createSyncRouteHandler({ auth: HMAC_AUTH, apply, log, ...DEFAULT_ROUTE_DEPS });
+    const res = makeRes();
+
+    await handler(makeSignedReq(validEvent, SECRET) as never, res as never);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({ error: 'sync revision conflict', code: 'SYNC_REVISION_CONFLICT' });
+    expect(log.error).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [['workflows'], 'workflows', 200, { ok: true }],
+    [
+      ['workflows'],
+      'credentials',
+      422,
+      { error: 'sync entity disabled', code: 'SYNC_ENTITY_DISABLED', entity: 'credentials' },
+    ],
+    [
+      ['workflows'],
+      'executions',
+      422,
+      { error: 'sync entity disabled', code: 'SYNC_ENTITY_DISABLED', entity: 'executions' },
+    ],
+    [
+      ['credentials'],
+      'workflows',
+      422,
+      { error: 'sync entity disabled', code: 'SYNC_ENTITY_DISABLED', entity: 'workflows' },
+    ],
+    [['credentials'], 'credentials', 200, { ok: true }],
+    [
+      ['credentials'],
+      'executions',
+      422,
+      { error: 'sync entity disabled', code: 'SYNC_ENTITY_DISABLED', entity: 'executions' },
+    ],
+    [['workflows', 'credentials'], 'workflows', 200, { ok: true }],
+    [['workflows', 'credentials'], 'credentials', 200, { ok: true }],
+    [
+      ['workflows', 'credentials'],
+      'executions',
+      422,
+      { error: 'sync entity disabled', code: 'SYNC_ENTITY_DISABLED', entity: 'executions' },
+    ],
+    [['workflows', 'executions'], 'workflows', 200, { ok: true }],
+    [
+      ['workflows', 'executions'],
+      'credentials',
+      422,
+      { error: 'sync entity disabled', code: 'SYNC_ENTITY_DISABLED', entity: 'credentials' },
+    ],
+    [['workflows', 'executions'], 'executions', 200, { ok: true }],
+    [['workflows', 'credentials', 'executions'], 'workflows', 200, { ok: true }],
+    [['workflows', 'credentials', 'executions'], 'credentials', 200, { ok: true }],
+    [['workflows', 'credentials', 'executions'], 'executions', 200, { ok: true }],
+  ] as const)(
+    'enforces SYNC_ENTITIES=%s for %s events after validation',
+    async (allowedEntities, entity, expectedStatus, expectedBody) => {
+      const apply = createApplier(makeRouteRepos(), {
+        log,
+        allowedEntities: new Set(allowedEntities),
+        ordering: {
+          initialize: vi.fn().mockResolvedValue(undefined),
+          getStatus: vi.fn().mockReturnValue({ ready: true }),
+          inspect: vi.fn().mockResolvedValue({ decision: 'apply' }),
+          recordApplied: vi.fn().mockResolvedValue(undefined),
+        },
+        executionIdentity: {
+          initialize: vi.fn().mockResolvedValue(undefined),
+          getStatus: vi.fn().mockReturnValue({ ready: true }),
+          get: vi.fn().mockResolvedValue(undefined),
+          set: vi.fn().mockResolvedValue(undefined),
+          delete: vi.fn().mockResolvedValue(false),
+          listBySourceWorkflow: vi.fn().mockResolvedValue([]),
+          deleteBySourceWorkflow: vi.fn().mockResolvedValue(0),
+          deleteSource: vi.fn().mockResolvedValue(0),
+        },
+      });
+      const handler = createSyncRouteHandler({ auth: HMAC_AUTH, apply, log, ...DEFAULT_ROUTE_DEPS });
+      const res = makeRes();
+
+      await handler(makeSignedReq(routeEvents[entity], SECRET) as never, res as never);
+
+      expect(res.status).toHaveBeenCalledWith(expectedStatus);
+      expect(res.json).toHaveBeenCalledWith(expectedBody);
+    },
+  );
+
   it('supports injected hmac body-reader and verifier dependencies', async () => {
     const apply = vi.fn().mockResolvedValue(undefined);
     const assertJsonRequest = vi.fn();
     const readRawBody = vi.fn().mockResolvedValue(JSON.stringify(validEvent));
     const parseJsonBody = vi.fn().mockReturnValue(validEvent);
     const verifyRequest = vi.fn().mockReturnValue(true);
-    const remember = vi.fn().mockReturnValue('accepted');
-    const createRequestReplayGuard = vi.fn().mockReturnValue({ remember });
+    const complete = vi.fn();
+    const release = vi.fn();
+    const reserve = vi.fn().mockReturnValue({ status: 'accepted', complete, release });
+    const createRequestReplayGuard = vi.fn().mockReturnValue({ reserve });
     const handler = createSyncRouteHandler({
       auth: HMAC_AUTH,
       apply,
@@ -320,7 +596,9 @@ describe('createSyncRouteHandler (hmac mode, default)', () => {
       DEFAULT_ROUTE_DEPS.signatureToleranceMs,
     );
     expect(parseJsonBody).toHaveBeenCalledWith(JSON.stringify(validEvent));
-    expect(remember).toHaveBeenCalled();
+    expect(reserve).toHaveBeenCalled();
+    expect(complete).toHaveBeenCalled();
+    expect(release).not.toHaveBeenCalled();
     expect(apply).toHaveBeenCalledWith(validEvent);
   });
 });
@@ -422,6 +700,50 @@ describe('mountSyncRoutes', () => {
     healthHandler({}, res);
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({ ok: true });
+  });
+
+  it('registers GET <base>/ready without exposing state paths', async () => {
+    const app = { get: vi.fn(), post: vi.fn() };
+
+    mountSyncRoutes(app as never, vi.fn() as never, '/rest/sync/v1', () => ({ ready: false, reason: 'unwritable' }));
+
+    expect(app.get).toHaveBeenCalledWith('/rest/sync/v1/ready', expect.any(Function));
+
+    const [, readyHandler] = app.get.mock.calls[1] as [string, (req: unknown, res: unknown) => Promise<void>];
+    const res = makeRes();
+    await readyHandler({}, res);
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith({ ok: false, ready: false, reason: 'unwritable' });
+  });
+});
+
+describe('subscriber state readiness', () => {
+  it('rejects invalid persisted revisions during initialization before BigInt request handling', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'n8n-sync-readiness-'));
+
+    try {
+      const statePath = join(tempDir, 'subscriber-ordering.json');
+      await writeFile(
+        statePath,
+        JSON.stringify({
+          version: 2,
+          entities: {
+            '["source-1","workflow","wf-1"]': {
+              entityRevision: '1.5',
+              eventId: 'source-1:1',
+              type: 'workflow.delete',
+              at: '2026-01-01T00:00:00.000Z',
+            },
+          },
+        }),
+      );
+
+      const store = createSyncOrderingStore({ statePath });
+      await expect(store.initialize()).rejects.toThrow(/Invalid sync subscriber order state/);
+      expect(store.getStatus()).toMatchObject({ ready: false, reason: 'invalid_state' });
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 });
 
