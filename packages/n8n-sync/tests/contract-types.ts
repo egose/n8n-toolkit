@@ -42,8 +42,8 @@ void workflowHooks.postExecute[0](
   'exec-1',
 );
 
-// @ts-expect-error pinned n8n workflow.postExecute argument order is run, workflow, execution id.
 void workflowHooks.postExecute[0](
+  // @ts-expect-error pinned n8n workflow.postExecute argument order is run, workflow, execution id.
   workflow,
   {
     status: 'success',
