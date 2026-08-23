@@ -215,4 +215,4 @@ npx tsc --noEmit -p tsconfig.tests.json   # typecheck src + tests
 pnpm test:integration # repo root: runs the supported pinned n8n version matrix
 ```
 
-Release packaging uses the checked-in `release:materialize` step to copy the repo `VERSION`, license, author, and package directory repository metadata into this package manifest before packing. `pnpm pack:verify` builds through `npm pack`, inspects the exact generated tarball contents, installs that tarball into a temporary CommonJS consumer that requires both subpath exports, and runs `npm publish --dry-run` against the same tarball.
+Release packaging uses the checked-in `release:materialize` step to copy the repo `VERSION`, license, author, and package directory repository metadata into this package manifest before packing. `pnpm pack:verify` materializes that metadata, builds through `npm pack`, inspects the exact generated tarball contents, installs that tarball into a temporary CommonJS consumer that requires both subpath exports, and verifies the packed publish metadata locally.

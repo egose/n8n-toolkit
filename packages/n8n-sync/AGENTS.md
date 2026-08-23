@@ -118,10 +118,10 @@ pnpm test        # vitest unit tests
 npx tsc --noEmit -p tsconfig.json         # typecheck src
 npx tsc --noEmit -p tsconfig.tests.json   # typecheck src + tests
 npx tsc --noEmit -p tsconfig.contract-tests.json # typecheck compile-only contract fixtures
-pnpm pack:verify # materialize release metadata, pack, inspect, CJS-consume, publish dry-run
+pnpm pack:verify # materialize release metadata, pack, inspect, CJS-consume, verify publish metadata
 ```
 
-Release metadata is materialized by `scripts/materialize-release-metadata.mjs` from the repo-root `VERSION` and root package metadata. The release workflow must run `pnpm --filter @egose/n8n-sync build` and `pnpm --filter @egose/n8n-sync pack:verify` before publication.
+Release metadata is materialized by `scripts/materialize-release-metadata.mjs` from the repo-root `VERSION` and root package metadata before packing. The release workflow must run `pnpm --filter @egose/n8n-sync build` and `pnpm --filter @egose/n8n-sync pack:verify` before publication.
 
 Smoke-check bundle shape after building:
 
