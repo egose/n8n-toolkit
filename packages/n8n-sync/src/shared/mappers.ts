@@ -68,7 +68,7 @@ export function mapWorkflow(
     ...(meta !== undefined ? { meta } : {}),
     ...(workflow.versionId !== undefined ? { versionId: workflow.versionId } : {}),
     ...(workflow.activeVersionId !== undefined ? { activeVersionId: workflow.activeVersionId } : {}),
-    ...(options.tags !== undefined ? { tags: options.tags } : {}),
+    ...(options.tags !== undefined ? { tags: options.tags.map(({ id, name }) => ({ id, name })) } : {}),
     ...(createdAt ? { createdAt } : {}),
     ...(updatedAt ? { updatedAt } : {}),
   };

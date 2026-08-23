@@ -82,13 +82,26 @@ describe('mapWorkflow', () => {
     expect(dto).not.toHaveProperty('settings');
   });
 
-  it('with tags option, includes the tags array verbatim', () => {
+  it('with tags option, maps only fields in the sync wire contract', () => {
     const tags = [
-      { id: 'tag-1', name: 'sync' },
-      { id: 'tag-2', name: 'active' },
+      {
+        id: 'tag-1',
+        name: 'sync',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      },
+      {
+        id: 'tag-2',
+        name: 'active',
+        createdAt: new Date('2026-01-03T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-04T00:00:00.000Z'),
+      },
     ];
     const dto = mapWorkflow(workflow, { tags });
-    expect(dto.tags).toEqual(tags);
+    expect(dto.tags).toEqual([
+      { id: 'tag-1', name: 'sync' },
+      { id: 'tag-2', name: 'active' },
+    ]);
   });
 
   it('with tags: [], includes an empty tags array', () => {
