@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { mapCredential, mapExecution, mapWorkflow } from '../src/shared/mappers';
-import type { ICredentialsDb, IRunPayload, IWorkflowBase } from '../src/shared/types';
+import type { ExecutionStatus, ICredentialsDb, IRunPayload, IWorkflowBase } from '../src/shared/types';
 
 function deepFreeze<T>(value: T): T {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -266,7 +266,15 @@ describe('mapExecution', () => {
   });
 
   it('derives finished=false for non-success terminal/in-flight statuses', () => {
-    for (const status of ['error', 'crashed', 'canceled', 'running', 'waiting', 'new', 'unknown']) {
+    for (const status of [
+      'error',
+      'crashed',
+      'canceled',
+      'running',
+      'waiting',
+      'new',
+      'unknown',
+    ] satisfies ExecutionStatus[]) {
       const dto = mapExecution(
         `exec-${status}`,
         { mode: 'trigger', status, startedAt: new Date('2026-05-01T10:00:00.000Z') },
@@ -286,9 +294,9 @@ describe('mapExecution', () => {
     expect(dto.createdAt).toBeUndefined();
   });
 
-  it('omits workflowId when the workflow snapshot carries no id', () => {
-    const dto = mapExecution('exec-4', undefined, undefined);
-    expect(dto.workflowId).toBeUndefined();
-    expect(dto.workflowSnapshot).toBeUndefined();
+  it('requires and carries the source workflow id', () => {
+    const dto = mapExecution('exec-4', undefined, workflow);
+    expect(dto.workflowId).toBe('wf-1');
+    expect(dto.workflowSnapshot).toEqual({ id: 'wf-1', name: 'W', nodes: [{ id: 'n1' }], connections: { n1: {} } });
   });
 });

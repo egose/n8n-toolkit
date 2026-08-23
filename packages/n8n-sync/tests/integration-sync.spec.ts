@@ -6,6 +6,7 @@ import type { CredentialDetail, Execution, Tag, Workflow } from '@egose/n8n-clie
 import {
   deleteTargetExecution,
   deleteTargetExecutionsByWorkflow,
+  execTargetSql,
   insertTargetExecution,
   loadSecrets,
   makeActivatableWorkflowBody,
@@ -13,10 +14,12 @@ import {
   makeSourceClient,
   makeTargetClient,
   makeWorkflowBody,
+  queryTargetJson,
   readDatabaseCredentialRecord,
   readSandboxServiceLogs,
   readTargetCredentialOwnerLink,
   readTargetExecutionsByWorkflow,
+  readTargetWorkflow,
   readTargetWorkflowOwnerLink,
   sleep,
   startSandboxServices,
@@ -24,6 +27,7 @@ import {
   trackCreation,
   waitFor,
 } from './integration-utils';
+import { SYNC_METADATA_SCHEMA_SQL } from '../src/subscriber/n8n-runtime';
 
 const secrets = loadSecrets();
 const source = makeSourceClient(secrets);
@@ -32,6 +36,7 @@ const target = makeTargetClient(secrets);
 const SYNC_TIMEOUT = 60_000;
 const SYNC_POLL = 1000;
 const FILTER_BY_TAG = process.env.SYNC_FILTER_BY_TAG === 'true';
+const METADATA_PROTOTYPE = process.env.N8N_SYNC_METADATA_PROTOTYPE === '1';
 const WORKFLOW_SYNC_TAG = process.env.SYNC_WORKFLOW_TAG ?? 'sync';
 const WORKFLOW_ACTIVE_TAG = process.env.SYNC_ACTIVE_TAG ?? 'active';
 const MAX_QUEUE_SIZE = Number(process.env.SYNC_MAX_QUEUE_SIZE ?? '1000');
@@ -55,6 +60,10 @@ function errorStatus(error: unknown): number | undefined {
   return typeof error === 'object' && error !== null && 'status' in error
     ? ((error as { status?: unknown }).status as number | undefined)
     : undefined;
+}
+
+function sqlLiteral(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
 }
 
 async function postSyncEvent(
@@ -1041,6 +1050,116 @@ describe.runIf(MAX_QUEUE_SIZE === 2)('n8n-sync integration: bounded publisher qu
 
     const logs = await readSandboxServiceLogs('n8n1');
     expect(logs).toContain('Sync queue is full; dropping oldest queued event');
+  });
+});
+
+describe.runIf(METADATA_PROTOTYPE)('n8n-sync integration: transactional metadata prototype', () => {
+  it('keeps entity mutation and sync metadata in one Postgres transaction', async () => {
+    const created = await createSyncedWorkflow(`sync-metadata-prototype-${Date.now()}`);
+    const original = await waitForTargetWorkflow(created.id, 'metadata prototype workflow');
+    const sourceId = `metadata-source-${Date.now()}`;
+    const staleEventId = `${sourceId}:1`;
+    const currentEventId = `${sourceId}:2`;
+
+    await execTargetSql(SYNC_METADATA_SCHEMA_SQL.join(';\n') + ';');
+    await execTargetSql(
+      `delete from n8n_sync_entity_state where source_id = ${sqlLiteral(sourceId)} and entity_kind = 'workflow';`,
+    );
+
+    await execTargetSql(
+      `begin; ` +
+        `select pg_advisory_xact_lock(hashtext('n8n-sync-metadata-prototype')); ` +
+        `update workflow_entity set name = 'rolled-back-name' where id = ${sqlLiteral(created.id)}; ` +
+        `insert into n8n_sync_entity_state (` +
+        `source_id, entity_kind, source_entity_id, target_entity_id, last_event_id, last_revision, last_event_type, entity_updated_at` +
+        `) values (` +
+        `${sqlLiteral(sourceId)}, 'workflow', ${sqlLiteral(created.id)}, ${sqlLiteral(created.id)}, ` +
+        `${sqlLiteral(staleEventId)}, 1, 'workflow.upsert', now()` +
+        `); ` +
+        `rollback;`,
+    );
+
+    expect(await readTargetWorkflow(created.id)).toMatchObject({ name: original.name });
+    expect(
+      await queryTargetJson(
+        `select json_build_object('lastRevision', last_revision::text) ` +
+          `from n8n_sync_entity_state ` +
+          `where source_id = ${sqlLiteral(sourceId)} and entity_kind = 'workflow' and source_entity_id = ${sqlLiteral(created.id)};`,
+      ),
+    ).toBeNull();
+
+    await Promise.all([
+      execTargetSql(
+        `begin; ` +
+          `select pg_advisory_xact_lock(hashtext('n8n-sync-metadata-prototype')); ` +
+          `insert into n8n_sync_entity_state (` +
+          `source_id, entity_kind, source_entity_id, target_entity_id, last_event_id, last_revision, last_event_type, entity_updated_at` +
+          `) values (` +
+          `${sqlLiteral(sourceId)}, 'workflow', ${sqlLiteral(created.id)}, ${sqlLiteral(created.id)}, ` +
+          `${sqlLiteral(staleEventId)}, 1, 'workflow.upsert', now()` +
+          `) on conflict (source_id, entity_kind, source_entity_id) do update set ` +
+          `last_event_id = excluded.last_event_id, ` +
+          `last_revision = excluded.last_revision, ` +
+          `last_event_type = excluded.last_event_type, ` +
+          `entity_updated_at = excluded.entity_updated_at, ` +
+          `updated_at = now() ` +
+          `where n8n_sync_entity_state.last_revision < excluded.last_revision; ` +
+          `commit;`,
+      ),
+      execTargetSql(
+        `begin; ` +
+          `select pg_advisory_xact_lock(hashtext('n8n-sync-metadata-prototype')); ` +
+          `with accepted as (` +
+          `insert into n8n_sync_entity_state (` +
+          `source_id, entity_kind, source_entity_id, target_entity_id, last_event_id, last_revision, last_event_type, entity_updated_at` +
+          `) values (` +
+          `${sqlLiteral(sourceId)}, 'workflow', ${sqlLiteral(created.id)}, ${sqlLiteral(created.id)}, ` +
+          `${sqlLiteral(currentEventId)}, 2, 'workflow.upsert', now()` +
+          `) on conflict (source_id, entity_kind, source_entity_id) do update set ` +
+          `last_event_id = excluded.last_event_id, ` +
+          `last_revision = excluded.last_revision, ` +
+          `last_event_type = excluded.last_event_type, ` +
+          `entity_updated_at = excluded.entity_updated_at, ` +
+          `updated_at = now() ` +
+          `where n8n_sync_entity_state.last_revision < excluded.last_revision ` +
+          `returning 1` +
+          `) update workflow_entity set name = 'metadata-committed-name' ` +
+          `where id = ${sqlLiteral(created.id)} and exists (select 1 from accepted); ` +
+          `commit;`,
+      ),
+    ]);
+
+    expect(await readTargetWorkflow(created.id)).toMatchObject({ name: 'metadata-committed-name' });
+    expect(
+      await queryTargetJson(
+        `select json_build_object('lastEventId', last_event_id, 'lastRevision', last_revision::text) ` +
+          `from n8n_sync_entity_state ` +
+          `where source_id = ${sqlLiteral(sourceId)} and entity_kind = 'workflow' and source_entity_id = ${sqlLiteral(created.id)};`,
+      ),
+    ).toEqual({ lastEventId: currentEventId, lastRevision: '2' });
+
+    await execTargetSql(
+      `begin; ` +
+        `with accepted as (` +
+        `insert into n8n_sync_entity_state (` +
+        `source_id, entity_kind, source_entity_id, target_entity_id, last_event_id, last_revision, last_event_type, entity_updated_at` +
+        `) values (` +
+        `${sqlLiteral(sourceId)}, 'workflow', ${sqlLiteral(created.id)}, ${sqlLiteral(created.id)}, ` +
+        `${sqlLiteral(staleEventId)}, 1, 'workflow.upsert', now()` +
+        `) on conflict (source_id, entity_kind, source_entity_id) do update set ` +
+        `last_event_id = excluded.last_event_id, ` +
+        `last_revision = excluded.last_revision, ` +
+        `last_event_type = excluded.last_event_type, ` +
+        `entity_updated_at = excluded.entity_updated_at, ` +
+        `updated_at = now() ` +
+        `where n8n_sync_entity_state.last_revision < excluded.last_revision ` +
+        `returning 1` +
+        `) update workflow_entity set name = 'stale-name' ` +
+        `where id = ${sqlLiteral(created.id)} and exists (select 1 from accepted); ` +
+        `commit;`,
+    );
+
+    expect(await readTargetWorkflow(created.id)).toMatchObject({ name: 'metadata-committed-name' });
   });
 });
 

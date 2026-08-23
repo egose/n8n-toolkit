@@ -11,6 +11,7 @@
 
 ARG N8N_VERSION=2.31.2
 ARG N8N_SYNC_BUNDLE_SOURCE=workspace
+ARG PNPM_VERSION=11.21.0
 
 # ---------------------------------------------------------------------------
 # Stage 1: build the publisher.cjs + subscriber.cjs bundles
@@ -18,11 +19,12 @@ ARG N8N_SYNC_BUNDLE_SOURCE=workspace
 FROM node:22-alpine AS bundles
 
 ARG N8N_SYNC_BUNDLE_SOURCE
+ARG PNPM_VERSION
 
 WORKDIR /repo
 
 # pnpm needs to be available; node:22-alpine ships npm + corepack.
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # Copy only what's needed to build the n8n-sync package.
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./

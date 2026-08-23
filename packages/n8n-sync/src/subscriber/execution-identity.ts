@@ -1,5 +1,10 @@
 import { DEFAULT_SYNC_SUBSCRIBER_STATE_PATH } from '../shared/config';
-import { readJsonFile, writeJsonFileAtomic } from '../shared/ordering';
+import {
+  readJsonFile,
+  type StateStoreStatus,
+  type StateStoreStatusReason,
+  writeJsonFileAtomic,
+} from '../shared/ordering';
 
 export interface ExecutionIdentityRecord {
   sourceId: string;
@@ -14,6 +19,8 @@ interface ExecutionIdentityState {
 }
 
 export interface ExecutionIdentityStore {
+  initialize(): Promise<void>;
+  getStatus(): StateStoreStatus;
   get(identity: { sourceId: string; sourceExecutionId: string }): Promise<ExecutionIdentityRecord | undefined>;
   set(identity: ExecutionIdentityRecord): Promise<void>;
   delete(identity: { sourceId: string; sourceExecutionId: string }): Promise<boolean>;
@@ -45,42 +52,79 @@ function isExecutionIdentityState(value: unknown): value is ExecutionIdentitySta
   if (typeof value !== 'object' || value === null) return false;
   const record = value as Record<string, unknown>;
   if (record.version !== 1 || typeof record.mappings !== 'object' || record.mappings === null) return false;
-  return Object.values(record.mappings as Record<string, unknown>).every(isExecutionIdentityRecord);
+  return Object.entries(record.mappings as Record<string, unknown>).every(([key, value]) => {
+    if (!isExecutionIdentityRecord(value)) return false;
+    try {
+      const parsed = JSON.parse(key) as unknown;
+      return (
+        Array.isArray(parsed) &&
+        parsed.length === 2 &&
+        parsed[0] === value.sourceId &&
+        parsed[1] === value.sourceExecutionId
+      );
+    } catch {
+      return false;
+    }
+  });
 }
 
 function getExecutionIdentityKey(sourceId: string, sourceExecutionId: string): string {
   return JSON.stringify([sourceId, sourceExecutionId]);
 }
 
-function defaultExecutionIdentityStatePath(): string {
-  return DEFAULT_SYNC_SUBSCRIBER_STATE_PATH.endsWith('.json')
-    ? DEFAULT_SYNC_SUBSCRIBER_STATE_PATH.replace(/\.json$/, '.executions.json')
-    : `${DEFAULT_SYNC_SUBSCRIBER_STATE_PATH}.executions.json`;
+export function getExecutionIdentityStatePath(subscriberStatePath = DEFAULT_SYNC_SUBSCRIBER_STATE_PATH): string {
+  return subscriberStatePath.endsWith('.json')
+    ? subscriberStatePath.replace(/\.json$/, '.executions.json')
+    : `${subscriberStatePath}.executions.json`;
 }
 
 export function createExecutionIdentityStore(options: { statePath?: string } = {}): ExecutionIdentityStore {
-  const statePath = options.statePath ?? defaultExecutionIdentityStatePath();
+  const statePath = options.statePath ?? getExecutionIdentityStatePath();
   const state = defaultExecutionIdentityState();
   let loaded = false;
+  let status: StateStoreStatus = { ready: false, reason: 'not_initialized' };
   let mutationChain = Promise.resolve();
+
+  const markDegraded = (reason: StateStoreStatusReason): void => {
+    status = { ready: false, reason, degradedSince: new Date().toISOString() };
+  };
 
   const loadState = async (): Promise<ExecutionIdentityState> => {
     if (loaded) return state;
-    const persisted = await readJsonFile<ExecutionIdentityState>(statePath);
+    let persisted: ExecutionIdentityState | undefined;
+    try {
+      persisted = await readJsonFile<ExecutionIdentityState>(statePath);
+    } catch (error) {
+      markDegraded('invalid_state');
+      throw error;
+    }
     loaded = true;
-    if (persisted === undefined) return state;
+    if (persisted === undefined) {
+      status = { ready: true };
+      return state;
+    }
     if (!isExecutionIdentityState(persisted)) {
+      markDegraded('invalid_state');
       throw new Error(`Invalid sync execution identity state at ${statePath}`);
     }
     Object.assign(state.mappings, persisted.mappings);
+    status = { ready: true };
     return state;
   };
 
   const mutate = async <T>(work: (current: ExecutionIdentityState) => T | Promise<T>): Promise<T> => {
     const run = mutationChain.then(async () => {
       const current = await loadState();
-      const result = await work(current);
-      await writeJsonFileAtomic(statePath, current);
+      const next = { version: current.version, mappings: { ...current.mappings } } satisfies ExecutionIdentityState;
+      const result = await work(next);
+      try {
+        await writeJsonFileAtomic(statePath, next);
+      } catch (error) {
+        markDegraded('storage_error');
+        throw error;
+      }
+      state.mappings = next.mappings;
+      status = { ready: true };
       return result;
     });
 
@@ -93,6 +137,21 @@ export function createExecutionIdentityStore(options: { statePath?: string } = {
   };
 
   return {
+    async initialize() {
+      const current = await loadState();
+      try {
+        await writeJsonFileAtomic(statePath, current);
+      } catch (error) {
+        markDegraded('unwritable');
+        throw error;
+      }
+      status = { ready: true };
+    },
+
+    getStatus() {
+      return status;
+    },
+
     async get(identity) {
       const current = await loadState();
       return current.mappings[getExecutionIdentityKey(identity.sourceId, identity.sourceExecutionId)];

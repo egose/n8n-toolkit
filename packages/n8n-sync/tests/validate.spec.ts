@@ -34,6 +34,13 @@ function objectWithKeys(count: number): Record<string, unknown> {
   return Object.fromEntries(Array.from({ length: count }, (_value, index) => [`key-${index}`, true]));
 }
 
+function objectTree(branches: number, depth: number): Record<string, unknown> {
+  if (depth === 0) return { leaf: true };
+  return Object.fromEntries(
+    Array.from({ length: branches }, (_value, index) => [`branch-${index}`, objectTree(branches, depth - 1)]),
+  );
+}
+
 describe('parseSyncEvent', () => {
   it.each([
     [{ ...base, type: 'workflow.upsert', workflow }],
@@ -200,6 +207,15 @@ describe('parseSyncEvent', () => {
     ['missing event id', { ...base, eventId: undefined, type: 'workflow.delete', workflowId: 'wf-1' }],
     ['non-decimal entity revision', { ...base, entityRevision: 'rev-1', type: 'workflow.delete', workflowId: 'wf-1' }],
     ['unknown type', { ...base, type: 'workflow.explode', workflowId: 'wf-1' }],
+    ['unknown top-level property', { ...base, type: 'workflow.delete', workflowId: 'wf-1', extra: true }],
+    [
+      'deep unknown top-level property',
+      { ...base, type: 'workflow.delete', workflowId: 'wf-1', extra: nestedObject(40) },
+    ],
+    [
+      'large unknown top-level property',
+      { ...base, type: 'workflow.delete', workflowId: 'wf-1', extra: objectWithKeys(1001) },
+    ],
     ['workflow without nodes', { ...base, type: 'workflow.upsert', workflow: { id: 'w', name: 'n', connections: {} } }],
     ['credential without data', { ...base, type: 'credentials.upsert', credential: { id: 'c', name: 'n', type: 't' } }],
     ['archive without flag', { ...base, type: 'workflow.archive', workflowId: 'wf-1' }],
@@ -292,6 +308,22 @@ describe('parseSyncEvent', () => {
     ],
     ['workflow invalid createdAt', { ...base, type: 'workflow.upsert', workflow: { ...workflow, createdAt: 'nope' } }],
     ['workflow invalid updatedAt', { ...base, type: 'workflow.upsert', workflow: { ...workflow, updatedAt: 'nope' } }],
+    ['workflow unknown property', { ...base, type: 'workflow.upsert', workflow: { ...workflow, unsupported: true } }],
+    [
+      'workflow aggregate over structural budget',
+      {
+        ...base,
+        type: 'workflow.upsert',
+        workflow: {
+          ...workflow,
+          connections: objectTree(8, 4),
+          settings: objectTree(8, 4),
+          staticData: objectTree(8, 4),
+          pinData: objectTree(8, 4),
+          meta: objectTree(8, 4),
+        },
+      },
+    ],
     [
       'workflow deep nesting',
       { ...base, type: 'workflow.upsert', workflow: { ...workflow, nodes: [nestedObject(40)] } },
@@ -348,6 +380,10 @@ describe('parseSyncEvent', () => {
     [
       'credential invalid updatedAt',
       { ...base, type: 'credentials.upsert', credential: { ...credential, updatedAt: 'nope' } },
+    ],
+    [
+      'credential unknown property',
+      { ...base, type: 'credentials.upsert', credential: { ...credential, unsupported: true } },
     ],
   ])('rejects malformed credential payload: %s', (_label, payload) => {
     expect(parseSyncEvent(payload)).toBeNull();
@@ -406,6 +442,21 @@ describe('parseSyncEvent', () => {
         ...base,
         type: 'execution.upsert',
         execution: { ...execution, workflowSnapshot: { id: 'wf-1', name: 'W', nodes: [], connections: [] } },
+      },
+    ],
+    [
+      'execution unknown property',
+      { ...base, type: 'execution.upsert', execution: { ...execution, unsupported: true } },
+    ],
+    [
+      'execution snapshot unknown property',
+      {
+        ...base,
+        type: 'execution.upsert',
+        execution: {
+          ...execution,
+          workflowSnapshot: { id: 'wf-1', name: 'W', nodes: [], connections: {}, unsupported: true },
+        },
       },
     ],
     [

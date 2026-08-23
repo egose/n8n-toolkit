@@ -1,10 +1,15 @@
 {
   "name": "@egose/n8n-sync",
   "description": "n8n external-hook bundles to sync credentials and workflows between n8n instances (publisher + subscriber).",
-  "version": "0.0.0-PLACEHOLDER",
-  "license": "PLACEHOLDER",
+  "version": "0.14.0",
+  "license": "Apache-2.0",
+  "author": "Junmin Ahn",
   "sideEffects": false,
-  "repository": "PLACEHOLDER",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/egose/n8n-toolkit.git",
+    "directory": "packages/n8n-sync"
+  },
   "keywords": [
     "n8n",
     "n8n-hooks",
@@ -16,10 +21,12 @@
   ],
   "scripts": {
     "build": "tsup --config tsup.config.ts",
-    "prepack": "npm run build",
+    "release:materialize": "node scripts/materialize-release-metadata.mjs",
+    "prepack": "npm run release:materialize && npm run build",
     "pack:verify": "node scripts/verify-package.mjs",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json && tsc --noEmit -p tsconfig.contract-tests.json",
     "test": "vitest run --no-cache --config vitest.config.ts",
+    "test:performance": "tsx tests/performance/replay-cache.ts && tsx tests/performance/publisher-queue.ts",
     "test:integration": "pnpm --filter @egose/n8n-client... build && vitest run --no-cache --config vitest.integration.config.ts"
   },
   "type": "module",

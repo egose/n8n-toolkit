@@ -42,7 +42,7 @@ function responseWithHeaders(status: number, headers: Record<string, string>): R
 function responseWithBody(
   status: number,
   chunks: number[],
-  options: { throwOnRead?: boolean } = {},
+  options: { ok?: boolean; throwOnRead?: boolean } = {},
 ): {
   response: Response;
   reader: {
@@ -70,7 +70,7 @@ function responseWithBody(
 
   return {
     response: {
-      ok: false,
+      ok: options.ok ?? false,
       status,
       headers: new Headers(),
       body: {
@@ -284,6 +284,94 @@ describe('sendSyncEvent', () => {
     await sendSyncEvent(event, { url: 'u', auth: hmacAuth('t'), fetchImpl, sleep, maxAttempts: 2, random: () => 0 });
 
     expect(reader.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts a stalled first response body read within the attempt deadline', async () => {
+    vi.useFakeTimers();
+
+    let signal: AbortSignal | undefined;
+    const reader = {
+      read: vi.fn(() => new Promise<ReadableStreamReadResult<Uint8Array>>(() => undefined)),
+      cancel: vi.fn(() => new Promise<void>(() => undefined)),
+      releaseLock: vi.fn(),
+    };
+    const response = {
+      ok: false,
+      status: 500,
+      headers: new Headers(),
+      body: {
+        getReader: () => reader,
+      } as unknown as Response['body'],
+    } as Response;
+    const fetchImpl = vi.fn().mockImplementation(((_url: string, init?: RequestInit) => {
+      signal = init?.signal as AbortSignal;
+      return Promise.resolve(response);
+    }) as typeof fetch);
+    const sleep = vi.fn().mockResolvedValue(undefined);
+
+    const promise = sendSyncEvent(event, {
+      url: 'u',
+      auth: hmacAuth('t'),
+      fetchImpl,
+      sleep,
+      timeoutMs: 50,
+      maxAttempts: 1,
+    });
+    const rejection = expect(promise).rejects.toMatchObject({ name: 'SyncSendError', status: 500 });
+
+    await vi.advanceTimersByTimeAsync(50);
+    await rejection;
+
+    expect(signal?.aborted).toBe(true);
+    expect(reader.read).toHaveBeenCalledTimes(1);
+    expect(reader.cancel).toHaveBeenCalledTimes(1);
+    expect(reader.releaseLock).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('drains small successful response bodies before returning', async () => {
+    const { response, reader } = responseWithBody(200, [1024, 2048], { ok: true });
+    const fetchImpl = vi.fn().mockResolvedValue(response);
+
+    await sendSyncEvent(event, { url: 'u', auth: hmacAuth('t'), fetchImpl });
+
+    expect(reader.read).toHaveBeenCalledTimes(3);
+    expect(reader.cancel).not.toHaveBeenCalled();
+    expect(reader.releaseLock).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels oversized successful response bodies', async () => {
+    const { response, reader } = responseWithBody(200, [48 * 1024, 32 * 1024], { ok: true });
+    const fetchImpl = vi.fn().mockResolvedValue(response);
+
+    await sendSyncEvent(event, { url: 'u', auth: hmacAuth('t'), fetchImpl });
+
+    expect(reader.cancel).toHaveBeenCalledTimes(1);
+    expect(reader.releaseLock).toHaveBeenCalledTimes(1);
+  });
+
+  it('bounds response body reads under repeated body-bearing successes', async () => {
+    const readers: Array<ReturnType<typeof responseWithBody>['reader']> = [];
+    const fetchImpl = vi.fn().mockImplementation(() => {
+      const { response, reader } = responseWithBody(
+        200,
+        Array.from({ length: 100 }, () => 1024),
+        { ok: true },
+      );
+      readers.push(reader);
+      return Promise.resolve(response);
+    });
+
+    for (let index = 0; index < 5; index++) {
+      await sendSyncEvent(event, { url: 'u', auth: hmacAuth('t'), fetchImpl });
+    }
+
+    expect(readers).toHaveLength(5);
+    for (const reader of readers) {
+      expect(reader.read).toHaveBeenCalledTimes(65);
+      expect(reader.cancel).toHaveBeenCalledTimes(1);
+      expect(reader.releaseLock).toHaveBeenCalledTimes(1);
+    }
   });
 
   it('aborts timed out attempts and clears the timeout timer', async () => {

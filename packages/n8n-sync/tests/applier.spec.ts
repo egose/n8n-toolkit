@@ -1,12 +1,13 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { SyncEntity } from '../src/shared/config';
 import type { Logger } from '../src/shared/logger';
 import type { SyncCredentialDto, SyncEvent, SyncExecutionDto, SyncWorkflowDto } from '../src/shared/types';
-import { createApplier } from '../src/subscriber/applier';
+import { createApplier, SyncEntityTimestampConflictError } from '../src/subscriber/applier';
 import type { ExecutionIdentityStore } from '../src/subscriber/execution-identity';
 import type { N8nSyncRepositories } from '../src/subscriber/n8n-runtime';
 import { createSyncOrderingStore } from '../src/subscriber/order-state';
@@ -131,6 +132,8 @@ function makeExecutionIdentityStore(
     initial.map((record) => [JSON.stringify([record.sourceId, record.sourceExecutionId]), { ...record }]),
   );
   const store: ExecutionIdentityStore = {
+    initialize: vi.fn().mockResolvedValue(undefined),
+    getStatus: vi.fn().mockReturnValue({ ready: true }),
     get: vi.fn(async ({ sourceId, sourceExecutionId }) => state.get(JSON.stringify([sourceId, sourceExecutionId]))),
     set: vi.fn(async (record) => {
       state.set(JSON.stringify([record.sourceId, record.sourceExecutionId]), { ...record });
@@ -365,7 +368,15 @@ describe('createApplier', () => {
     });
 
     it('uses entityRevision to break ties when source timestamps are equal', async () => {
-      const repos = makeRepos({ workflow: { id: 'wf-1', updatedAt: new Date('2026-01-01T00:00:00.000Z') } });
+      const storedWorkflow: Record<string, unknown> = {
+        id: 'wf-1',
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      };
+      const repos = makeRepos({ workflow: storedWorkflow });
+      repos.workflow.findOneBy.mockImplementation(async () => storedWorkflow);
+      repos.workflow.update.mockImplementation(async (_id, fields) => {
+        Object.assign(storedWorkflow, fields);
+      });
       const apply = createApplier(repos, { log });
 
       await apply(
@@ -390,6 +401,71 @@ describe('createApplier', () => {
       expect(repos.workflow.update).toHaveBeenCalledTimes(2);
       const [, secondFields] = repos.workflow.update.mock.calls[1] as [string, Record<string, unknown>];
       expect(secondFields.name).toBe('Second name');
+    });
+
+    it('rejects a higher workflow revision with an older timestamp without advancing ordering', async () => {
+      const storedWorkflow: Record<string, unknown> = {
+        id: 'wf-1',
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      };
+      const repos = makeRepos({ workflow: storedWorkflow });
+      repos.workflow.findOneBy.mockImplementation(async () => storedWorkflow);
+      repos.workflow.update.mockImplementation(async (_id, fields) => {
+        Object.assign(storedWorkflow, fields);
+      });
+      const apply = createApplier(repos, { log });
+
+      await apply(
+        orderedEvent(
+          {
+            type: 'workflow.upsert',
+            workflow: { ...workflow, updatedAt: '2026-01-03T00:00:00.000Z', name: 'First name' },
+          },
+          { eventId: 's:1', entityRevision: '1' },
+        ),
+      );
+
+      await expect(
+        apply(
+          orderedEvent(
+            {
+              type: 'workflow.upsert',
+              workflow: { ...workflow, updatedAt: '2026-01-02T00:00:00.000Z', name: 'Older name' },
+            },
+            { eventId: 's:2', entityRevision: '2' },
+          ),
+        ),
+      ).rejects.toBeInstanceOf(SyncEntityTimestampConflictError);
+
+      await apply(
+        orderedEvent(
+          {
+            type: 'workflow.upsert',
+            workflow: { ...workflow, updatedAt: '2026-01-04T00:00:00.000Z', name: 'Recovered name' },
+          },
+          { eventId: 's:2', entityRevision: '2' },
+        ),
+      );
+
+      expect(repos.workflow.update).toHaveBeenCalledTimes(2);
+      expect(storedWorkflow.name).toBe('Recovered name');
+    });
+
+    it('skips redelivery of the same workflow event before touching repositories', async () => {
+      const repos = makeRepos({ workflow: { id: 'wf-1', updatedAt: new Date('2026-01-01T00:00:00.000Z') } });
+      const apply = createApplier(repos, { log });
+      const event = orderedEvent({ type: 'workflow.upsert', workflow });
+
+      await apply(event);
+      repos.workflow.findOneBy.mockClear();
+      repos.workflow.update.mockClear();
+      repos.workflow.save.mockClear();
+
+      await apply(event);
+
+      expect(repos.workflow.findOneBy).not.toHaveBeenCalled();
+      expect(repos.workflow.update).not.toHaveBeenCalled();
+      expect(repos.workflow.save).not.toHaveBeenCalled();
     });
   });
 
@@ -531,6 +607,89 @@ describe('createApplier', () => {
       await apply(orderedEvent({ type: 'credentials.upsert', credential }));
 
       expect(repos.credentials.update).not.toHaveBeenCalled();
+    });
+
+    it('uses entityRevision to break credential timestamp ties', async () => {
+      const storedCredential: Record<string, unknown> = {
+        id: 'cred-1',
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      };
+      const repos = makeRepos({ credential: storedCredential });
+      repos.credentials.findOneBy.mockImplementation(async () => storedCredential);
+      repos.credentials.update.mockImplementation(async (_id, fields) => {
+        Object.assign(storedCredential, fields);
+      });
+      const apply = createApplier(repos, { log });
+
+      await apply(
+        orderedEvent(
+          {
+            type: 'credentials.upsert',
+            credential: { ...credential, updatedAt: '2026-01-02T00:00:00.000Z', name: 'First credential' },
+          },
+          { eventId: 's:1', entityRevision: '1' },
+        ),
+      );
+      await apply(
+        orderedEvent(
+          {
+            type: 'credentials.upsert',
+            credential: { ...credential, updatedAt: '2026-01-02T00:00:00.000Z', name: 'Second credential' },
+          },
+          { eventId: 's:2', entityRevision: '2' },
+        ),
+      );
+
+      expect(repos.credentials.update).toHaveBeenCalledTimes(2);
+      expect(storedCredential.name).toBe('Second credential');
+    });
+
+    it('rejects a higher credential revision with an older timestamp without advancing ordering', async () => {
+      const storedCredential: Record<string, unknown> = {
+        id: 'cred-1',
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      };
+      const repos = makeRepos({ credential: storedCredential });
+      repos.credentials.findOneBy.mockImplementation(async () => storedCredential);
+      repos.credentials.update.mockImplementation(async (_id, fields) => {
+        Object.assign(storedCredential, fields);
+      });
+      const apply = createApplier(repos, { log });
+
+      await apply(
+        orderedEvent(
+          {
+            type: 'credentials.upsert',
+            credential: { ...credential, updatedAt: '2026-01-03T00:00:00.000Z', name: 'First credential' },
+          },
+          { eventId: 's:1', entityRevision: '1' },
+        ),
+      );
+
+      await expect(
+        apply(
+          orderedEvent(
+            {
+              type: 'credentials.upsert',
+              credential: { ...credential, updatedAt: '2026-01-02T00:00:00.000Z', name: 'Older credential' },
+            },
+            { eventId: 's:2', entityRevision: '2' },
+          ),
+        ),
+      ).rejects.toBeInstanceOf(SyncEntityTimestampConflictError);
+
+      await apply(
+        orderedEvent(
+          {
+            type: 'credentials.upsert',
+            credential: { ...credential, updatedAt: '2026-01-04T00:00:00.000Z', name: 'Recovered credential' },
+          },
+          { eventId: 's:2', entityRevision: '2' },
+        ),
+      );
+
+      expect(repos.credentials.update).toHaveBeenCalledTimes(2);
+      expect(storedCredential.name).toBe('Recovered credential');
     });
 
     it('repairs a missing credential owner link on existing rows', async () => {
@@ -807,14 +966,19 @@ describe('createApplier', () => {
       expect(repos.execution.update).not.toHaveBeenCalled();
     });
 
-    it('fails execution events when executions is not enabled on the subscriber', async () => {
+    it('returns a controlled disabled outcome when executions is not enabled on the subscriber', async () => {
       const repos = makeReposWithoutExecution();
       const identity = makeExecutionIdentityStore();
-      const apply = createApplier(repos, { log, executionIdentity: identity.store });
+      const apply = createApplier(repos, {
+        log,
+        executionIdentity: identity.store,
+        allowedEntities: new Set<SyncEntity>(['workflows', 'credentials']),
+      });
 
-      await expect(apply(orderedEvent({ type: 'execution.upsert', execution }))).rejects.toThrow(
-        'Received execution event but executions are not enabled on this subscriber',
-      );
+      await expect(apply(orderedEvent({ type: 'execution.upsert', execution }))).resolves.toMatchObject({
+        status: 'disabled',
+        error: { code: 'SYNC_ENTITY_DISABLED', entity: 'executions' },
+      });
     });
 
     it('applies when the stored stoppedAt is older than the incoming one', async () => {
@@ -830,6 +994,91 @@ describe('createApplier', () => {
       await apply(orderedEvent({ type: 'execution.upsert', execution }));
 
       expect(repos.execution.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses entityRevision to break execution stoppedAt ties without lifecycle regression', async () => {
+      const storedExecution: Record<string, unknown> = {
+        id: 'target-exec-9',
+        status: 'running',
+        stoppedAt: new Date('2026-05-01T10:00:04.000Z'),
+      };
+      const repos = makeRepos({ workflow: { id: 'wf-1' }, execution: storedExecution });
+      repos.execution.findOneBy.mockImplementation(async () => storedExecution);
+      repos.execution.update.mockImplementation(async (_criteria, fields) => {
+        Object.assign(storedExecution, fields);
+      });
+      const identity = makeExecutionIdentityStore([
+        { sourceId: 's', sourceExecutionId: 'exec-1', targetExecutionId: 'target-exec-9', workflowId: 'wf-1' },
+      ]);
+      const apply = createApplier(repos, { log, executionIdentity: identity.store });
+
+      await apply(
+        orderedEvent(
+          { type: 'execution.upsert', execution: { ...execution, status: 'success' } },
+          { eventId: 's:1', entityRevision: '1' },
+        ),
+      );
+      await apply(
+        orderedEvent(
+          { type: 'execution.upsert', execution: { ...execution, status: 'error' } },
+          { eventId: 's:2', entityRevision: '2' },
+        ),
+      );
+
+      expect(repos.execution.update).toHaveBeenCalledTimes(2);
+      expect(storedExecution.status).toBe('error');
+    });
+
+    it('rejects a higher execution revision with an older stoppedAt without advancing ordering', async () => {
+      const storedExecution: Record<string, unknown> = {
+        id: 'target-exec-9',
+        status: 'running',
+        stoppedAt: new Date('2026-05-01T10:00:04.000Z'),
+      };
+      const repos = makeRepos({ workflow: { id: 'wf-1' }, execution: storedExecution });
+      repos.execution.findOneBy.mockImplementation(async () => storedExecution);
+      repos.execution.update.mockImplementation(async (_criteria, fields) => {
+        Object.assign(storedExecution, fields);
+      });
+      const identity = makeExecutionIdentityStore([
+        { sourceId: 's', sourceExecutionId: 'exec-1', targetExecutionId: 'target-exec-9', workflowId: 'wf-1' },
+      ]);
+      const apply = createApplier(repos, { log, executionIdentity: identity.store });
+
+      await apply(
+        orderedEvent(
+          {
+            type: 'execution.upsert',
+            execution: { ...execution, stoppedAt: '2026-05-01T10:00:06.000Z', status: 'success' },
+          },
+          { eventId: 's:1', entityRevision: '1' },
+        ),
+      );
+
+      await expect(
+        apply(
+          orderedEvent(
+            {
+              type: 'execution.upsert',
+              execution: { ...execution, stoppedAt: '2026-05-01T10:00:05.000Z', status: 'error' },
+            },
+            { eventId: 's:2', entityRevision: '2' },
+          ),
+        ),
+      ).rejects.toBeInstanceOf(SyncEntityTimestampConflictError);
+
+      await apply(
+        orderedEvent(
+          {
+            type: 'execution.upsert',
+            execution: { ...execution, stoppedAt: '2026-05-01T10:00:07.000Z', status: 'error' },
+          },
+          { eventId: 's:2', entityRevision: '2' },
+        ),
+      );
+
+      expect(repos.execution.update).toHaveBeenCalledTimes(2);
+      expect(storedExecution.status).toBe('error');
     });
 
     it('recreates the mapping when the mapped target execution row was pruned', async () => {
@@ -955,7 +1204,138 @@ describe('createApplier', () => {
     });
   });
 
+  describe('entity selection enforcement', () => {
+    it.each([
+      [
+        new Set<SyncEntity>(['credentials']),
+        orderedEvent({ type: 'workflow.archive', workflowId: 'wf-1', archived: true }),
+        'workflows',
+      ],
+      [
+        new Set<SyncEntity>(['workflows']),
+        orderedEvent({ type: 'credentials.delete', credentialId: 'cred-1' }),
+        'credentials',
+      ],
+      [new Set<SyncEntity>(['workflows']), orderedEvent({ type: 'execution.upsert', execution }), 'executions'],
+    ] as const)(
+      'rejects disabled %s event before repository or state access',
+      async (allowedEntities, event, entity) => {
+        const repos = makeRepos({ workflow: { id: 'wf-1' } });
+        const ordering = {
+          initialize: vi.fn().mockResolvedValue(undefined),
+          getStatus: vi.fn().mockReturnValue({ ready: true }),
+          inspect: vi.fn(),
+          recordApplied: vi.fn(),
+        };
+        const identity = makeExecutionIdentityStore();
+        const apply = createApplier(repos, {
+          log,
+          allowedEntities,
+          ordering,
+          executionIdentity: identity.store,
+        });
+
+        const result = await apply(event);
+
+        expect(result).toMatchObject({
+          status: 'disabled',
+          error: { code: 'SYNC_ENTITY_DISABLED', entity },
+        });
+        expect(ordering.inspect).not.toHaveBeenCalled();
+        expect(ordering.recordApplied).not.toHaveBeenCalled();
+        expect(identity.store.get).not.toHaveBeenCalled();
+        expect(identity.store.set).not.toHaveBeenCalled();
+        expect(identity.store.listBySourceWorkflow).not.toHaveBeenCalled();
+        for (const repo of [
+          repos.workflow,
+          repos.credentials,
+          repos.sharedWorkflow,
+          repos.sharedCredentials,
+          repos.user,
+          repos.project,
+          repos.execution,
+        ]) {
+          for (const value of Object.values(repo)) {
+            if (typeof value === 'function' && 'mock' in value) {
+              expect(value).not.toHaveBeenCalled();
+            }
+          }
+        }
+      },
+    );
+  });
+
   describe('durable ordering state', () => {
+    it('returns a typed conflict without repository writes when a distinct event reuses an applied revision', async () => {
+      const repos = makeRepos({ workflow: { id: 'wf-1', updatedAt: new Date('2026-01-01T00:00:00.000Z') } });
+      const apply = createApplier(repos, { log });
+
+      await apply(orderedEvent({ type: 'workflow.upsert', workflow }, { eventId: 's:1', entityRevision: '1' }));
+      repos.workflow.findOneBy.mockClear();
+      repos.workflow.update.mockClear();
+      repos.workflow.save.mockClear();
+
+      const result = await apply(
+        orderedEvent(
+          { type: 'workflow.upsert', workflow: { ...workflow, name: 'Conflicting name' } },
+          { eventId: 's:conflict', entityRevision: '1' },
+        ),
+      );
+
+      expect(result).toMatchObject({ status: 'conflict', error: { code: 'SYNC_REVISION_CONFLICT' } });
+      expect(repos.workflow.findOneBy).not.toHaveBeenCalled();
+      expect(repos.workflow.update).not.toHaveBeenCalled();
+      expect(repos.workflow.save).not.toHaveBeenCalled();
+    });
+
+    it('leaves the durable checkpoint unchanged for a distinct event reusing an applied revision', async () => {
+      const tempDir = await mkdtemp(join(tmpdir(), 'n8n-sync-order-'));
+
+      try {
+        const statePath = join(tempDir, 'subscriber-ordering.json');
+        const repos = makeRepos({ workflow: { id: 'wf-1', updatedAt: new Date('2026-01-01T00:00:00.000Z') } });
+        const apply = createApplier(repos, {
+          log,
+          ordering: createSyncOrderingStore({ statePath }),
+        });
+
+        await apply(orderedEvent({ type: 'workflow.upsert', workflow }, { eventId: 's:1', entityRevision: '1' }));
+        const beforeConflict = await readFile(statePath, 'utf8');
+
+        const result = await apply(
+          orderedEvent(
+            { type: 'workflow.upsert', workflow: { ...workflow, name: 'Conflicting name' } },
+            { eventId: 's:conflict', entityRevision: '1' },
+          ),
+        );
+        const afterConflict = await readFile(statePath, 'utf8');
+
+        expect(result.status).toBe('conflict');
+        expect(JSON.parse(afterConflict)).toEqual(JSON.parse(beforeConflict));
+      } finally {
+        await rm(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('keeps true duplicate delivery idempotent without repository writes', async () => {
+      const repos = makeRepos({ workflow: { id: 'wf-1', updatedAt: new Date('2026-01-01T00:00:00.000Z') } });
+      const apply = createApplier(repos, { log });
+      const event = orderedEvent({ type: 'workflow.upsert', workflow }, { eventId: 's:1', entityRevision: '1' });
+
+      const first = await apply(event);
+      repos.workflow.findOneBy.mockClear();
+      repos.workflow.update.mockClear();
+      repos.workflow.save.mockClear();
+
+      const second = await apply(event);
+
+      expect(first.status).toBe('applied');
+      expect(second.status).toBe('duplicate');
+      expect(repos.workflow.findOneBy).not.toHaveBeenCalled();
+      expect(repos.workflow.update).not.toHaveBeenCalled();
+      expect(repos.workflow.save).not.toHaveBeenCalled();
+    });
+
     it('keeps delete tombstones across applier restarts so stale upserts do not recreate rows', async () => {
       const tempDir = await mkdtemp(join(tmpdir(), 'n8n-sync-order-'));
 
@@ -1015,6 +1395,52 @@ describe('createApplier', () => {
         );
 
         expect(repos.workflow.update).toHaveBeenCalledTimes(2);
+      } finally {
+        await rm(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('keeps source a workflow workflow:x independent from source a:workflow workflow x through restart', async () => {
+      const tempDir = await mkdtemp(join(tmpdir(), 'n8n-sync-order-'));
+
+      try {
+        const statePath = join(tempDir, 'subscriber-ordering.json');
+        const firstApply = createApplier(makeRepos(), {
+          log,
+          executionIdentity: makeExecutionIdentityStore().store,
+          ordering: createSyncOrderingStore({ statePath }),
+        });
+
+        await firstApply(
+          orderedEvent(
+            { type: 'workflow.delete', workflowId: 'workflow:x' },
+            { sourceId: 'a', eventId: 'a:2', entityRevision: '2' },
+          ),
+        );
+
+        const secondRepos = makeRepos();
+        const secondApply = createApplier(secondRepos, {
+          log,
+          executionIdentity: makeExecutionIdentityStore().store,
+          ordering: createSyncOrderingStore({ statePath }),
+        });
+
+        await secondApply(
+          orderedEvent(
+            { type: 'workflow.upsert', workflow: { ...workflow, id: 'x' } },
+            { sourceId: 'a:workflow', eventId: 'a:workflow:1', entityRevision: '1' },
+          ),
+        );
+        expect(secondRepos.workflow.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'x' }));
+
+        secondRepos.workflow.save.mockClear();
+        await secondApply(
+          orderedEvent(
+            { type: 'workflow.upsert', workflow: { ...workflow, id: 'workflow:x' } },
+            { sourceId: 'a', eventId: 'a:1', entityRevision: '1' },
+          ),
+        );
+        expect(secondRepos.workflow.save).not.toHaveBeenCalled();
       } finally {
         await rm(tempDir, { recursive: true, force: true });
       }

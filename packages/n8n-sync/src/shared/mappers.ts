@@ -106,7 +106,7 @@ export function mapCredential(credential: ICredentialsDb): SyncCredentialDto {
 export function mapExecution(
   executionId: string,
   fullRunData: IRunPayload | undefined,
-  workflowData: WorkflowSnapshot | IWorkflowBase | undefined,
+  workflowData: WorkflowSnapshot | IWorkflowBase,
 ): SyncExecutionDto {
   const status = fullRunData?.status ?? 'unknown';
   const mode = fullRunData?.mode ?? 'unknown';
@@ -116,13 +116,12 @@ export function mapExecution(
 
   const dto: SyncExecutionDto = {
     id: executionId,
-    workflowId: (workflowData as { id?: string } | undefined)?.id ?? null,
+    workflowId: workflowData.id,
     status,
     mode,
     finished: fullRunData?.finished ?? isFinishedStatus(status),
   };
 
-  if (dto.workflowId === null) delete dto.workflowId;
   if (startedAt) dto.startedAt = startedAt;
   if (stoppedAt) dto.stoppedAt = stoppedAt;
   if (createdAt) dto.createdAt = createdAt;

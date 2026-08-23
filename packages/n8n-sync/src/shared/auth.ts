@@ -19,8 +19,14 @@ export const DEFAULT_REPLAY_CACHE_SIZE = 10_000;
  */
 export type SyncAuthMode = 'hmac' | 'token';
 
+export interface RequestReplayReservation {
+  status: 'accepted' | 'replayed' | 'missing';
+  complete(): void;
+  release(): void;
+}
+
 export interface RequestReplayGuard {
-  remember(req: IncomingMessage): 'accepted' | 'replayed' | 'missing';
+  reserve(req: IncomingMessage): RequestReplayReservation;
 }
 
 /**
@@ -77,33 +83,95 @@ export function createRequestReplayGuard(options: {
   const ttlMs = Math.max(1, options.ttlMs);
   const maxEntries = Math.max(1, options.maxEntries ?? DEFAULT_REPLAY_CACHE_SIZE);
   const nowMs = options.nowMs ?? (() => Date.now());
-  const cache = new Map<string, number>();
+  const cache = new Map<string, { expiresAt: number; completed: boolean }>();
+  const expiryQueue: Array<{ key: string; expiresAt: number }> = [];
+  const completedQueue: Array<{ key: string; expiresAt: number }> = [];
+  let expiryHead = 0;
+  let completedHead = 0;
+  let completedCount = 0;
+
+  const compactQueue = () => {
+    if (expiryHead < 1024 || expiryHead * 2 < expiryQueue.length) return;
+    expiryQueue.splice(0, expiryHead);
+    expiryHead = 0;
+  };
+
+  const compactCompletedQueue = () => {
+    if (completedHead < 1024 || completedHead * 2 < completedQueue.length) return;
+    completedQueue.splice(0, completedHead);
+    completedHead = 0;
+  };
+
+  const deleteEntry = (key: string, expiresAt: number) => {
+    const cached = cache.get(key);
+    if (cached?.expiresAt !== expiresAt) return;
+
+    cache.delete(key);
+    if (cached.completed) completedCount -= 1;
+  };
 
   const prune = (now: number) => {
-    for (const [key, expiresAt] of cache) {
-      if (expiresAt <= now) cache.delete(key);
+    while (expiryHead < expiryQueue.length) {
+      const entry = expiryQueue[expiryHead];
+      if (!entry || entry.expiresAt > now) break;
+      expiryHead += 1;
+      deleteEntry(entry.key, entry.expiresAt);
     }
-    while (cache.size > maxEntries) {
-      const oldestKey = cache.keys().next().value as string | undefined;
-      if (!oldestKey) break;
-      cache.delete(oldestKey);
+
+    while (completedCount > maxEntries) {
+      const entry = completedQueue[completedHead];
+      if (!entry) break;
+      completedHead += 1;
+      deleteEntry(entry.key, entry.expiresAt);
     }
+
+    compactQueue();
+    compactCompletedQueue();
+  };
+
+  const noopReservation: RequestReplayReservation = {
+    status: 'missing',
+    complete() {},
+    release() {},
   };
 
   return {
-    remember(req) {
+    reserve(req) {
       const timestamp = headerValue(req, SYNC_TIMESTAMP_HEADER);
       const signature = headerValue(req, SYNC_SIGNATURE_HEADER);
-      if (!timestamp || !signature) return 'missing';
+      if (!timestamp || !signature) return noopReservation;
 
       const now = nowMs();
       prune(now);
       const key = `${timestamp}:${signature}`;
-      if (cache.has(key)) return 'replayed';
+      if (cache.has(key)) {
+        return {
+          status: 'replayed',
+          complete() {},
+          release() {},
+        };
+      }
 
-      cache.set(key, now + ttlMs);
+      const expiresAt = now + ttlMs;
+      const state = { expiresAt, completed: false };
+      cache.set(key, state);
+      expiryQueue.push({ key, expiresAt });
       prune(now);
-      return 'accepted';
+      return {
+        status: 'accepted',
+        complete() {
+          const current = cache.get(key);
+          if (current !== state || current.completed) return;
+          current.completed = true;
+          completedCount += 1;
+          completedQueue.push({ key, expiresAt });
+          prune(nowMs());
+        },
+        release() {
+          const current = cache.get(key);
+          if (current === state && !current.completed) cache.delete(key);
+        },
+      };
     },
   };
 }

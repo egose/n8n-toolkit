@@ -1,8 +1,16 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createPublisherHooks } from '../src/publisher/hooks';
+import { createEventOrderingAllocator } from '../src/publisher/order-state';
+import { createPublisherHookConfig } from '../src/publisher/runtime';
+import type { SyncConfig } from '../src/shared/config';
 import type { Logger } from '../src/shared/logger';
 import type { ICredentialsDb, IRunPayload, IWorkflowBase, IWorkflowTag, SyncEvent } from '../src/shared/types';
+import { parseSyncEvent } from '../src/shared/validate';
 
 const NOW = new Date('2026-03-04T05:06:07.000Z');
 
@@ -56,6 +64,16 @@ const credential: ICredentialsDb = {
 
 function emittedEvent(emit: ReturnType<typeof vi.fn>): SyncEvent {
   return emit.mock.calls[0][0] as SyncEvent;
+}
+
+function deferred<T = void>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
 }
 
 function emittedWorkflowEvent(emit: ReturnType<typeof vi.fn>): Extract<SyncEvent, { workflow: unknown }> {
@@ -124,6 +142,36 @@ describe('createPublisherHooks', () => {
 
     expect(emit.mock.calls[0][0]).toMatchObject({ eventId: 'src-1:1', entityRevision: '1' });
     expect(emit.mock.calls[1][0]).toMatchObject({ eventId: 'src-1:2', entityRevision: '2' });
+  });
+
+  it('contains publisher state allocation failures and surfaces degraded state in the log', async () => {
+    const ordering = {
+      initialize: vi.fn().mockResolvedValue(undefined),
+      getStatus: vi.fn().mockReturnValue({ ready: false, reason: 'storage_error' }),
+      allocate: vi.fn().mockRejectedValue(new Error('write failed')),
+    };
+    const { emit, log } = makeDeps({});
+    const degradedHooks = createPublisherHooks({
+      emit,
+      log,
+      sourceId: 'src-1',
+      ordering,
+      orderingStatus: ordering.getStatus,
+      now: () => NOW,
+    });
+
+    await degradedHooks.workflow.afterDelete[0]('wf-1' as never);
+
+    expect(emit).not.toHaveBeenCalled();
+    expect(log.error).toHaveBeenCalledWith(
+      'error',
+      expect.objectContaining({
+        context: 'publisher hook',
+        hook: 'workflow.afterDelete',
+        publisherStateReady: false,
+        publisherStateReason: 'storage_error',
+      }),
+    );
   });
 
   it('maps credentials.create and credentials.update to credentials.upsert from the hook payload', async () => {
@@ -325,6 +373,195 @@ describe('createPublisherHooks', () => {
     emit.mockClear();
     await hooks.workflow.afterUnarchive[0]('wf-1' as never);
     expect(emittedEvent(emit)).toMatchObject({ type: 'workflow.archive', workflowId: 'wf-1', archived: false });
+  });
+
+  it('preserves same-workflow hook order when upsert preparation is blocked before archive/delete', async () => {
+    const target = new Map<string, { archived: boolean }>();
+    const emitted: SyncEvent[] = [];
+    const { emit, hooks } = makeDeps({
+      emit: async (event) => {
+        emitted.push(event);
+        if (event.type === 'workflow.upsert') {
+          target.set(event.workflow.id, { archived: event.workflow.isArchived ?? false });
+        } else if (event.type === 'workflow.archive') {
+          const current = target.get(event.workflowId);
+          if (current) current.archived = event.archived;
+        } else if (event.type === 'workflow.delete') {
+          target.delete(event.workflowId);
+        }
+      },
+    });
+    const lookup = deferred<IWorkflowBase | null>();
+    const findOne = vi.fn().mockReturnValue(lookup.promise);
+
+    const upsert = hooks.workflow.afterUpdate[0].call({ dbCollections: { Workflow: { findOne } } }, 'wf-1' as never);
+    await Promise.resolve();
+    const archive = hooks.workflow.afterArchive[0]('wf-1' as never);
+    const remove = hooks.workflow.afterDelete[0]('wf-1' as never);
+    await Promise.resolve();
+
+    expect(findOne).toHaveBeenCalledWith({ where: { id: 'wf-1' } });
+    expect(emit).not.toHaveBeenCalled();
+
+    lookup.resolve(workflow);
+    await Promise.all([upsert, archive, remove]);
+
+    expect(emitted.map((event) => event.type)).toEqual(['workflow.upsert', 'workflow.archive', 'workflow.delete']);
+    expect(emitted.map((event) => event.entityRevision)).toEqual(['1', '2', '3']);
+    expect(target.has('wf-1')).toBe(false);
+  });
+
+  it('prepares different workflows concurrently while preserving each entity chain', async () => {
+    const { emit, hooks } = makeDeps();
+    const first = deferred<IWorkflowBase | null>();
+    const second = deferred<IWorkflowBase | null>();
+    const findOne = vi.fn(({ where }: { where: { id: string } }) =>
+      where.id === 'wf-1' ? first.promise : second.promise,
+    );
+
+    const firstHook = hooks.workflow.afterUpdate[0].call({ dbCollections: { Workflow: { findOne } } }, 'wf-1' as never);
+    const secondHook = hooks.workflow.afterUpdate[0].call(
+      { dbCollections: { Workflow: { findOne } } },
+      'wf-2' as never,
+    );
+    await Promise.resolve();
+
+    expect(findOne).toHaveBeenCalledTimes(2);
+
+    second.resolve({ ...workflow, id: 'wf-2', name: 'Second' });
+    await secondHook;
+    expect(emit).toHaveBeenCalledTimes(1);
+    expect(emittedEvent(emit)).toMatchObject({ type: 'workflow.upsert', workflow: { id: 'wf-2' } });
+
+    first.resolve(workflow);
+    await firstHook;
+    expect(emit).toHaveBeenCalledTimes(2);
+    expect(emit.mock.calls.map(([event]) => (event as SyncEvent).type)).toEqual(['workflow.upsert', 'workflow.upsert']);
+  });
+
+  it('releases later same-workflow hooks after a dropped preparation without consuming a revision', async () => {
+    const { emit, hooks } = makeDeps();
+    const lookup = deferred<IWorkflowBase | null>();
+    const findOne = vi.fn().mockReturnValue(lookup.promise);
+
+    const upsert = hooks.workflow.afterUpdate[0].call(
+      { dbCollections: { Workflow: { findOne } } },
+      'wf-missing' as never,
+    );
+    await Promise.resolve();
+    const remove = hooks.workflow.afterDelete[0]('wf-missing' as never);
+    await Promise.resolve();
+
+    expect(emit).not.toHaveBeenCalled();
+    lookup.resolve(null);
+    await Promise.all([upsert, remove]);
+
+    expect(emit).toHaveBeenCalledTimes(1);
+    expect(emittedEvent(emit)).toMatchObject({
+      type: 'workflow.delete',
+      workflowId: 'wf-missing',
+      entityRevision: '1',
+    });
+  });
+
+  it('preserves same-credential hook order when create lookup overlaps update/delete', async () => {
+    const emitted: SyncEvent[] = [];
+    const { emit, hooks } = makeDeps({
+      emit: async (event) => {
+        emitted.push(event);
+      },
+    });
+    const lookup = deferred<ICredentialsDb | null>();
+    const findOne = vi.fn().mockReturnValue(lookup.promise);
+
+    await hooks.credentials.create[0].call({ dbCollections: { Credentials: { findOne } } }, { id: 'cred-1' } as never);
+    await Promise.resolve();
+    const update = hooks.credentials.update[0]({ ...credential, name: 'Updated' } as never);
+    const remove = hooks.credentials.delete[0]('cred-1' as never);
+    await Promise.resolve();
+
+    expect(emit).not.toHaveBeenCalled();
+    lookup.resolve(credential);
+    await Promise.all([update, remove]);
+
+    expect(emitted.map((event) => event.type)).toEqual([
+      'credentials.upsert',
+      'credentials.upsert',
+      'credentials.delete',
+    ]);
+    expect(emitted.map((event) => event.entityRevision)).toEqual(['1', '2', '3']);
+    expect(emitted[1]).toMatchObject({ type: 'credentials.upsert', credential: { name: 'Updated' } });
+  });
+
+  it('preserves same-execution detached hook order while allowing later snapshots to wait', async () => {
+    const emitted: SyncEvent[] = [];
+    const { emit, hooks } = makeDeps({
+      entities: { executions: true },
+      filterByTag: true,
+      emit: async (event) => {
+        emitted.push(event);
+      },
+    });
+    const lookup = deferred<(IWorkflowBase & { tags?: IWorkflowTag[] }) | null>();
+    const findOne = vi.fn().mockReturnValue(lookup.promise);
+    const firstRun: IRunPayload = {
+      mode: 'manual',
+      status: 'running',
+      finished: false,
+      startedAt: new Date('2026-05-01T10:00:00.000Z'),
+    };
+    const secondRun: IRunPayload = {
+      mode: 'manual',
+      status: 'success',
+      finished: true,
+      startedAt: new Date('2026-05-01T10:00:00.000Z'),
+      stoppedAt: new Date('2026-05-01T10:00:05.000Z'),
+    };
+
+    await hooks.workflow.postExecute[0].call(
+      { dbCollections: { Workflow: { findOne } } },
+      firstRun as never,
+      { id: 'wf-1' } as never,
+      'exec-1' as never,
+    );
+    await Promise.resolve();
+    await hooks.workflow.postExecute[0](
+      secondRun as never,
+      { ...workflow, tags: [{ id: 't1', name: 'sync' }] } as never,
+      'exec-1' as never,
+    );
+    await Promise.resolve();
+
+    expect(emit).not.toHaveBeenCalled();
+    lookup.resolve({ ...workflow, tags: [{ id: 't1', name: 'sync' }] });
+    await vi.waitFor(() => expect(emit).toHaveBeenCalledTimes(2));
+
+    expect(emitted.map((event) => event.type)).toEqual(['execution.upsert', 'execution.upsert']);
+    expect(emitted.map((event) => event.entityRevision)).toEqual(['1', '2']);
+    expect(emitted.map((event) => (event.type === 'execution.upsert' ? event.execution.status : undefined))).toEqual([
+      'running',
+      'success',
+    ]);
+  });
+
+  it('logs same-entity preparation failures and continues with later queued hooks', async () => {
+    const { emit, hooks, log } = makeDeps();
+    const failure = deferred<IWorkflowBase | null>();
+    const findOne = vi.fn().mockReturnValue(failure.promise);
+
+    const upsert = hooks.workflow.afterUpdate[0].call({ dbCollections: { Workflow: { findOne } } }, 'wf-1' as never);
+    await Promise.resolve();
+    const remove = hooks.workflow.afterDelete[0]('wf-1' as never);
+
+    failure.reject(new Error('lookup failed'));
+    await Promise.all([upsert, remove]);
+
+    expect(log.error).toHaveBeenCalledWith(
+      'error',
+      expect.objectContaining({ context: 'publisher hook', hook: 'workflow.afterUpdate', detached: false }),
+    );
+    expect(emit).toHaveBeenCalledTimes(1);
+    expect(emittedEvent(emit)).toMatchObject({ type: 'workflow.delete', workflowId: 'wf-1', entityRevision: '1' });
   });
 
   it('logs and resolves when credentials.create detached lookup work rejects', async () => {
@@ -771,5 +1008,168 @@ describe('createPublisherHooks', () => {
         process.off('unhandledRejection', onUnhandled);
       }
     });
+  });
+});
+
+describe('createPublisherHookConfig readiness', () => {
+  it('does not log healthy registration until durable publisher state initializes', async () => {
+    const init = deferred();
+    const log: Logger = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      child: vi.fn(),
+    };
+    const allocator = {
+      initialize: vi.fn().mockReturnValue(init.promise),
+      getStatus: vi.fn().mockReturnValue({ ready: true }),
+      allocate: vi.fn(),
+    };
+    const config: SyncConfig = {
+      logLevel: 'info',
+      auth: { mode: 'hmac', secret: 's3cret' }, // pragma: allowlist secret
+      entities: new Set(['workflows', 'credentials'] as const),
+      filterByTag: false,
+      syncWorkflowTag: 'sync',
+      activeTag: 'active',
+      publisher: {
+        sourceId: 'src-1',
+        subscriberUrls: ['https://target.example.com'],
+        eventsPath: '/rest/sync/v1/events',
+        timeoutMs: 1000,
+        maxAttempts: 1,
+        maxQueueSize: 10,
+        publisherStatePath: '/state/publisher.json',
+      },
+      subscriber: {
+        routeBase: '/rest/sync/v1',
+        targetProjectId: '',
+        applyActiveState: false,
+        maxBodyBytes: 1024,
+        signatureToleranceMs: 1000,
+        replayCacheSize: 10,
+        subscriberStatePath: '/state/subscriber.json',
+        n8nDiPath: '/n8n/di',
+        n8nDbPath: '/n8n/db',
+      },
+    };
+
+    createPublisherHookConfig(config, {
+      createLogger: vi.fn().mockReturnValue(log),
+      createEventSender: vi.fn().mockReturnValue({ send: vi.fn() }),
+      createEventOrderingAllocator: vi.fn().mockReturnValue(allocator),
+      createPublisherHooks: vi.fn().mockReturnValue({}),
+    });
+
+    expect(log.info).toHaveBeenCalledWith('Initializing n8n-sync publisher state...', expect.any(Object));
+    expect(log.info).not.toHaveBeenCalledWith('n8n-sync publisher hooks registered', expect.any(Object));
+
+    init.resolve();
+    await init.promise;
+    await Promise.resolve();
+
+    expect(log.info).toHaveBeenCalledWith('n8n-sync publisher hooks registered', expect.any(Object));
+  });
+});
+
+describe('publisher ordering source identity', () => {
+  it('persists the configured source id and rejects later mismatches', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'n8n-sync-publisher-source-'));
+
+    try {
+      const statePath = join(tempDir, 'publisher-ordering.json');
+      const allocator = createEventOrderingAllocator({ sourceId: 'source-1', statePath });
+
+      await expect(allocator.allocate({ type: 'workflow.delete', workflowId: 'wf-1' })).resolves.toEqual({
+        eventId: 'source-1:1',
+        entityRevision: '1',
+      });
+
+      const raw = JSON.parse(await readFile(statePath, 'utf8')) as { version: number; sourceId: string };
+      expect(raw).toMatchObject({ version: 3, sourceId: 'source-1' });
+
+      await rm(`${statePath}.lock`, { force: true });
+      const rotated = createEventOrderingAllocator({ sourceId: 'source-2', statePath });
+      await expect(rotated.initialize()).rejects.toThrow(/does not match publisher state sourceId.*source-retirement/);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('migrates legacy publisher state to source-bound format 3', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'n8n-sync-publisher-source-'));
+
+    try {
+      const statePath = join(tempDir, 'publisher-ordering.json');
+      await writeFile(
+        statePath,
+        JSON.stringify({
+          version: 2,
+          nextEventSequence: '3',
+          entityRevisions: { '["workflow","wf-1"]': '2' },
+        }),
+      );
+
+      const allocator = createEventOrderingAllocator({ sourceId: 'source-1', statePath });
+      await expect(allocator.allocate({ type: 'workflow.delete', workflowId: 'wf-1' })).resolves.toEqual({
+        eventId: 'source-1:4',
+        entityRevision: '3',
+      });
+
+      const raw = JSON.parse(await readFile(statePath, 'utf8')) as {
+        version: number;
+        sourceId: string;
+        entityRevisions: Record<string, string>;
+      };
+      expect(raw).toMatchObject({ version: 3, sourceId: 'source-1' });
+      expect(raw.entityRevisions).toEqual({ '["workflow","wf-1"]': '3' });
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects concurrent publisher allocators sharing one state path', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'n8n-sync-publisher-source-'));
+
+    try {
+      const statePath = join(tempDir, 'publisher-ordering.json');
+      const first = createEventOrderingAllocator({ sourceId: 'source-1', statePath });
+      const second = createEventOrderingAllocator({ sourceId: 'source-1', statePath });
+
+      await first.initialize();
+      await expect(second.initialize()).rejects.toThrow(/Multiple publisher processes sharing one SYNC_SOURCE_ID/);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('emits publisher-generated events that pass subscriber wire validation', async () => {
+    const emitted: SyncEvent[] = [];
+    const { hooks } = makeDeps({
+      entities: { executions: true },
+      emit: async (event) => {
+        emitted.push(event);
+      },
+    });
+
+    await hooks.workflow.afterDelete[0]('wf-1' as never);
+    await hooks.credentials.delete[0]('cred-1' as never);
+    await hooks.workflow.postExecute[0](
+      {
+        status: 'success',
+        mode: 'manual',
+        finished: true,
+        startedAt: new Date('2026-05-01T10:00:00.000Z'),
+      } as never,
+      workflow as never,
+      'exec-1' as never,
+    );
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(emitted).toHaveLength(3);
+    for (const event of emitted) {
+      expect(parseSyncEvent(event)).toEqual(event);
+    }
   });
 });

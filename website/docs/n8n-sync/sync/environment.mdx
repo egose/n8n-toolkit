@@ -9,38 +9,43 @@ All `process.env` access in the package lives in `src/shared/config.ts`. Nowhere
 
 ## Both sides
 
-| Variable             | Required | Default                 | Description                                                                                                                                                                                                                                                                                                  |
-| -------------------- | -------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SYNC_SHARED_SECRET` | yes      | —                       | Shared secret. HMAC key (hmac mode) or bearer token (token mode).                                                                                                                                                                                                                                            |
-| `SYNC_AUTH_MODE`     | no       | `hmac`                  | `hmac` \| `token` — must match on publisher and subscriber. See [Authentication](/n8n-sync/sync/authentication/).                                                                                                                                                                                            |
-| `SYNC_ENTITIES`      | no       | `workflows,credentials` | Comma-separated subset of `workflows`, `credentials`, `executions` to sync. Unknown names are dropped. When `executions` is included, the publisher registers `workflow.postExecute` and the subscriber resolves the `ExecutionRepository`. See [Wired Hooks](/n8n-sync/sync/hooks/).                       |
-| `LOG_LEVEL`          | no       | `info`                  | `debug` \| `info` \| `warn` \| `error`. Structured JSON logger.                                                                                                                                                                                                                                               |
+| Variable             | Required | Default                 | Description |
+| -------------------- | -------- | ----------------------- | ----------- |
+| `SYNC_SHARED_SECRET` | yes, when delivery is enabled | — | Shared secret. HMAC key in `hmac` mode or bearer token in `token` mode. Publisher startup fails when subscriber URLs are configured and this is blank. Subscriber auth fails closed when blank. |
+| `SYNC_AUTH_MODE`     | no       | `hmac`                  | `hmac` \| `token`. Must match on publisher and subscriber. See [Authentication](/n8n-sync/sync/authentication/). |
+| `SYNC_ENTITIES`      | no       | `workflows,credentials` | Comma-separated subset of `workflows`, `credentials`, `executions`. Absent or blank values use the default; explicit invalid names or comma-only empty selections fail startup. `executions` requires `workflows`. Disabled families are rejected by the subscriber with non-retryable `422 SYNC_ENTITY_DISABLED`. |
+| `LOG_LEVEL`          | no       | `info`                  | `debug` \| `info` \| `warn` \| `error`. Structured JSON logger. |
 
 ## Publisher
 
-| Variable               | Required | Default                | Description                                                                                                                                |
-| ---------------------- | -------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SYNC_SUBSCRIBER_URLS` | yes      | —                      | Comma-separated target base URLs (fan-out). Falls back to `SYNC_SUBSCRIBER_URL` if unset.                                                  |
-| `SYNC_SUBSCRIBER_URL`  | no       | —                      | Legacy single-target form of `SYNC_SUBSCRIBER_URLS`.                                                                                         |
-| `SYNC_SOURCE_ID`       | no       | hostname               | Identifier stamped on every event.                                                                                                          |
-| `SYNC_EVENTS_PATH`     | no       | `/rest/sync/v1/events` | Endpoint path on the subscriber.                                                                                                            |
-| `SYNC_TIMEOUT_MS`      | no       | `10000`                | Per-attempt HTTP timeout.                                                                                                                  |
-| `SYNC_MAX_RETRIES`     | no       | `3`                    | Total delivery attempts per event.                                                                                                         |
-| `SYNC_FILTER_BY_TAG`   | no       | `false`                | When `true`, sync only workflows that carry `SYNC_WORKFLOW_TAG`. See [Tag-based Filtering](/n8n-sync/sync/tag-filtering/).                 |
-| `SYNC_WORKFLOW_TAG`    | no       | `sync`                 | Workflow tag name that gates syncing. Effective only when `SYNC_FILTER_BY_TAG=true`.                                                       |
-| `SYNC_ACTIVE_TAG`      | no       | `active`               | Tag name that rewrites the DTO `active` to `true` (real value preserved in `meta.active_real`). Effective only when `SYNC_FILTER_BY_TAG=true`. |
+| Variable                    | Required | Default                                              | Description |
+| --------------------------- | -------- | ---------------------------------------------------- | ----------- |
+| `SYNC_SUBSCRIBER_URLS`      | yes, on publisher | — | Comma-separated target base URLs for fan-out. Falls back to `SYNC_SUBSCRIBER_URL` if unset. Entries must be absolute base URLs with no path, query, fragment, or userinfo. HTTPS is required unless `SYNC_ALLOW_INSECURE_HTTP=true` and `NODE_ENV` is `development` or `test`. |
+| `SYNC_SUBSCRIBER_URL`       | no       | —                                                    | Legacy single-target form of `SYNC_SUBSCRIBER_URLS`. |
+| `SYNC_ALLOW_INSECURE_HTTP`  | no       | `false`                                              | Development/test-only escape hatch for `http://` subscriber URLs. Ignored unless `NODE_ENV` is `development` or `test`. |
+| `SYNC_SOURCE_ID`            | yes, when delivery is enabled | — | Stable logical source identifier stamped on every event. Required when `SYNC_SUBSCRIBER_URLS` or `SYNC_SUBSCRIBER_URL` enables delivery. Must be non-blank and 512 characters or fewer. |
+| `SYNC_EVENTS_PATH`          | no       | `/rest/sync/v1/events`                               | Endpoint path on the subscriber. Must be a local absolute path with no query or fragment. |
+| `SYNC_TIMEOUT_MS`           | no       | `10000`                                              | Per-attempt HTTP timeout in milliseconds. Integer range: `1` to `300000`. |
+| `SYNC_MAX_RETRIES`          | no       | `3`                                                  | Total delivery attempts per event, including the first attempt. Integer range: `1` to `10`. |
+| `SYNC_MAX_QUEUE_SIZE`       | no       | `1000`                                               | Max queued events per target. Integer range: `1` to `100000`. When full, the oldest queued event is dropped and logged before the new event is enqueued. |
+| `SYNC_PUBLISHER_STATE_PATH` | no       | `/home/node/.n8n/sync-state/publisher-ordering.json` | Durable publisher source identity and counter store for `eventId` and per-entity `entityRevision`. A best-effort `.lock` file is created next to this path. Put both on persistent storage. |
+| `SYNC_FILTER_BY_TAG`        | no       | `false`                                              | When `true`, sync only workflows that carry `SYNC_WORKFLOW_TAG`. See [Tag-based Filtering](/n8n-sync/sync/tag-filtering/). |
+| `SYNC_WORKFLOW_TAG`         | no       | `sync`                                               | Workflow tag name that gates syncing. Effective only when `SYNC_FILTER_BY_TAG=true`. |
+| `SYNC_ACTIVE_TAG`           | no       | `active`                                             | Tag name that rewrites the DTO `active` to `true` when present. The real source value is preserved in `meta.active_real`. Effective only when `SYNC_FILTER_BY_TAG=true`. |
 
 ## Subscriber
 
-| Variable                      | Required | Default                                                | Description                                                               |
-| ----------------------------- | -------- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `SYNC_ROUTE_BASE`             | no       | `/rest/sync/v1`                                        | Base path for the mounted routes.                                         |
-| `SYNC_TARGET_PROJECT_ID`      | no       | —                                                      | Link newly synced workflows/credentials to this project (`*:owner` role). |
-| `SYNC_APPLY_ACTIVE_STATE`     | no       | `false`                                                | Also write `active`/`activeVersionId` (see [Limitations](/n8n-sync/sync/limitations/)). |
-| `SYNC_MAX_BODY_BYTES`         | no       | `16777216`                                             | Request body size cap.                                                    |
-| `SYNC_SIGNATURE_TOLERANCE_MS` | no       | `300000`                                               | Max signature age/skew accepted in hmac mode.                            |
-| `N8N_DI_PATH`                 | no       | `/usr/local/lib/node_modules/n8n/node_modules/@n8n/di` | Path to n8n's `@n8n/di` module.                                           |
-| `N8N_DB_PATH`                 | no       | `/usr/local/lib/node_modules/n8n/node_modules/@n8n/db` | Path to n8n's `@n8n/db` module.                                           |
+| Variable                      | Required | Default                                                | Description |
+| ----------------------------- | -------- | ------------------------------------------------------ | ----------- |
+| `SYNC_ROUTE_BASE`             | no       | `/rest/sync/v1`                                        | Base path for mounted routes. Must be a local absolute path with no query or fragment. The subscriber mounts `GET <base>/health`, `GET <base>/ready`, and `POST <base>/events`. |
+| `SYNC_TARGET_PROJECT_ID`      | no       | —                                                      | Best-effort link of newly synced workflows/credentials to this project (`*:owner` role). If empty, the applier lazily tries the target owner's personal project and caches the result, including lookup misses. |
+| `SYNC_APPLY_ACTIVE_STATE`     | no       | `false`                                                | Also write `active`/`activeVersionId`. This is DB-only and does not register triggers/webhooks with the active workflow manager. See [Limitations](/n8n-sync/sync/limitations/). |
+| `SYNC_MAX_BODY_BYTES`         | no       | `16777216`                                             | Request body size cap. Integer range: `1` to `67108864`. |
+| `SYNC_SIGNATURE_TOLERANCE_MS` | no       | `300000`                                               | Max signature age/skew accepted in hmac mode. Integer range: `1` to `3600000`. |
+| `SYNC_REPLAY_CACHE_SIZE`      | no       | `10000`                                                | Max successful exact signed HMAC requests remembered for replay rejection in this process. Integer range: `1` to `100000`. Entries expire with `SYNC_SIGNATURE_TOLERANCE_MS`; in-flight reservations are additional transient entries. |
+| `SYNC_SUBSCRIBER_STATE_PATH`  | no       | `/home/node/.n8n/sync-state/subscriber-ordering.json`  | Durable subscriber ordering and tombstone store keyed by `[sourceId, entityKind, entityId]`. When executions are enabled, the execution identity map is stored beside it as `<basename>.executions.json`. |
+| `N8N_DI_PATH`                 | no       | `/usr/local/lib/node_modules/n8n/node_modules/@n8n/di` | Path to n8n's `@n8n/di` module. |
+| `N8N_DB_PATH`                 | no       | `/usr/local/lib/node_modules/n8n/node_modules/@n8n/db` | Path to n8n's `@n8n/db` module. |
 
 ## Defaults at a glance
 
@@ -48,6 +53,7 @@ All `process.env` access in the package lives in `src/shared/config.ts`. Nowhere
 # Minimal publisher
 export EXTERNAL_HOOK_FILES=/opt/n8n-sync/publisher.cjs
 export SYNC_SUBSCRIBER_URLS=https://target.example.com
+export SYNC_SOURCE_ID=prod-source-a
 export SYNC_SHARED_SECRET=<secret>
 
 # Minimal subscriber
@@ -62,3 +68,4 @@ Every other setting has a sensible default and only needs to be set when you wan
 - [Authentication](/n8n-sync/sync/authentication/) — `SYNC_AUTH_MODE`, `SYNC_SHARED_SECRET`, `SYNC_SIGNATURE_TOLERANCE_MS`.
 - [Tag-based Filtering](/n8n-sync/sync/tag-filtering/) — `SYNC_FILTER_BY_TAG`, `SYNC_WORKFLOW_TAG`, `SYNC_ACTIVE_TAG`.
 - [Wired Hooks](/n8n-sync/sync/hooks/) — `SYNC_ENTITIES`.
+- [Persistence & Readiness](/n8n-sync/sync/persistence-readiness/) — state paths, queues, and readiness behavior.

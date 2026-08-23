@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '../src/shared/logger';
 import type { SyncCredentialDto, SyncEvent, SyncWorkflowDto } from '../src/shared/types';
-import { createApplier } from '../src/subscriber/applier';
+import { createApplier, SyncEntityTimestampConflictError } from '../src/subscriber/applier';
 import { createSyncOrderingStore } from '../src/subscriber/order-state';
 import type { N8nSyncRepositories } from '../src/subscriber/n8n-runtime';
 
@@ -61,6 +61,7 @@ type SqliteHarness = {
   path: string;
   dispose: () => Promise<void>;
   readWorkflowRow: (id: string) => Record<string, unknown> | null;
+  readCredentialRow: (id: string) => Record<string, unknown> | null;
   readWorkflowOwnerLink: (workflowId: string) => Record<string, unknown> | null;
   readCredentialOwnerLink: (credentialId: string) => Record<string, unknown> | null;
   insertWorkflow: (entity: Record<string, unknown>) => void;
@@ -188,6 +189,27 @@ async function createSqliteHarness(): Promise<SqliteHarness> {
   const readWorkflowRow = (id: string): Record<string, unknown> | null =>
     hydrateRow(db.prepare('select * from workflow_entity where id = ?').get(id) as Record<string, unknown> | undefined);
 
+  const readCredentialRow = (id: string): Record<string, unknown> | null =>
+    hydrateRow(
+      db.prepare('select * from credentials_entity where id = ?').get(id) as Record<string, unknown> | undefined,
+    );
+
+  const classifyTimestampMiss = (
+    row: Record<string, unknown> | null,
+    incomingTimestamp: Date | undefined,
+    timestampField: 'updatedAt' | 'stoppedAt',
+    allowConflict: boolean,
+  ) => {
+    if (!row || !incomingTimestamp) return 'stale' as const;
+    const existing = row[timestampField] instanceof Date ? row[timestampField] : new Date(String(row[timestampField]));
+    return allowConflict &&
+      existing instanceof Date &&
+      !Number.isNaN(existing.getTime()) &&
+      existing.getTime() > incomingTimestamp.getTime()
+      ? ('conflict' as const)
+      : ('stale' as const);
+  };
+
   const readWorkflowOwnerLink = (workflowId: string): Record<string, unknown> | null =>
     hydrateRow(
       db
@@ -240,19 +262,24 @@ async function createSqliteHarness(): Promise<SqliteHarness> {
         const params: SQLInputValue[] = [...entries.map(([, value]) => normalizeValue(value)), id];
         let whereClause = 'id = ?';
         if (options.incomingTimestamp) {
-          whereClause += ` and (updatedAt is null or updatedAt < ?)`;
+          whereClause += ` and (updatedAt is null or updatedAt ${options.allowEqualTimestamp ? '<=' : '<'} ?)`;
           params.push(options.incomingTimestamp.toISOString());
         }
         const result = db.prepare(`update workflow_entity set ${setClause} where ${whereClause}`).run(...params);
         if (Number(result.changes ?? 0) > 0) return 'updated';
-        return readWorkflowRow(String(id)) ? 'stale' : 'missing';
+        const existing = readWorkflowRow(String(id));
+        return existing
+          ? classifyTimestampMiss(
+              existing,
+              options.incomingTimestamp,
+              'updatedAt',
+              options.allowEqualTimestamp === true,
+            )
+          : 'missing';
       },
     },
     credentials: {
-      findOneBy: async ({ id }) =>
-        hydrateRow(
-          db.prepare('select * from credentials_entity where id = ?').get(id) as Record<string, unknown> | undefined,
-        ),
+      findOneBy: async ({ id }) => readCredentialRow(id),
       save: async (entity) => {
         insertRow(db, 'credentials_entity', entity);
       },
@@ -272,13 +299,20 @@ async function createSqliteHarness(): Promise<SqliteHarness> {
         const params: SQLInputValue[] = [...entries.map(([, value]) => normalizeValue(value)), id];
         let whereClause = 'id = ?';
         if (options.incomingTimestamp) {
-          whereClause += ` and (updatedAt is null or updatedAt < ?)`;
+          whereClause += ` and (updatedAt is null or updatedAt ${options.allowEqualTimestamp ? '<=' : '<'} ?)`;
           params.push(options.incomingTimestamp.toISOString());
         }
         const result = db.prepare(`update credentials_entity set ${setClause} where ${whereClause}`).run(...params);
         if (Number(result.changes ?? 0) > 0) return 'updated';
-        const existing = db.prepare('select id from credentials_entity where id = ?').get(id);
-        return existing ? 'stale' : 'missing';
+        const existing = readCredentialRow(String(id));
+        return existing
+          ? classifyTimestampMiss(
+              existing,
+              options.incomingTimestamp,
+              'updatedAt',
+              options.allowEqualTimestamp === true,
+            )
+          : 'missing';
       },
     },
     sharedWorkflow: {
@@ -343,6 +377,7 @@ async function createSqliteHarness(): Promise<SqliteHarness> {
     path,
     controls,
     readWorkflowRow,
+    readCredentialRow,
     readWorkflowOwnerLink,
     readCredentialOwnerLink,
     insertWorkflow: (entity) => insertRow(db, 'workflow_entity', entity),
@@ -432,6 +467,158 @@ describe('createApplier real database persistence', () => {
 
     expect(harness.readWorkflowRow('wf-1')).toMatchObject({ name: 'Newer workflow' });
     expect(harness.readWorkflowOwnerLink('wf-1')).toMatchObject({ projectId: 'proj-1' });
+  });
+
+  it('uses the real conditional update to let a higher workflow revision win an equal timestamp tie', async () => {
+    const harness = await createSqliteHarness();
+    harnesses.push(harness);
+    harness.insertWorkflow({
+      id: 'wf-1',
+      name: 'Initial workflow',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      isArchived: 0,
+      active: 0,
+      activeVersionId: null,
+      nodes: '[]',
+      connections: '{}',
+      settings: '{}',
+      pinData: '{}',
+    });
+    const apply = createApplier(harness.repos, { log, targetProjectId: 'proj-1' });
+
+    await apply(
+      orderedEvent(
+        { type: 'workflow.upsert', workflow: { ...workflow, name: 'First workflow' } },
+        { eventId: 'source-a:1', entityRevision: '1' },
+      ),
+    );
+    await apply(
+      orderedEvent(
+        { type: 'workflow.upsert', workflow: { ...workflow, name: 'Second workflow' } },
+        { eventId: 'source-a:2', entityRevision: '2' },
+      ),
+    );
+
+    expect(harness.readWorkflowRow('wf-1')).toMatchObject({ name: 'Second workflow' });
+  });
+
+  it('does not advance ordering when a real conditional workflow update sees an older timestamp conflict', async () => {
+    const harness = await createSqliteHarness();
+    harnesses.push(harness);
+    harness.insertWorkflow({
+      id: 'wf-1',
+      name: 'Initial workflow',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      isArchived: 0,
+      active: 0,
+      activeVersionId: null,
+      nodes: '[]',
+      connections: '{}',
+      settings: '{}',
+      pinData: '{}',
+    });
+    const apply = createApplier(harness.repos, { log, targetProjectId: 'proj-1' });
+
+    await apply(
+      orderedEvent(
+        {
+          type: 'workflow.upsert',
+          workflow: { ...workflow, name: 'First workflow', updatedAt: '2026-01-03T00:00:00.000Z' },
+        },
+        { eventId: 'source-a:1', entityRevision: '1' },
+      ),
+    );
+    await expect(
+      apply(
+        orderedEvent(
+          {
+            type: 'workflow.upsert',
+            workflow: { ...workflow, name: 'Older workflow', updatedAt: '2026-01-02T00:00:00.000Z' },
+          },
+          { eventId: 'source-a:2', entityRevision: '2' },
+        ),
+      ),
+    ).rejects.toBeInstanceOf(SyncEntityTimestampConflictError);
+
+    await apply(
+      orderedEvent(
+        {
+          type: 'workflow.upsert',
+          workflow: { ...workflow, name: 'Recovered workflow', updatedAt: '2026-01-04T00:00:00.000Z' },
+        },
+        { eventId: 'source-a:2', entityRevision: '2' },
+      ),
+    );
+
+    expect(harness.readWorkflowRow('wf-1')).toMatchObject({ name: 'Recovered workflow' });
+  });
+
+  it('uses the fallback workflow update path to let a higher revision win an equal timestamp tie', async () => {
+    const harness = await createSqliteHarness();
+    harnesses.push(harness);
+    delete (harness.repos.workflow as { conditionalUpdate?: unknown }).conditionalUpdate;
+    harness.insertWorkflow({
+      id: 'wf-1',
+      name: 'Initial workflow',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      isArchived: 0,
+      active: 0,
+      activeVersionId: null,
+      nodes: '[]',
+      connections: '{}',
+      settings: '{}',
+      pinData: '{}',
+    });
+    const apply = createApplier(harness.repos, { log, targetProjectId: 'proj-1' });
+
+    await apply(
+      orderedEvent(
+        { type: 'workflow.upsert', workflow: { ...workflow, name: 'First workflow' } },
+        { eventId: 'source-a:1', entityRevision: '1' },
+      ),
+    );
+    await apply(
+      orderedEvent(
+        { type: 'workflow.upsert', workflow: { ...workflow, name: 'Second workflow' } },
+        { eventId: 'source-a:2', entityRevision: '2' },
+      ),
+    );
+
+    expect(harness.readWorkflowRow('wf-1')).toMatchObject({ name: 'Second workflow' });
+  });
+
+  it('uses the real conditional update to let a higher credential revision win an equal timestamp tie', async () => {
+    const harness = await createSqliteHarness();
+    harnesses.push(harness);
+    harness.insertCredential({
+      id: 'cred-1',
+      name: 'Initial credential',
+      type: 'httpBasicAuth',
+      data: 'encrypted-blob',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      isGlobal: 0,
+      isManaged: 0,
+    });
+    const apply = createApplier(harness.repos, { log, targetProjectId: 'proj-1' });
+
+    await apply(
+      orderedEvent(
+        { type: 'credentials.upsert', credential: { ...credential, name: 'First credential' } },
+        { eventId: 'source-a:1', entityRevision: '1' },
+      ),
+    );
+    await apply(
+      orderedEvent(
+        { type: 'credentials.upsert', credential: { ...credential, name: 'Second credential' } },
+        { eventId: 'source-a:2', entityRevision: '2' },
+      ),
+    );
+
+    expect(harness.readCredentialRow('cred-1')).toMatchObject({ name: 'Second credential' });
   });
 
   it('reconciles a workflow insert race from a real database uniqueness conflict and still links ownership', async () => {

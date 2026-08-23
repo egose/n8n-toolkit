@@ -3,9 +3,12 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import type { SyncEntity } from '../src/shared/config';
 import {
   buildN8nSyncRepositories,
   createN8nRuntimeAdapter,
+  probeSyncMetadataTransactionCapability,
+  SYNC_METADATA_SCHEMA_SQL,
   SUPPORTED_N8N_RUNTIME_VERSION_MATRIX,
 } from '../src/subscriber/n8n-runtime';
 
@@ -125,6 +128,63 @@ describe('buildN8nSyncRepositories', () => {
     expect(adapter.getService).not.toHaveBeenCalledWith(expect.anything(), expect.anything(), 'ExecutionRepository');
   });
 
+  it('does not resolve repositories for disabled workflow and credential families', () => {
+    const workflowToken = Symbol('WorkflowRepository');
+    const credentialsToken = Symbol('CredentialsRepository');
+    const sharedWorkflowToken = Symbol('SharedWorkflowRepository');
+    const sharedCredentialsToken = Symbol('SharedCredentialsRepository');
+    const userToken = Symbol('UserRepository');
+    const projectToken = Symbol('ProjectRepository');
+    const makeAdapter = () => ({
+      loadContainer: () => ({ get: vi.fn().mockReturnValue({}) }),
+      loadDbModule: () => ({
+        WorkflowRepository: workflowToken,
+        CredentialsRepository: credentialsToken,
+        SharedWorkflowRepository: sharedWorkflowToken,
+        SharedCredentialsRepository: sharedCredentialsToken,
+        UserRepository: userToken,
+        ProjectRepository: projectToken,
+      }),
+      getService: vi.fn().mockReturnValue({}),
+    });
+    const workflowOnlyAdapter = makeAdapter();
+    const credentialsOnlyAdapter = makeAdapter();
+
+    const workflowOnly = buildN8nSyncRepositories({
+      adapter: workflowOnlyAdapter,
+      entities: new Set<SyncEntity>(['workflows']),
+    });
+    const credentialsOnly = buildN8nSyncRepositories({
+      adapter: credentialsOnlyAdapter,
+      entities: new Set<SyncEntity>(['credentials']),
+    });
+
+    expect(workflowOnly.credentials).toBeUndefined();
+    expect(workflowOnly.sharedCredentials).toBeUndefined();
+    expect(credentialsOnly.workflow).toBeUndefined();
+    expect(credentialsOnly.sharedWorkflow).toBeUndefined();
+    expect(workflowOnlyAdapter.getService).not.toHaveBeenCalledWith(
+      expect.anything(),
+      credentialsToken,
+      'CredentialsRepository',
+    );
+    expect(workflowOnlyAdapter.getService).not.toHaveBeenCalledWith(
+      expect.anything(),
+      sharedCredentialsToken,
+      'SharedCredentialsRepository',
+    );
+    expect(credentialsOnlyAdapter.getService).not.toHaveBeenCalledWith(
+      expect.anything(),
+      workflowToken,
+      'WorkflowRepository',
+    );
+    expect(credentialsOnlyAdapter.getService).not.toHaveBeenCalledWith(
+      expect.anything(),
+      sharedWorkflowToken,
+      'SharedWorkflowRepository',
+    );
+  });
+
   it.each(SUPPORTED_N8N_RUNTIME_VERSION_MATRIX)(
     'loads the pinned $label runtime fixture for n8n $version',
     ({ version }) => {
@@ -156,4 +216,107 @@ describe('buildN8nSyncRepositories', () => {
       });
     },
   );
+
+  it('decorates real repository conditional updates with equal-timestamp and conflict semantics', async () => {
+    const workflowToken = Symbol('WorkflowRepository');
+    const credentialsToken = Symbol('CredentialsRepository');
+    const sharedWorkflowToken = Symbol('SharedWorkflowRepository');
+    const sharedCredentialsToken = Symbol('SharedCredentialsRepository');
+    const userToken = Symbol('UserRepository');
+    const projectToken = Symbol('ProjectRepository');
+    const conditions: string[] = [];
+    const queryBuilder = {
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      andWhere: vi.fn((condition: string) => {
+        conditions.push(condition);
+        return queryBuilder;
+      }),
+      execute: vi.fn().mockResolvedValue({ affected: 0 }),
+    };
+    const workflowRepo = {
+      manager: { connection: { driver: { escape: (name: string) => `"${name}"` } } },
+      metadata: { columns: [{ propertyName: 'updatedAt', databaseName: 'updatedAt' }] },
+      createQueryBuilder: vi.fn(() => queryBuilder),
+      findOneBy: vi.fn().mockResolvedValue({ id: 'wf-1', updatedAt: new Date('2026-01-03T00:00:00.000Z') }),
+      save: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    };
+    const adapter = {
+      loadContainer: () => ({ get: <T>(token: unknown) => (token === workflowToken ? workflowRepo : {}) as T }),
+      loadDbModule: () => ({
+        WorkflowRepository: workflowToken,
+        CredentialsRepository: credentialsToken,
+        SharedWorkflowRepository: sharedWorkflowToken,
+        SharedCredentialsRepository: sharedCredentialsToken,
+        UserRepository: userToken,
+        ProjectRepository: projectToken,
+      }),
+      getService: createN8nRuntimeAdapter().getService,
+    };
+
+    const repos = buildN8nSyncRepositories({ adapter });
+    const result = await repos.workflow.conditionalUpdate?.(
+      'wf-1',
+      { name: 'Incoming' },
+      {
+        incomingTimestamp: new Date('2026-01-02T00:00:00.000Z'),
+        timestampField: 'updatedAt',
+        allowEqualTimestamp: true,
+      },
+    );
+
+    expect(conditions[0]).toContain('<= :incomingTimestamp');
+    expect(result).toBe('conflict');
+  });
+
+  it('probes for a same-database transaction manager with raw query support', () => {
+    const transaction = vi.fn();
+    const query = vi.fn();
+    const manager = { transaction, query };
+
+    const capability = probeSyncMetadataTransactionCapability({
+      workflow: {
+        manager,
+        findOneBy: vi.fn(),
+        save: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      } as never,
+    });
+
+    expect(capability.supported).toBe(true);
+    expect(capability.manager).toBe(manager);
+    expect(capability.reason).toBeUndefined();
+  });
+
+  it('rejects metadata storage when raw transactional query support is unavailable', () => {
+    expect(probeSyncMetadataTransactionCapability({})).toMatchObject({
+      supported: false,
+      reason: 'No resolved n8n repository exposes a TypeORM manager',
+    });
+    expect(
+      probeSyncMetadataTransactionCapability({
+        workflow: {
+          manager: { transaction: vi.fn() },
+          findOneBy: vi.fn(),
+          save: vi.fn(),
+          update: vi.fn(),
+          delete: vi.fn(),
+        } as never,
+      }),
+    ).toMatchObject({
+      supported: false,
+      reason: 'Resolved n8n repository manager does not expose raw query()',
+    });
+  });
+
+  it('keeps the prototype schema concrete and namespaced', () => {
+    expect(SYNC_METADATA_SCHEMA_SQL).toHaveLength(4);
+    expect(SYNC_METADATA_SCHEMA_SQL.join('\n')).toContain('create table if not exists n8n_sync_entity_state');
+    expect(SYNC_METADATA_SCHEMA_SQL.join('\n')).toContain('primary key (source_id, entity_kind, source_entity_id)');
+    expect(SYNC_METADATA_SCHEMA_SQL.join('\n')).toContain('unique (target_execution_id)');
+  });
 });

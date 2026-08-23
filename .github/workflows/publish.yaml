@@ -20,6 +20,11 @@ jobs:
     - name: Setup NPM Packages
       uses: ./.github/actions/setup-npm
 
+    - name: Verify n8n-sync Release Artifact
+      run: |
+        pnpm --filter @egose/n8n-sync build
+        pnpm --filter @egose/n8n-sync pack:verify
+
     - name: Publish Packages
       run: |
         cat >"/home/runner/.npmrc" <<EOF

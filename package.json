@@ -2,6 +2,7 @@
   "name": "@egose/n8n-toolkit",
   "description": "A toolkit for n8n, providing a TypeScript client for the n8n API and utilities for workflow automation.",
   "version": "0.14.0",
+  "packageManager": "pnpm@11.21.0",
   "scripts": {
     "lint-fix": "eslint --fix .",
     "build": "pnpm -r --if-present build",

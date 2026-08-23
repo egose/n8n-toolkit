@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import type { SyncAuthMode } from './auth';
+import { MAX_ID_LENGTH } from './validate';
 
 /** Keys imported by both sides to gate per-entity behavior. */
 export type SyncEntity = 'workflows' | 'credentials' | 'executions';
@@ -285,9 +286,20 @@ function parseSubscriberUrls(env: SyncEnv): readonly string[] {
 }
 
 function parsePublisherConfig(env: SyncEnv): PublisherConfig {
+  const subscriberUrls = parseSubscriberUrls(env);
+  const sourceId = parseStringEnv(env.SYNC_SOURCE_ID);
+
+  if (sourceId.length > MAX_ID_LENGTH) {
+    throw new Error(`SYNC_SOURCE_ID must be ${MAX_ID_LENGTH} characters or fewer; received ${sourceId.length}`);
+  }
+
+  if (subscriberUrls.length > 0 && sourceId === '') {
+    throw new Error('SYNC_SOURCE_ID must be set when SYNC_SUBSCRIBER_URLS is configured');
+  }
+
   return {
-    sourceId: parseStringEnv(env.SYNC_SOURCE_ID),
-    subscriberUrls: parseSubscriberUrls(env),
+    sourceId,
+    subscriberUrls,
     eventsPath: normalizeLocalAbsolutePath('SYNC_EVENTS_PATH', env.SYNC_EVENTS_PATH, DEFAULT_SYNC_EVENTS_PATH),
     timeoutMs: parseIntegerEnv('SYNC_TIMEOUT_MS', env.SYNC_TIMEOUT_MS, {
       defaultValue: DEFAULT_SYNC_TIMEOUT_MS,

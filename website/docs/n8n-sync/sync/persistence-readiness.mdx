@@ -1,0 +1,56 @@
+---
+sidebar_label: Persistence & Readiness
+sidebar_position: 5
+---
+
+# Persistence & Readiness
+
+`n8n-sync` is event-driven, but its ordering guarantees depend on small file-backed state stores. Treat these files as sync state, not cache.
+
+## State Files
+
+| Side | Path | Purpose |
+| ---- | ---- | ------- |
+| Publisher | `SYNC_PUBLISHER_STATE_PATH` | Stores the configured `SYNC_SOURCE_ID`, the source-scoped event sequence, and per-entity revision counters. |
+| Publisher | `<SYNC_PUBLISHER_STATE_PATH>.lock` | Best-effort local lock that rejects another live publisher process using the same path. |
+| Subscriber | `SYNC_SUBSCRIBER_STATE_PATH` | Stores the last applied revision for each `[sourceId, entityKind, entityId]`, including delete tombstones. |
+| Subscriber | `<subscriber-state-basename>.executions.json` | Stores source-execution to target-execution mappings when execution sync is enabled. |
+
+Put these files on persistent storage. If the publisher state is lost, the publisher may reuse old revisions. If subscriber state is lost, the target can forget tombstones and stale-event protection until a newer event arrives.
+
+## Readiness
+
+The subscriber mounts three routes under `SYNC_ROUTE_BASE` (default `/rest/sync/v1`):
+
+| Route | Auth | Response |
+| ----- | ---- | -------- |
+| `GET /health` | none | `200 { "ok": true }` once routes are mounted. |
+| `GET /ready` | none | `200 { "ok": true, "ready": true }` while required file-backed state is loaded and writable; otherwise `503`. |
+| `POST /events` | HMAC or token | Applies one sync event. Returns `503 { "ok": false, "ready": false }` while readiness is false. |
+
+`/ready` checks current sync state load/write capability. It does not prove that n8n database writes and JSON checkpoints can commit atomically.
+
+## Crash Windows
+
+Current persistence is file-backed. JSON state writes are atomic per file, but they are not atomic with n8n database mutations or other JSON files.
+
+- A crash after a database write but before recording the subscriber checkpoint can cause a redelivery to hit row timestamp guards or revision conflicts.
+- A crash after an execution row write but before updating the execution identity file can require operator repair.
+- A publisher restart loses events that were still queued in memory and not yet delivered.
+- Exceeding `SYNC_MAX_QUEUE_SIZE` drops the oldest queued event for that target and logs a warning before enqueueing the new event.
+
+Supported production topology is one publisher process for a given `SYNC_SOURCE_ID` / `SYNC_PUBLISHER_STATE_PATH` and one subscriber process for a given route/state path. The publisher lock is best-effort and local to the state path/PID namespace; it is not a distributed lock.
+
+## Recovery Notes
+
+- `409 SYNC_REVISION_CONFLICT` means the target already committed that source/entity revision under a different `eventId`. This usually indicates duplicate publishers for the same `SYNC_SOURCE_ID` or a publisher restored with stale state.
+- Stop duplicate publishers before removing a stale `.lock` file. Remove only the lock file after verifying the original process is gone.
+- To intentionally change `SYNC_SOURCE_ID`, stop the publisher, back up and move aside the old publisher state file, configure the new source ID, and run a full subscriber resync or source-retirement procedure.
+- Subscriber state format `1` is refused instead of migrated because its colon-separated keys are ambiguous. Back it up, then restore from unambiguous metadata if available or reset subscriber sync state and perform a full source resync.
+- Do not delete subscriber tombstone state unless you accept that stale source events can be applied again.
+
+## Related Docs
+
+- [Environment Variables](/n8n-sync/sync/environment/) — `SYNC_PUBLISHER_STATE_PATH`, `SYNC_SUBSCRIBER_STATE_PATH`, and `SYNC_MAX_QUEUE_SIZE`.
+- [Architecture](/n8n-sync/sync/architecture/) — how event revisions and row timestamp guards fit together.
+- [Limitations](/n8n-sync/sync/limitations/) — residual constraints and unsupported topologies.

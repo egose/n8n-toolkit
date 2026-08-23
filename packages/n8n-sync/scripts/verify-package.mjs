@@ -154,6 +154,10 @@ function installAndVerifyConsumer(tarballPath) {
   run(process.execPath, ['check.cjs'], consumerDir);
 }
 
+function verifyPublishDryRun(tarballPath) {
+  run('npm', ['publish', '--dry-run', '--ignore-scripts', '--tag', 'pack-verify', tarballPath]);
+}
+
 rmSync(distDir, { recursive: true, force: true });
 assert.ok(!existsSync(distDir), 'Expected dist/ to be absent before packing');
 
@@ -167,3 +171,4 @@ const tarballPath = resolve(packedDir, tarballFileName);
 verifyTarballContents(tarballPath);
 verifyExamplePaths();
 installAndVerifyConsumer(tarballPath);
+verifyPublishDryRun(tarballPath);
