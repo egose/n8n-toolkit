@@ -48,7 +48,7 @@
   },
   "homepage": "https://n8n-toolkit.pages.dev/",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "devDependencies": {
     "@types/express": "^5.0.6"
