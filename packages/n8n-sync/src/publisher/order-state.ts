@@ -1,4 +1,6 @@
-import { mkdir, open, readFile, rm } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { hostname } from 'node:os';
 import { dirname } from 'node:path';
 
 import {
@@ -179,6 +181,36 @@ function isProcessRunning(pid: number): boolean {
   }
 }
 
+/**
+ * Best-effort single-writer guard for the file-backed publisher state.
+ *
+ * The lock file is never auto-removed on clean shutdown by the OS, and PIDs
+ * are recycled aggressively inside containers — so a PID-only liveness check
+ * false-positives on every restart (stale lock from the previous boot looks
+ * "live"). Each lock therefore carries a unique owner token plus a heartbeat
+ * timestamp refreshed by its holder; a lock is only treated as live when its
+ * heartbeat is fresh. Stale locks (old heartbeat/mtime, dead PID,
+ * unparseable content) are stolen instead of failing startup.
+ */
+const LOCK_HEARTBEAT_MS = 30_000;
+const LOCK_STALE_MS = 120_000;
+
+interface PublisherLockContent {
+  pid: number;
+  owner: string;
+  host: string;
+  sourceId: string;
+  statePath: string;
+  acquiredAt: string;
+  heartbeatAt: string;
+}
+
+function lockTimestampMs(value: unknown): number | undefined {
+  if (typeof value !== 'string' || !value) return undefined;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
 export function createEventOrderingAllocator(options: {
   sourceId: string;
   statePath?: string;
@@ -193,7 +225,15 @@ export function createEventOrderingAllocator(options: {
   let status: StateStoreStatus = { ready: false, reason: 'not_initialized' };
   let mutationChain = Promise.resolve();
   let lockAcquired = false;
+  let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   const lockPath = `${statePath}.lock`;
+  const lockOwner = randomUUID();
+  let lockHost = '';
+  try {
+    lockHost = hostname();
+  } catch {
+    lockHost = 'unknown';
+  }
 
   const markDegraded = (reason: StateStoreStatusReason): void => {
     status = { ready: false, reason, degradedSince: new Date().toISOString() };
@@ -253,38 +293,146 @@ export function createEventOrderingAllocator(options: {
     return loadedState;
   };
 
+  const writeLockFile = async (acquiredAt: string): Promise<void> => {
+    await mkdir(dirname(statePath), { recursive: true });
+    const content: PublisherLockContent = {
+      pid: process.pid,
+      owner: lockOwner,
+      host: lockHost,
+      sourceId,
+      statePath,
+      acquiredAt,
+      heartbeatAt: new Date().toISOString(),
+    };
+    const handle = await open(lockPath, 'wx');
+    try {
+      await handle.writeFile(JSON.stringify(content, null, 2));
+    } finally {
+      await handle.close();
+    }
+  };
+
+  const refreshHeartbeat = async (): Promise<void> => {
+    // Best effort only: a failed heartbeat simply leaves an older timestamp,
+    // which lets the next starter steal the lock after LOCK_STALE_MS.
+    try {
+      const raw = await readFile(lockPath, 'utf8');
+      const existing = JSON.parse(raw) as Partial<PublisherLockContent>;
+      if (existing.owner !== lockOwner) {
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        heartbeatTimer = undefined;
+        return;
+      }
+      const next: PublisherLockContent = {
+        pid: process.pid,
+        owner: lockOwner,
+        host: lockHost,
+        sourceId,
+        statePath,
+        acquiredAt: typeof existing.acquiredAt === 'string' ? existing.acquiredAt : new Date().toISOString(),
+        heartbeatAt: new Date().toISOString(),
+      };
+      await writeFile(lockPath, JSON.stringify(next, null, 2));
+    } catch {
+      // Ignore: staleness detection covers a dead heartbeat writer.
+    }
+  };
+
+  const startHeartbeat = (): void => {
+    if (heartbeatTimer) return;
+    heartbeatTimer = setInterval(() => {
+      void refreshHeartbeat();
+    }, LOCK_HEARTBEAT_MS);
+    if (typeof heartbeatTimer.unref === 'function') heartbeatTimer.unref();
+  };
+
+  const releaseLock = async (): Promise<void> => {
+    if (!lockAcquired) return;
+    try {
+      const raw = await readFile(lockPath, 'utf8');
+      const existing = JSON.parse(raw) as Partial<PublisherLockContent>;
+      if (existing.owner === lockOwner) {
+        await rm(lockPath, { force: true });
+      }
+    } catch {
+      // Best effort: a leftover lock is reclaimed via heartbeat staleness.
+    } finally {
+      lockAcquired = false;
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = undefined;
+    }
+  };
+
+  const registerExitCleanup = (): void => {
+    const cleanup = () => {
+      void releaseLock();
+    };
+    // Best effort only — never throw from process lifecycle hooks.
+    try {
+      process.once('SIGTERM', cleanup);
+      process.once('SIGINT', cleanup);
+      process.once('beforeExit', cleanup);
+    } catch {
+      // Non-Node runtimes or restricted sandboxes: staleness covers it.
+    }
+  };
+
+  const readExistingLock = async (): Promise<{ content?: Partial<PublisherLockContent>; mtimeMs?: number }> => {
+    let content: Partial<PublisherLockContent> | undefined;
+    try {
+      content = JSON.parse(await readFile(lockPath, 'utf8')) as Partial<PublisherLockContent>;
+    } catch {
+      content = undefined;
+    }
+    try {
+      const stats = await stat(lockPath);
+      return { content, mtimeMs: stats.mtimeMs };
+    } catch {
+      return { content };
+    }
+  };
+
   const acquireLock = async (): Promise<void> => {
     if (lockAcquired) return;
-    const writeLock = async (): Promise<void> => {
-      await mkdir(dirname(statePath), { recursive: true });
-      const handle = await open(lockPath, 'wx');
-      try {
-        await handle.writeFile(
-          JSON.stringify({ pid: process.pid, sourceId, statePath, acquiredAt: new Date().toISOString() }, null, 2),
-        );
-      } finally {
-        await handle.close();
-      }
-    };
+    const acquiredAt = new Date().toISOString();
 
     try {
-      await writeLock();
+      await writeLockFile(acquiredAt);
       lockAcquired = true;
+      registerExitCleanup();
+      startHeartbeat();
     } catch (error) {
       const code = (error as NodeJS.ErrnoException | undefined)?.code;
       if (code === 'EEXIST') {
-        let lockPid: number | undefined;
-        try {
-          const lock = JSON.parse(await readFile(lockPath, 'utf8')) as { pid?: unknown };
-          lockPid = typeof lock.pid === 'number' && Number.isInteger(lock.pid) && lock.pid > 0 ? lock.pid : undefined;
-        } catch {
-          lockPid = undefined;
-        }
-
-        if (lockPid !== undefined && !isProcessRunning(lockPid)) {
-          await rm(lockPath, { force: true });
-          await writeLock();
+        const { content, mtimeMs } = await readExistingLock();
+        const now = Date.now();
+        const heartbeatMs = lockTimestampMs(content?.heartbeatAt) ?? lockTimestampMs(content?.acquiredAt);
+        const heartbeatAgeMs = heartbeatMs === undefined ? undefined : Math.max(0, now - heartbeatMs);
+        const mtimeAgeMs = mtimeMs === undefined ? undefined : Math.max(0, now - mtimeMs);
+        const lockPid =
+          typeof content?.pid === 'number' && Number.isInteger(content.pid) && content.pid > 0
+            ? content.pid
+            : undefined;
+        // Same owner re-entering in-process (e.g. loadState racing allocate):
+        // just adopt the lock instead of failing.
+        if (content?.owner === lockOwner) {
           lockAcquired = true;
+          startHeartbeat();
+          return;
+        }
+        // Stale when nothing proves liveness: unparseable content, an expired
+        // heartbeat/mtime, or a dead PID. PID aliveness alone is NOT enough —
+        // container PID reuse makes stale locks look live.
+        const heartbeatFresh = heartbeatAgeMs !== undefined && heartbeatAgeMs <= LOCK_STALE_MS;
+        const mtimeFresh = mtimeAgeMs !== undefined && mtimeAgeMs <= LOCK_STALE_MS;
+        const heartbeatStale = !heartbeatFresh || !mtimeFresh;
+        const pidDead = lockPid !== undefined && !isProcessRunning(lockPid);
+        if (heartbeatStale || pidDead) {
+          await rm(lockPath, { force: true });
+          await writeLockFile(acquiredAt);
+          lockAcquired = true;
+          registerExitCleanup();
+          startHeartbeat();
           return;
         }
 
