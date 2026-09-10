@@ -64,8 +64,13 @@ function isBoundedString(value: unknown, maxLength: number): value is string {
   return typeof value === 'string' && value.length > 0 && value.trim().length > 0 && value.length <= maxLength;
 }
 
-function isOptionalString(value: unknown, maxLength: number): value is string | null {
-  return value === null || isBoundedString(value, maxLength);
+/**
+ * Workflow descriptions carry no identity semantics and n8n defaults them to
+ * '' — so unlike ids/names, blank is accepted (older publishers already emit
+ * '' over the wire). Only the length limit is enforced.
+ */
+function isOptionalDescription(value: unknown): value is string | null {
+  return value === null || (typeof value === 'string' && value.length <= MAX_DESCRIPTION_LENGTH);
 }
 
 function isValidIsoDateString(value: unknown): value is string {
@@ -334,9 +339,7 @@ function workflowDtoFailureReason(value: unknown): string | null {
   if (!isPlainRecord(value.connections)) return 'connections_not_object';
   const connectionsReason = jsonFailureReason(value.connections);
   if (connectionsReason) return `connections:${connectionsReason}`;
-  if (
-    !isOptionalPropertyValid(value, 'description', (candidate) => isOptionalString(candidate, MAX_DESCRIPTION_LENGTH))
-  )
+  if (!isOptionalPropertyValid(value, 'description', (candidate) => isOptionalDescription(candidate)))
     return 'description';
   if (!isOptionalPropertyValid(value, 'settings', isJsonRecord)) return 'settings';
   if (!isOptionalPropertyValid(value, 'staticData', isSerializedJsonRecordOrNull)) return 'staticData';

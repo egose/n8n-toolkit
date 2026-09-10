@@ -57,7 +57,14 @@ export function mapWorkflow(
   return {
     id: workflow.id,
     name: workflow.name,
-    ...(workflow.description !== undefined ? { description: workflow.description } : {}),
+    // n8n defaults description to '' (empty = no description). Normalize
+    // blank/absent values to "absent" so the DTO stays within the wire
+    // validator (which accepts null or non-blank strings up to the limit).
+    ...(typeof workflow.description === 'string' && workflow.description.trim() !== ''
+      ? { description: workflow.description }
+      : workflow.description === null
+        ? { description: null }
+        : {}),
     active,
     isArchived: workflow.isArchived ?? false,
     nodes: workflow.nodes ?? [],
