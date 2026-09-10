@@ -1,12 +1,5 @@
 import { isDecimalString } from './ordering';
-import type {
-  ExecutionMode,
-  ExecutionStatus,
-  SyncCredentialDto,
-  SyncExecutionDto,
-  SyncEvent,
-  SyncWorkflowDto,
-} from './types';
+import type { ExecutionMode, ExecutionStatus, SyncEvent } from './types';
 
 const ISO_UTC_DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 export const MAX_ID_LENGTH = 512;
@@ -184,156 +177,233 @@ function isValidWorkflowSnapshot(value: unknown): boolean {
   );
 }
 
-function isValidWorkflowDto(value: unknown): value is SyncWorkflowDto {
-  return (
-    isPlainRecord(value) &&
-    hasOnlyKeys(value, [
-      'id',
-      'name',
-      'description',
-      'active',
-      'isArchived',
-      'nodes',
-      'connections',
-      'settings',
-      'staticData',
-      'pinData',
-      'meta',
-      'versionId',
-      'activeVersionId',
-      'tags',
-      'createdAt',
-      'updatedAt',
-    ]) &&
-    isBoundedString(value.id, MAX_ID_LENGTH) &&
-    isBoundedString(value.name, MAX_NAME_LENGTH) &&
-    typeof value.active === 'boolean' &&
-    typeof value.isArchived === 'boolean' &&
-    isJsonArray(value.nodes) &&
-    isJsonRecord(value.connections) &&
-    isOptionalPropertyValid(value, 'description', (candidate) => isOptionalString(candidate, MAX_DESCRIPTION_LENGTH)) &&
-    isOptionalPropertyValid(value, 'settings', isJsonRecord) &&
-    isOptionalPropertyValid(value, 'staticData', isSerializedJsonRecordOrNull) &&
-    isOptionalPropertyValid(value, 'pinData', isJsonRecordOrNull) &&
-    isOptionalPropertyValid(value, 'meta', isJsonRecordOrNull) &&
-    isOptionalPropertyValid(value, 'versionId', (candidate) => isBoundedString(candidate, MAX_ID_LENGTH)) &&
-    isOptionalPropertyValid(
-      value,
-      'activeVersionId',
-      (candidate) => candidate === null || isBoundedString(candidate, MAX_ID_LENGTH),
-    ) &&
-    isOptionalPropertyValid(
-      value,
-      'tags',
-      (candidate) => Array.isArray(candidate) && candidate.length <= MAX_ARRAY_LENGTH && candidate.every(isValidTag),
-    ) &&
-    isOptionalPropertyValid(value, 'createdAt', isValidIsoDateString) &&
-    isOptionalPropertyValid(value, 'updatedAt', isValidIsoDateString)
-  );
-}
-
-function isValidCredentialDto(value: unknown): value is SyncCredentialDto {
-  return (
-    isPlainRecord(value) &&
-    hasOnlyKeys(value, ['id', 'name', 'type', 'data', 'isGlobal', 'isManaged', 'createdAt', 'updatedAt']) &&
-    isBoundedString(value.id, MAX_ID_LENGTH) &&
-    isBoundedString(value.name, MAX_NAME_LENGTH) &&
-    isBoundedString(value.type, MAX_NAME_LENGTH) &&
-    typeof value.data === 'string' &&
-    value.data.length > 0 &&
-    isOptionalPropertyValid(value, 'isGlobal', (candidate) => typeof candidate === 'boolean') &&
-    isOptionalPropertyValid(value, 'isManaged', (candidate) => typeof candidate === 'boolean') &&
-    isOptionalPropertyValid(value, 'createdAt', isValidIsoDateString) &&
-    isOptionalPropertyValid(value, 'updatedAt', isValidIsoDateString)
-  );
-}
-
-function isValidExecutionDto(value: unknown): value is SyncExecutionDto {
-  if (!isPlainRecord(value)) return false;
-  if (
-    !hasOnlyKeys(value, [
-      'id',
-      'workflowId',
-      'status',
-      'mode',
-      'finished',
-      'startedAt',
-      'stoppedAt',
-      'createdAt',
-      'workflowSnapshot',
-    ])
-  ) {
-    return false;
-  }
-  const startedAt = value.startedAt;
-  const stoppedAt = value.stoppedAt;
-  const createdAt = value.createdAt;
-  const hasLifecycleTimestamp = hasOwn(value, 'startedAt') || hasOwn(value, 'stoppedAt') || hasOwn(value, 'createdAt');
-
-  return (
-    isBoundedString(value.id, MAX_ID_LENGTH) &&
-    isBoundedString(value.workflowId, MAX_ID_LENGTH) &&
-    isExecutionStatus(value.status) &&
-    isExecutionMode(value.mode) &&
-    typeof value.finished === 'boolean' &&
-    hasLifecycleTimestamp &&
-    (!hasOwn(value, 'startedAt') || isValidIsoDateString(startedAt)) &&
-    (!hasOwn(value, 'stoppedAt') || isValidIsoDateString(stoppedAt)) &&
-    (!hasOwn(value, 'createdAt') || isValidIsoDateString(createdAt)) &&
-    isOptionalPropertyValid(value, 'workflowSnapshot', isValidWorkflowSnapshot)
-  );
-}
-
 /**
  * Validate an untrusted request payload as a SyncEvent.
  * Returns the typed event, or null when the payload is malformed.
  */
 export function parseSyncEvent(payload: unknown): SyncEvent | null {
-  if (!isPlainRecord(payload)) return null;
-  if (!isJsonValue(payload, { seen: new WeakSet(), nodes: 0 }, 0)) return null;
-  if (
-    !isValidIsoDateString(payload.at) ||
-    !isBoundedString(payload.sourceId, MAX_ID_LENGTH) ||
-    !isBoundedString(payload.eventId, MAX_EVENT_ID_LENGTH) ||
-    !isBoundedDecimalString(payload.entityRevision)
-  ) {
-    return null;
-  }
+  return explainSyncEventFailure(payload) === null ? (payload as SyncEvent) : null;
+}
+
+/**
+ * Explain why {@link parseSyncEvent} rejects a payload.
+ * Returns null when the payload is a valid SyncEvent, otherwise a short
+ * reason code naming the failing field/guard (never payload values, so it is
+ * safe to log — no secrets, no large blobs).
+ */
+export function explainSyncEventFailure(payload: unknown): string | null {
+  if (!isPlainRecord(payload)) return 'envelope.not_object';
+  const jsonReason = jsonFailureReason(payload);
+  if (jsonReason) return `envelope.invalid_json:${jsonReason}`;
+  if (!isValidIsoDateString(payload.at)) return 'envelope.at';
+  if (!isBoundedString(payload.sourceId, MAX_ID_LENGTH)) return 'envelope.sourceId';
+  if (!isBoundedString(payload.eventId, MAX_EVENT_ID_LENGTH)) return 'envelope.eventId';
+  if (!isBoundedDecimalString(payload.entityRevision)) return 'envelope.entityRevision';
 
   switch (payload.type) {
-    case 'credentials.upsert':
-      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'credential']) &&
-        isValidCredentialDto(payload.credential)
-        ? (payload as unknown as SyncEvent)
-        : null;
-    case 'credentials.delete':
-      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'credentialId']) &&
-        isBoundedString(payload.credentialId, MAX_ID_LENGTH)
-        ? (payload as unknown as SyncEvent)
-        : null;
-    case 'workflow.upsert':
-    case 'workflow.activate':
-      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'workflow']) &&
-        isValidWorkflowDto(payload.workflow)
-        ? (payload as unknown as SyncEvent)
-        : null;
-    case 'workflow.delete':
-      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'workflowId']) &&
-        isBoundedString(payload.workflowId, MAX_ID_LENGTH)
-        ? (payload as unknown as SyncEvent)
-        : null;
-    case 'workflow.archive':
-      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'workflowId', 'archived']) &&
-        isBoundedString(payload.workflowId, MAX_ID_LENGTH) &&
-        typeof payload.archived === 'boolean'
-        ? (payload as unknown as SyncEvent)
-        : null;
-    case 'execution.upsert':
-      return hasOnlyKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'execution']) &&
-        isValidExecutionDto(payload.execution)
-        ? (payload as unknown as SyncEvent)
-        : null;
-    default:
+    case 'credentials.upsert': {
+      const extra = extraKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'credential']);
+      if (extra) return `credentials.upsert.extra_keys:${extra}`;
+      const reason = credentialDtoFailureReason(payload.credential);
+      return reason ? `credentials.upsert.credential:${reason}` : null;
+    }
+    case 'credentials.delete': {
+      const extra = extraKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'credentialId']);
+      if (extra) return `credentials.delete.extra_keys:${extra}`;
+      if (!isBoundedString(payload.credentialId, MAX_ID_LENGTH)) return 'credentials.delete.credentialId';
       return null;
+    }
+    case 'workflow.upsert':
+    case 'workflow.activate': {
+      const prefix = payload.type as string;
+      const extra = extraKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'workflow']);
+      if (extra) return `${prefix}.extra_keys:${extra}`;
+      const reason = workflowDtoFailureReason(payload.workflow);
+      return reason ? `${prefix}.workflow:${reason}` : null;
+    }
+    case 'workflow.delete': {
+      const extra = extraKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'workflowId']);
+      if (extra) return `workflow.delete.extra_keys:${extra}`;
+      if (!isBoundedString(payload.workflowId, MAX_ID_LENGTH)) return 'workflow.delete.workflowId';
+      return null;
+    }
+    case 'workflow.archive': {
+      const extra = extraKeys(payload, [
+        'at',
+        'sourceId',
+        'eventId',
+        'entityRevision',
+        'type',
+        'workflowId',
+        'archived',
+      ]);
+      if (extra) return `workflow.archive.extra_keys:${extra}`;
+      if (!isBoundedString(payload.workflowId, MAX_ID_LENGTH)) return 'workflow.archive.workflowId';
+      if (typeof payload.archived !== 'boolean') return 'workflow.archive.archived';
+      return null;
+    }
+    case 'execution.upsert': {
+      const extra = extraKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'execution']);
+      if (extra) return `execution.upsert.extra_keys:${extra}`;
+      const reason = executionDtoFailureReason(payload.execution);
+      return reason ? `execution.upsert.execution:${reason}` : null;
+    }
+    default:
+      return 'envelope.unknown_type';
   }
+}
+
+function extraKeys(value: Record<string, unknown>, allowed: readonly string[]): string | null {
+  const allowedSet = new Set(allowed);
+  const extra = Object.keys(value).find((key) => !allowedSet.has(key));
+  return extra ?? null;
+}
+
+function jsonFailureReason(value: unknown): string | null {
+  return jsonFailureReasonInto(value, { seen: new WeakSet(), nodes: 0 }, 0);
+}
+
+function jsonFailureReasonInto(value: unknown, state: JsonValidationState, depth: number): string | null {
+  if (value === null) return null;
+
+  switch (typeof value) {
+    case 'string':
+    case 'boolean':
+      return null;
+    case 'number':
+      return Number.isFinite(value) ? null : 'non_finite_number';
+    case 'object': {
+      if (depth >= MAX_NESTING_DEPTH) return 'max_nesting_depth';
+      if (state.nodes >= MAX_JSON_NODES) return 'max_json_nodes';
+      if (state.seen.has(value)) return 'circular_reference';
+      state.seen.add(value);
+      state.nodes += 1;
+
+      if (Array.isArray(value)) {
+        if (value.length > MAX_ARRAY_LENGTH) return 'max_array_length';
+        for (const item of value) {
+          const reason = jsonFailureReasonInto(item, state, depth + 1);
+          if (reason) return reason;
+        }
+        return null;
+      }
+
+      if (!isPlainRecord(value)) return 'non_plain_object';
+
+      const entries = Object.entries(value);
+      if (entries.length > MAX_OBJECT_KEYS) return 'max_object_keys';
+      for (const [, child] of entries) {
+        const reason = jsonFailureReasonInto(child, state, depth + 1);
+        if (reason) return reason;
+      }
+      return null;
+    }
+    default:
+      return 'non_json_type';
+  }
+}
+
+function workflowDtoFailureReason(value: unknown): string | null {
+  if (!isPlainRecord(value)) return 'not_object';
+  const extra = extraKeys(value, [
+    'id',
+    'name',
+    'description',
+    'active',
+    'isArchived',
+    'nodes',
+    'connections',
+    'settings',
+    'staticData',
+    'pinData',
+    'meta',
+    'versionId',
+    'activeVersionId',
+    'tags',
+    'createdAt',
+    'updatedAt',
+  ]);
+  if (extra) return `extra_keys:${extra}`;
+  if (!isBoundedString(value.id, MAX_ID_LENGTH)) return 'id';
+  if (!isBoundedString(value.name, MAX_NAME_LENGTH)) return 'name';
+  if (typeof value.active !== 'boolean') return 'active';
+  if (typeof value.isArchived !== 'boolean') return 'isArchived';
+  if (!Array.isArray(value.nodes)) return 'nodes_not_array';
+  const nodesReason = jsonFailureReason(value.nodes);
+  if (nodesReason) return `nodes:${nodesReason}`;
+  if (!isPlainRecord(value.connections)) return 'connections_not_object';
+  const connectionsReason = jsonFailureReason(value.connections);
+  if (connectionsReason) return `connections:${connectionsReason}`;
+  if (
+    !isOptionalPropertyValid(value, 'description', (candidate) => isOptionalString(candidate, MAX_DESCRIPTION_LENGTH))
+  )
+    return 'description';
+  if (!isOptionalPropertyValid(value, 'settings', isJsonRecord)) return 'settings';
+  if (!isOptionalPropertyValid(value, 'staticData', isSerializedJsonRecordOrNull)) return 'staticData';
+  if (!isOptionalPropertyValid(value, 'pinData', isJsonRecordOrNull)) return 'pinData';
+  if (!isOptionalPropertyValid(value, 'meta', isJsonRecordOrNull)) return 'meta';
+  if (!isOptionalPropertyValid(value, 'versionId', (candidate) => isBoundedString(candidate, MAX_ID_LENGTH)))
+    return 'versionId';
+  if (
+    !isOptionalPropertyValid(
+      value,
+      'activeVersionId',
+      (candidate) => candidate === null || isBoundedString(candidate, MAX_ID_LENGTH),
+    )
+  )
+    return 'activeVersionId';
+  if (
+    !isOptionalPropertyValid(
+      value,
+      'tags',
+      (candidate) => Array.isArray(candidate) && candidate.length <= MAX_ARRAY_LENGTH && candidate.every(isValidTag),
+    )
+  )
+    return 'tags';
+  if (!isOptionalPropertyValid(value, 'createdAt', isValidIsoDateString)) return 'createdAt';
+  if (!isOptionalPropertyValid(value, 'updatedAt', isValidIsoDateString)) return 'updatedAt';
+  return null;
+}
+
+function credentialDtoFailureReason(value: unknown): string | null {
+  if (!isPlainRecord(value)) return 'not_object';
+  const extra = extraKeys(value, ['id', 'name', 'type', 'data', 'isGlobal', 'isManaged', 'createdAt', 'updatedAt']);
+  if (extra) return `extra_keys:${extra}`;
+  if (!isBoundedString(value.id, MAX_ID_LENGTH)) return 'id';
+  if (!isBoundedString(value.name, MAX_NAME_LENGTH)) return 'name';
+  if (!isBoundedString(value.type, MAX_NAME_LENGTH)) return 'type';
+  if (typeof value.data !== 'string' || value.data.length === 0) return 'data';
+  if (!isOptionalPropertyValid(value, 'isGlobal', (candidate) => typeof candidate === 'boolean')) return 'isGlobal';
+  if (!isOptionalPropertyValid(value, 'isManaged', (candidate) => typeof candidate === 'boolean')) return 'isManaged';
+  if (!isOptionalPropertyValid(value, 'createdAt', isValidIsoDateString)) return 'createdAt';
+  if (!isOptionalPropertyValid(value, 'updatedAt', isValidIsoDateString)) return 'updatedAt';
+  return null;
+}
+
+function executionDtoFailureReason(value: unknown): string | null {
+  if (!isPlainRecord(value)) return 'not_object';
+  const extra = extraKeys(value, [
+    'id',
+    'workflowId',
+    'status',
+    'mode',
+    'finished',
+    'startedAt',
+    'stoppedAt',
+    'createdAt',
+    'workflowSnapshot',
+  ]);
+  if (extra) return `extra_keys:${extra}`;
+  if (!isBoundedString(value.id, MAX_ID_LENGTH)) return 'id';
+  if (!isBoundedString(value.workflowId, MAX_ID_LENGTH)) return 'workflowId';
+  if (!isExecutionStatus(value.status)) return 'status';
+  if (!isExecutionMode(value.mode)) return 'mode';
+  if (typeof value.finished !== 'boolean') return 'finished';
+  if (!hasOwn(value, 'startedAt') && !hasOwn(value, 'stoppedAt') && !hasOwn(value, 'createdAt'))
+    return 'missing_lifecycle_timestamp';
+  if (!isOptionalPropertyValid(value, 'startedAt', isValidIsoDateString)) return 'startedAt';
+  if (!isOptionalPropertyValid(value, 'stoppedAt', isValidIsoDateString)) return 'stoppedAt';
+  if (!isOptionalPropertyValid(value, 'createdAt', isValidIsoDateString)) return 'createdAt';
+  if (!isOptionalPropertyValid(value, 'workflowSnapshot', isValidWorkflowSnapshot)) return 'workflowSnapshot';
+  return null;
 }

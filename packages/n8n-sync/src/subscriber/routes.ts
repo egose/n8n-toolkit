@@ -11,7 +11,7 @@ import { assertJsonRequest, BodyParseError, parseJsonBody, readJsonBody, readRaw
 import type { SyncAuthConfig } from '../shared/config';
 import { logError, type Logger } from '../shared/logger';
 import type { StateStoreStatus } from '../shared/ordering';
-import { parseSyncEvent } from '../shared/validate';
+import { explainSyncEventFailure, parseSyncEvent } from '../shared/validate';
 import { SyncEntityTimestampConflictError } from './applier';
 import type { ApplySyncEvent } from './applier';
 
@@ -182,6 +182,7 @@ export function createSyncRouteHandler(deps: SyncRouteHandlerDeps) {
         context: 'sync request',
         authMode,
         reason: 'invalid_sync_event',
+        detail: explainSyncEventFailure(payload) ?? 'unknown',
         ...summarizeUntrustedEnvelope(payload),
       });
       res.status(400).json({ error: 'invalid sync event' });
