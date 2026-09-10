@@ -1,4 +1,4 @@
-import { sendSyncEvent } from '../shared/http';
+import { sendSyncEvent, SyncSendError } from '../shared/http';
 import { logError, type Logger } from '../shared/logger';
 import type { SyncAuthConfig } from '../shared/config';
 import type { SyncEvent } from '../shared/types';
@@ -154,7 +154,14 @@ export function createEventSender(options: EventSenderOptions): EventSender {
           await deliver(event);
           options.log.debug('Sync event delivered', { type: event.type, target: url });
         } catch (error) {
-          logError(options.log, error, { context: 'publish sync event', type: event.type, target: url });
+          logError(options.log, error, {
+            context: 'publish sync event',
+            type: event.type,
+            target: url,
+            ...(error instanceof SyncSendError && error.status !== undefined
+              ? { status: error.status, retryable: error.retryable }
+              : {}),
+          });
         }
       }
     } finally {
@@ -185,6 +192,7 @@ export function createEventSender(options: EventSenderOptions): EventSender {
     }
 
     appendEvent(event, key);
+    options.log.debug('Queued sync event', { type: event.type, target: url, queueDepth: queueSize });
     void pumpQueue();
   };
 

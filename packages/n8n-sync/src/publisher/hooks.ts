@@ -300,6 +300,28 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
     });
   }
 
+  function logWorkflowDrop(
+    hook: string,
+    reason: 'missing_workflow_id' | 'workflow_not_found',
+    workflowId?: string,
+  ): void {
+    deps.log.warn('Dropping workflow sync event', {
+      context: 'publisher hook',
+      hook,
+      reason,
+      ...(typeof workflowId === 'string' && workflowId ? { workflowId } : {}),
+    });
+  }
+
+  function logWorkflowSkip(hook: string, reason: 'tag_unresolved', workflowId?: string): void {
+    deps.log.debug('Skipping workflow sync event', {
+      context: 'publisher hook',
+      hook,
+      reason,
+      ...(typeof workflowId === 'string' && workflowId ? { workflowId } : {}),
+    });
+  }
+
   async function emitCredentialUpsert(
     this: PublisherHookThis,
     hook: string,
@@ -320,9 +342,10 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
    * subscriber drops it (eventually-consistent — a delete for an unknown ID
    * is a documented no-op on the subscriber side).
    */
-  const emitWorkflowUpsert = async (workflow: IWorkflowBase & { tags?: IWorkflowTag[] }) => {
+  const emitWorkflowUpsert = async (hook: string, workflow: IWorkflowBase & { tags?: IWorkflowTag[] }) => {
     const decision = shouldSyncWorkflow(workflow);
     if (decision === 'skip') {
+      logWorkflowSkip(hook, 'tag_unresolved', workflow.id);
       return;
     }
     if (decision === 'delete') {
@@ -337,9 +360,10 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
    * workflow lacks the sync tag, fall back to a delete so the subscriber
    * can't keep a stale active copy around.
    */
-  const emitWorkflowActivate = async (workflow: IWorkflowBase & { tags?: IWorkflowTag[] }) => {
+  const emitWorkflowActivate = async (hook: string, workflow: IWorkflowBase & { tags?: IWorkflowTag[] }) => {
     const decision = shouldSyncWorkflow(workflow);
     if (decision === 'skip') {
+      logWorkflowSkip(hook, 'tag_unresolved', workflow.id);
       return;
     }
     if (decision === 'delete') {
@@ -424,15 +448,21 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
                       'workflow.afterCreate',
                       async function (this: PublisherHookThis, createdWorkflow: IWorkflowBase | string) {
                         const id = workflowIdFromInput(createdWorkflow);
-                        if (!id) return;
+                        if (!id) {
+                          logWorkflowDrop('workflow.afterCreate', 'missing_workflow_id');
+                          return;
+                        }
                         await enqueueEntityWork({
                           hook: 'workflow.afterCreate',
                           kind: 'workflow',
                           id,
                           work: async () => {
                             const workflow = await resolveWorkflow.call(this, createdWorkflow);
-                            if (!workflow) return;
-                            await emitWorkflowUpsert(workflow);
+                            if (!workflow) {
+                              logWorkflowDrop('workflow.afterCreate', 'workflow_not_found', id);
+                              return;
+                            }
+                            await emitWorkflowUpsert('workflow.afterCreate', workflow);
                           },
                         });
                       },
@@ -443,15 +473,21 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
                       'workflow.afterUpdate',
                       async function (this: PublisherHookThis, updatedWorkflow: IWorkflowBase | string) {
                         const id = workflowIdFromInput(updatedWorkflow);
-                        if (!id) return;
+                        if (!id) {
+                          logWorkflowDrop('workflow.afterUpdate', 'missing_workflow_id');
+                          return;
+                        }
                         await enqueueEntityWork({
                           hook: 'workflow.afterUpdate',
                           kind: 'workflow',
                           id,
                           work: async () => {
                             const workflow = await resolveWorkflow.call(this, updatedWorkflow);
-                            if (!workflow) return;
-                            await emitWorkflowUpsert(workflow);
+                            if (!workflow) {
+                              logWorkflowDrop('workflow.afterUpdate', 'workflow_not_found', id);
+                              return;
+                            }
+                            await emitWorkflowUpsert('workflow.afterUpdate', workflow);
                           },
                         });
                       },
@@ -462,15 +498,21 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
                       'workflow.activate',
                       async function (this: PublisherHookThis, updatedWorkflow: IWorkflowBase | string) {
                         const id = workflowIdFromInput(updatedWorkflow);
-                        if (!id) return;
+                        if (!id) {
+                          logWorkflowDrop('workflow.activate', 'missing_workflow_id');
+                          return;
+                        }
                         await enqueueEntityWork({
                           hook: 'workflow.activate',
                           kind: 'workflow',
                           id,
                           work: async () => {
                             const workflow = await resolveWorkflow.call(this, updatedWorkflow);
-                            if (!workflow) return;
-                            await emitWorkflowActivate(workflow);
+                            if (!workflow) {
+                              logWorkflowDrop('workflow.activate', 'workflow_not_found', id);
+                              return;
+                            }
+                            await emitWorkflowActivate('workflow.activate', workflow);
                           },
                         });
                       },
@@ -537,7 +579,14 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
                         workflowData: WorkflowSnapshot | IWorkflowBase | undefined,
                         executionId: string,
                       ) {
-                        if (typeof executionId !== 'string' || !executionId) return;
+                        if (typeof executionId !== 'string' || !executionId) {
+                          deps.log.debug('Dropping execution sync event', {
+                            context: 'publisher hook',
+                            hook: 'workflow.postExecute',
+                            reason: 'missing_execution_id',
+                          });
+                          return;
+                        }
 
                         runDetached('workflow.postExecute', async () => {
                           await enqueueEntityWork({
@@ -566,7 +615,16 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
                                   const resolved = await resolveWorkflow.call(this, workflowId);
                                   tags = resolved?.tags;
                                 }
-                                if (!workflowHasTag(tags, syncWorkflowTag)) return;
+                                if (!workflowHasTag(tags, syncWorkflowTag)) {
+                                  deps.log.debug('Skipping execution sync event', {
+                                    context: 'publisher hook',
+                                    hook: 'workflow.postExecute',
+                                    reason: 'tag_filtered_out',
+                                    executionId,
+                                    workflowId,
+                                  });
+                                  return;
+                                }
                               }
 
                               const execution = mapExecution(executionId, fullRunData, workflowData);
