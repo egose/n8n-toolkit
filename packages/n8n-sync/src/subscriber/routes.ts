@@ -40,6 +40,24 @@ type SyncRequest = Request & { rawBody?: Buffer | string; body?: unknown };
 const READINESS_LOG_INTERVAL_MS = 60_000;
 
 /**
+ * Extract a safe, bounded summary from an untrusted payload for logging.
+ * Only copies scalar envelope identifiers when present; never includes the
+ * full workflow/credential/execution body (large + potentially sensitive).
+ */
+function summarizeUntrustedEnvelope(payload: unknown): Record<string, unknown> {
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return {};
+  const record = payload as Record<string, unknown>;
+  const summary: Record<string, unknown> = {};
+  for (const key of ['type', 'sourceId', 'eventId', 'entityRevision'] as const) {
+    const value = record[key];
+    if (typeof value === 'string' && value.length > 0 && value.length <= 1024) {
+      summary[key] = value;
+    }
+  }
+  return summary;
+}
+
+/**
  * Build the POST /events request handler. The handler authenticates the
  * request (HMAC signature by default, or static bearer token), validates the
  * event envelope, then applies it.
@@ -97,6 +115,12 @@ export function createSyncRouteHandler(deps: SyncRouteHandlerDeps) {
     const handleBodyFailure = (error: unknown): void => {
       replayReservation?.release();
       if (error instanceof BodyParseError) {
+        deps.log.warn('Rejecting sync request: invalid body', {
+          context: 'sync request',
+          authMode,
+          statusCode: error.statusCode,
+          error: error.message,
+        });
         res.status(error.statusCode).json({ error: error.message });
         return;
       }
@@ -106,6 +130,11 @@ export function createSyncRouteHandler(deps: SyncRouteHandlerDeps) {
     };
 
     if (authMode === 'token' && !verifyTokenRequest(syncReq, authValue)) {
+      deps.log.warn('Rejecting sync request: unauthorized', {
+        context: 'sync request',
+        authMode,
+        reason: 'invalid_token',
+      });
       res.status(401).json({ error: 'unauthorized' });
       return;
     }
@@ -117,12 +146,22 @@ export function createSyncRouteHandler(deps: SyncRouteHandlerDeps) {
       if (authMode === 'hmac') {
         const raw = await readRaw(syncReq, deps.maxBodyBytes, { allowParsedBodyFallback: false });
         if (!verifySignedRequest(syncReq, authValue, raw, authMode, deps.signatureToleranceMs)) {
+          deps.log.warn('Rejecting sync request: unauthorized', {
+            context: 'sync request',
+            authMode,
+            reason: 'invalid_signature',
+          });
           res.status(401).json({ error: 'unauthorized' });
           return;
         }
 
         replayReservation = replayGuard?.reserve(syncReq);
         if (replayReservation?.status === 'replayed') {
+          deps.log.warn('Rejecting sync request: replayed request', {
+            context: 'sync request',
+            authMode,
+            reason: 'replayed_request',
+          });
           res.status(409).json({ error: 'replayed request' });
           return;
         }
@@ -139,6 +178,12 @@ export function createSyncRouteHandler(deps: SyncRouteHandlerDeps) {
     const event = parseSyncEvent(payload);
     if (!event) {
       replayReservation?.release();
+      deps.log.warn('Rejecting sync event: invalid payload', {
+        context: 'sync request',
+        authMode,
+        reason: 'invalid_sync_event',
+        ...summarizeUntrustedEnvelope(payload),
+      });
       res.status(400).json({ error: 'invalid sync event' });
       return;
     }
@@ -160,10 +205,21 @@ export function createSyncRouteHandler(deps: SyncRouteHandlerDeps) {
         return;
       }
       replayReservation?.complete();
+      deps.log.debug('Sync event applied', {
+        type: event.type,
+        sourceId: event.sourceId,
+        eventId: event.eventId,
+      });
       res.status(200).json({ ok: true });
     } catch (error) {
       if (error instanceof SyncEntityTimestampConflictError) {
         replayReservation?.complete();
+        deps.log.warn('Rejecting sync event: timestamp conflict', {
+          type: event.type,
+          sourceId: event.sourceId,
+          eventId: event.eventId,
+          code: error.code,
+        });
         res.status(409).json({ error: 'sync entity timestamp conflict', code: error.code });
         return;
       }
