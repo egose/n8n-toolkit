@@ -1,7 +1,7 @@
 {
   "name": "@egose/n8n-sync",
   "description": "n8n external-hook bundles to sync credentials and workflows between n8n instances (publisher + subscriber).",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "license": "Apache-2.0",
   "author": "Junmin Ahn",
   "sideEffects": false,
