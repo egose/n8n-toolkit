@@ -249,6 +249,17 @@ describe('createSyncRouteHandler (hmac mode, default)', () => {
     expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 
+  it('includes subscriber-reported missing credentials in the 200 response', async () => {
+    const apply = vi.fn().mockResolvedValue({ status: 'applied', missingCredentialIds: ['cred-a'] });
+    const handler = createSyncRouteHandler({ auth: HMAC_AUTH, apply, log, ...DEFAULT_ROUTE_DEPS });
+    const res = makeRes();
+
+    await handler(makeSignedReq(validEvent, SECRET) as never, res as never);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ ok: true, missingCredentialIds: ['cred-a'] });
+  });
+
   it('returns 503 before parsing or applying traffic when readiness is degraded', async () => {
     const apply = vi.fn().mockResolvedValue(undefined);
     const readRawBody = vi.fn();

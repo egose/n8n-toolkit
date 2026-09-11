@@ -424,3 +424,49 @@ describe('sendSyncEvent', () => {
     });
   });
 });
+
+describe('sendSyncEvent delivery report', () => {
+  function jsonBodyResponse(payload: unknown) {
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    let done = false;
+    const reader = {
+      read: vi.fn().mockImplementation(async () => {
+        if (done) return { done: true, value: undefined };
+        done = true;
+        return { done: false, value: bytes };
+      }),
+      cancel: vi.fn().mockResolvedValue(undefined),
+      releaseLock: vi.fn(),
+    };
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      body: { getReader: () => reader } as unknown as Response['body'],
+    } as Response;
+  }
+
+  it('returns subscriber-reported missing credential ids', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonBodyResponse({ ok: true, missingCredentialIds: ['cred-a', 'cred-b'] }));
+
+    const result = await sendSyncEvent(event, { url: 'u', auth: hmacAuth('t'), fetchImpl });
+
+    expect(result).toEqual({ missingCredentialIds: ['cred-a', 'cred-b'] });
+  });
+
+  it('returns an empty report for bodies without a valid report', async () => {
+    for (const payload of [{ ok: true }, { ok: true, missingCredentialIds: 'nope' }, { ok: true }]) {
+      const fetchImpl = vi.fn().mockResolvedValue(jsonBodyResponse(payload));
+      const result = await sendSyncEvent(event, { url: 'u', auth: hmacAuth('t'), fetchImpl });
+      expect(result).toEqual({ missingCredentialIds: [] });
+    }
+  });
+
+  it('returns an empty report when the body is absent', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(200));
+    const result = await sendSyncEvent(event, { url: 'u', auth: hmacAuth('t'), fetchImpl });
+    expect(result).toEqual({ missingCredentialIds: [] });
+  });
+});

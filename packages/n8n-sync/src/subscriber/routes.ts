@@ -206,12 +206,19 @@ export function createSyncRouteHandler(deps: SyncRouteHandlerDeps) {
         return;
       }
       replayReservation?.complete();
+      const missingCredentialIds = result?.status === 'applied' ? result.missingCredentialIds : undefined;
       deps.log.debug('Sync event applied', {
         type: event.type,
         sourceId: event.sourceId,
         eventId: event.eventId,
       });
-      res.status(200).json({ ok: true });
+      res
+        .status(200)
+        .json(
+          missingCredentialIds !== undefined && missingCredentialIds.length > 0
+            ? { ok: true, missingCredentialIds }
+            : { ok: true },
+        );
     } catch (error) {
       if (error instanceof SyncEntityTimestampConflictError) {
         replayReservation?.complete();

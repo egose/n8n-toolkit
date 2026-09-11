@@ -36,7 +36,7 @@ export interface ApplierOptions {
 }
 
 export type ApplySyncEventResult =
-  | { status: 'applied' }
+  | { status: 'applied'; missingCredentialIds?: string[] }
   | { status: 'duplicate' }
   | { status: 'stale' }
   | { status: 'disabled'; error: SyncEntityDisabledError }
@@ -726,6 +726,45 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   }
 
   /**
+   * Find which of the given credential ids have no row on the target.
+   * Prefers a single query when the underlying repository supports TypeORM's
+   * `find` (production); doubles exposing only `findOneBy` (tests) fall back
+   * to per-id lookups with identical semantics. Returns ids in input order.
+   */
+  async function findMissingCredentialIds(ids: readonly string[] | undefined): Promise<string[]> {
+    if (!ids || ids.length === 0) return [];
+    if (!allowedEntities.has('credentials')) return [];
+    const credentialsRepo = repos.credentials;
+    if (!credentialsRepo) return [];
+    const unique = [...new Set(ids.filter((id) => typeof id === 'string' && id.length > 0))];
+    if (unique.length === 0) return [];
+
+    const candidate = credentialsRepo as unknown as {
+      find?: (options: unknown) => Promise<Array<{ id?: unknown }> | null | undefined>;
+    };
+    if (typeof candidate.find === 'function') {
+      try {
+        const rows = await candidate.find({ where: unique.map((id) => ({ id })), select: ['id'] });
+        if (Array.isArray(rows)) {
+          const present = new Set(rows.map((row) => row?.id).filter((id): id is string => typeof id === 'string'));
+          return unique.filter((id) => !present.has(id));
+        }
+      } catch (error) {
+        log.debug('Credential presence check fell back to per-id lookups', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    const present = new Set<string>();
+    for (const id of unique) {
+      const row = await credentialsRepo.findOneBy({ id });
+      if (row) present.add(id);
+    }
+    return unique.filter((id) => !present.has(id));
+  }
+
+  /**
    * Idempotently upsert an execution row on the target. The source execution id
    * is stored only in the durable `(sourceId, sourceExecutionId)` mapping;
    * target rows keep their native primary keys. `startedAt`/`createdAt` are
@@ -902,10 +941,25 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
 
       const allowEqualTimestamp = decision === 'apply' && inspection.previous !== undefined;
 
+      let missingCredentialIds: string[] | undefined;
       switch (event.type) {
         case 'workflow.upsert':
         case 'workflow.activate':
           await upsertWorkflow(event.workflow, event, allowEqualTimestamp);
+          // Report workflow-referenced credentials absent on the target so the
+          // publisher can backfill exactly those blobs (round-trip inside the
+          // delivery response — no separate subscriber→publisher channel).
+          // Credential upserts carry no references, so this cannot loop.
+          missingCredentialIds = await findMissingCredentialIds(event.credentialIds);
+          if (missingCredentialIds.length === 0) {
+            missingCredentialIds = undefined;
+          } else {
+            log.debug('Workflow references credentials missing on target', {
+              workflowId: event.workflow.id,
+              sourceId: event.sourceId,
+              missingCredentialCount: missingCredentialIds.length,
+            });
+          }
           break;
         case 'workflow.delete':
           await deleteWorkflow(event.workflowId, event.sourceId);
@@ -925,7 +979,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
       }
 
       await ordering.recordApplied(event);
-      return { status: 'applied' };
+      return missingCredentialIds === undefined ? { status: 'applied' } : { status: 'applied', missingCredentialIds };
     });
   };
 }

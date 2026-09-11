@@ -1447,3 +1447,69 @@ describe('createApplier', () => {
     });
   });
 });
+
+describe('workflow credential backfill report', () => {
+  function reposWithCredentials(existingIds: string[], withFind: boolean) {
+    const repos = makeRepos();
+    repos.credentials.findOneBy.mockImplementation(async ({ id }: { id: string }) =>
+      existingIds.includes(id) ? { id } : null,
+    );
+    let find: ReturnType<typeof vi.fn> | undefined;
+    if (withFind) {
+      find = vi
+        .fn()
+        .mockImplementation(async ({ where }: { where: Array<{ id: string }> }) =>
+          where.filter((clause) => existingIds.includes(clause.id)).map((clause) => ({ id: clause.id })),
+        );
+      (repos.credentials as unknown as { find: ReturnType<typeof vi.fn> }).find = find;
+    }
+    return { repos, find };
+  }
+
+  it('reports missing credential ids via a single query when find is available', async () => {
+    const { repos, find } = reposWithCredentials(['cred-a'], true);
+    const apply = createApplier(repos, { log });
+
+    const result = await apply(
+      orderedEvent({ type: 'workflow.upsert', workflow, credentialIds: ['cred-a', 'cred-b', 'cred-c'] }),
+    );
+
+    expect(result).toEqual({ status: 'applied', missingCredentialIds: ['cred-b', 'cred-c'] });
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(repos.credentials.findOneBy).not.toHaveBeenCalled();
+  });
+
+  it('falls back to per-id lookups when find is unavailable', async () => {
+    const { repos } = reposWithCredentials(['cred-a'], false);
+    const apply = createApplier(repos, { log });
+
+    const result = await apply(
+      orderedEvent({ type: 'workflow.activate', workflow, credentialIds: ['cred-a', 'cred-b'] }),
+    );
+
+    expect(result).toEqual({ status: 'applied', missingCredentialIds: ['cred-b'] });
+    expect(repos.credentials.findOneBy).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns a plain applied result when nothing is missing', async () => {
+    const { repos } = reposWithCredentials(['cred-a'], true);
+    const apply = createApplier(repos, { log });
+
+    const result = await apply(orderedEvent({ type: 'workflow.upsert', workflow, credentialIds: ['cred-a'] }));
+
+    expect(result).toEqual({ status: 'applied' });
+  });
+
+  it('skips the check when credentialIds is absent or credentials are disabled', async () => {
+    const repos = makeRepos();
+    const apply = createApplier(repos, { log });
+
+    expect(await apply(orderedEvent({ type: 'workflow.upsert', workflow }))).toEqual({ status: 'applied' });
+
+    const disabled = createApplier(repos, { log, allowedEntities: new Set<SyncEntity>(['workflows']) });
+    expect(await disabled(orderedEvent({ type: 'workflow.upsert', workflow, credentialIds: ['cred-a'] }))).toEqual({
+      status: 'applied',
+    });
+    expect(repos.credentials.findOneBy).not.toHaveBeenCalled();
+  });
+});

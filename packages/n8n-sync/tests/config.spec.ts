@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  DEFAULT_N8N_CORE_PATH,
   DEFAULT_SYNC_ACTIVE_TAG,
   DEFAULT_SYNC_AUTH_MODE,
   DEFAULT_SYNC_EVENTS_PATH,
@@ -203,6 +204,12 @@ describe('parseConfig', () => {
   it('rejects malformed local path values', () => {
     expectConfigError({ SYNC_ROUTE_BASE: 'rest/sync/v1' }, 'local absolute path');
     expectConfigError({ SYNC_EVENTS_PATH: '/rest/sync/v1/events?debug=true' }, 'query or fragment');
+  });
+
+  it('defaults N8N_CORE_PATH and honors overrides', () => {
+    expect(parseConfig(makeEnv({})).subscriber.n8nCorePath).toBe(DEFAULT_N8N_CORE_PATH);
+    expect(parseConfig(makeEnv({ N8N_CORE_PATH: '   ' })).subscriber.n8nCorePath).toBe(DEFAULT_N8N_CORE_PATH);
+    expect(parseConfig(makeEnv({ N8N_CORE_PATH: '/opt/n8n' })).subscriber.n8nCorePath).toBe('/opt/n8n');
   });
 
   it('defaults SYNC_PUBLISHER_INVALID_STATE to fail', () => {

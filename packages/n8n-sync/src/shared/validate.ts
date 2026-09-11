@@ -1,3 +1,4 @@
+import { MAX_WORKFLOW_CREDENTIAL_REFS } from './credential-refs';
 import { isDecimalString } from './ordering';
 import type { ExecutionMode, ExecutionStatus, SyncEvent } from './types';
 
@@ -162,6 +163,14 @@ function isOptionalPropertyValid(
   return !hasOwn(value, key) || validator(value[key]);
 }
 
+function isValidCredentialIdList(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length <= MAX_WORKFLOW_CREDENTIAL_REFS &&
+    value.every((id) => isBoundedString(id, MAX_ID_LENGTH))
+  );
+}
+
 function isValidTag(value: unknown): boolean {
   return (
     isPlainRecord(value) &&
@@ -221,10 +230,20 @@ export function explainSyncEventFailure(payload: unknown): string | null {
     case 'workflow.upsert':
     case 'workflow.activate': {
       const prefix = payload.type as string;
-      const extra = extraKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'workflow']);
+      const extra = extraKeys(payload, [
+        'at',
+        'sourceId',
+        'eventId',
+        'entityRevision',
+        'type',
+        'workflow',
+        'credentialIds',
+      ]);
       if (extra) return `${prefix}.extra_keys:${extra}`;
       const reason = workflowDtoFailureReason(payload.workflow);
-      return reason ? `${prefix}.workflow:${reason}` : null;
+      if (reason) return `${prefix}.workflow:${reason}`;
+      if (!isOptionalPropertyValid(payload, 'credentialIds', isValidCredentialIdList)) return `${prefix}.credentialIds`;
+      return null;
     }
     case 'workflow.delete': {
       const extra = extraKeys(payload, ['at', 'sourceId', 'eventId', 'entityRevision', 'type', 'workflowId']);

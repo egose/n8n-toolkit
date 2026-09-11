@@ -55,6 +55,17 @@ Credential sync only publishes when the hook payload or resolved repository row 
 - `credentials.create` and `credentials.update` drop object-form credential payloads instead of relying on repository-side encryption.
 - When `credentials.create` includes an `id` but the row is not yet queryable, the publisher briefly retries `dbCollections.Credentials.findOne({ where: { id } })` and emits only that exact row.
 - Payloads without a stable credential `id` are logged and dropped. The publisher never guesses by mutable fields like `{ name, type }`.
+- **Known platform gap:** n8n fires `credentials.create` pre-commit with `id: null`, so creates never sync on their own. See credential backfill below.
+
+## Credential backfill on workflow sync
+
+Because creates don't sync, a synced workflow can reference credentials the target has never seen. To close that gap without fetching every credential on every update:
+
+1. `workflow.upsert` / `workflow.activate` carry an id-only `credentialIds` list collected from the workflow's nodes.
+2. The subscriber checks those ids with a single query and reports the missing ones back inside the `200` delivery response (`{ ok: true, missingCredentialIds }`).
+3. The publisher resolves each reported id by stable id and emits a `credentials.upsert` backfill for exactly those blobs.
+
+The round-trip stays inside the existing publisher→subscriber channel (response body) — no separate subscriber→publisher path. Backfill lookups are id-anchored; credential upserts carry no references, so the loop terminates. Applies only when the `credentials` entity is enabled on both sides.
 
 ## Filtering by tag
 
