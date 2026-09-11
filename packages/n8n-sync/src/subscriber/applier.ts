@@ -4,8 +4,14 @@ import type { Logger } from '../shared/logger';
 import type { SyncCredentialDto, SyncEvent, SyncExecutionDto, SyncWorkflowDto } from '../shared/types';
 import { createExecutionIdentityStore, type ExecutionIdentityStore } from './execution-identity';
 import type { ConditionalUpdateResult } from './n8n-runtime';
-import type { N8nSyncRepositories, SharedCredentialsRepositoryLike, SharedWorkflowRepositoryLike } from './n8n-runtime';
+import type {
+  N8nSyncRepositories,
+  PublicationUserLike,
+  SharedCredentialsRepositoryLike,
+  SharedWorkflowRepositoryLike,
+} from './n8n-runtime';
 import { createSyncOrderingStore, type SyncOrderingStore } from './order-state';
+import type { WorkflowPublicationManager } from './publication';
 
 export interface ApplierOptions {
   /** When set, newly created workflows/credentials are linked to this project. */
@@ -19,6 +25,13 @@ export interface ApplierOptions {
   ordering?: SyncOrderingStore;
   executionIdentity?: ExecutionIdentityStore;
   allowedEntities?: ReadonlySet<SyncEntity>;
+  /**
+   * Target-side publication manager. When present with `applyActiveState`,
+   * workflow upserts converge the real publish state (history version +
+   * trigger registration) instead of only the `active` DB column. Absence
+   * keeps the legacy column-only behavior.
+   */
+  publication?: WorkflowPublicationManager;
   log: Logger;
 }
 
@@ -189,6 +202,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   const { log } = options;
   const allowedEntities = options.allowedEntities ?? ALL_SYNC_ENTITIES;
   const applyActiveState = options.applyActiveState ?? false;
+  const publication = options.publication;
   const targetProjectId = options.targetProjectId || undefined;
   const ordering = options.ordering ?? createSyncOrderingStore();
   const executionIdentity =
@@ -214,6 +228,34 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   // resolved; `null` means resolution was attempted and failed (so we don't
   // re-attempt on every event); a string is the resolved project id.
   let cachedFallbackProjectId: string | null | undefined;
+  // Cache for the owner user entity itself. `undefined` means not yet
+  // resolved; `null` means no owner exists. Thrown lookups are not cached so
+  // transient failures retry on the next event.
+  let cachedOwnerUser: PublicationUserLike | null | undefined;
+
+  /**
+   * Resolve the target instance owner user. Used for project fallback
+   * linkage and as the acting user for target-side publication (n8n's
+   * publish/unpublish entry points enforce `workflow:publish` /
+   * `workflow:unpublish` permissions).
+   */
+  async function resolveOwnerUser(): Promise<PublicationUserLike | undefined> {
+    if (cachedOwnerUser !== undefined) return cachedOwnerUser ?? undefined;
+    const userRepo = requireRepository(repos.user, 'UserRepository');
+    const owner = await userRepo.findOne({
+      where: { role: { slug: 'global:owner' } },
+      relations: ['role'],
+      order: { createdAt: 'ASC' },
+      take: 1,
+    });
+    if (!owner) {
+      log.warn('Owner fallback: no global:owner user found on target');
+      cachedOwnerUser = null;
+      return undefined;
+    }
+    cachedOwnerUser = owner;
+    return owner;
+  }
 
   /**
    * Resolve the project id to link newly created workflows/credentials to.
@@ -226,17 +268,10 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
   async function resolveLinkProjectId(): Promise<string | undefined> {
     if (targetProjectId) return targetProjectId;
     if (cachedFallbackProjectId !== undefined) return cachedFallbackProjectId ?? undefined;
-    const userRepo = requireRepository(repos.user, 'UserRepository');
     const projectRepo = requireRepository(repos.project, 'ProjectRepository');
     try {
-      const owner = await userRepo.findOne({
-        where: { role: { slug: 'global:owner' } },
-        relations: ['role'],
-        order: { createdAt: 'ASC' },
-        take: 1,
-      });
+      const owner = await resolveOwnerUser();
       if (!owner) {
-        log.warn('Owner fallback: no global:owner user found on target');
         cachedFallbackProjectId = null;
         return undefined;
       }
@@ -257,6 +292,71 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
         error: error instanceof Error ? error.message : String(error),
       });
       return undefined;
+    }
+  }
+
+  /**
+   * Best-effort owner lookup for target-side publication. Owner resolution
+   * failures degrade to `undefined` (the publication manager then reports
+   * `unavailable`) instead of failing the sync event.
+   */
+  async function resolvePublicationOwner(): Promise<PublicationUserLike | undefined> {
+    try {
+      return await resolveOwnerUser();
+    } catch (error) {
+      log.warn('Target workflow publication skipped: owner lookup failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
+  }
+
+  /**
+   * Converge the target's real publish state after a workflow row write.
+   * Infallible by contract: publication failures are logged by the manager
+   * and retried on the next event, never fail the applied event.
+   */
+  async function syncWorkflowPublication(workflow: SyncWorkflowDto): Promise<void> {
+    if (!applyActiveState || !publication || workflow.isArchived) return;
+    if (!workflow.versionId) {
+      log.warn('Skipping target workflow publication: DTO has no versionId', { workflowId: workflow.id });
+      return;
+    }
+    try {
+      await publication.syncPublishedState(
+        {
+          workflowId: workflow.id,
+          version: {
+            versionId: workflow.versionId,
+            nodes: workflow.nodes ?? [],
+            connections: workflow.connections ?? {},
+          },
+          active: workflow.active ?? false,
+        },
+        await resolvePublicationOwner(),
+      );
+    } catch (error) {
+      log.warn('Target workflow publication sync failed without status', {
+        workflowId: workflow.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Best-effort unpublish before a row delete or archive so stale triggers
+   * cannot survive and `ON DELETE RESTRICT` dependents cannot block removal.
+   * Infallible by contract.
+   */
+  async function removeWorkflowPublication(workflowId: string): Promise<void> {
+    if (!applyActiveState || !publication) return;
+    try {
+      await publication.removePublication(workflowId, await resolvePublicationOwner());
+    } catch (error) {
+      log.warn('Target workflow unpublish before removal failed without status', {
+        workflowId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -463,6 +563,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
       }
 
       log.debug(outcome === 'created' ? 'Workflow created' : 'Workflow updated', { workflowId: workflow.id });
+      await syncWorkflowPublication(workflow);
     } catch (error) {
       if (!isUniqueConstraintError(error)) throw error;
 
@@ -489,6 +590,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
         await ensureWorkflowProjectLink(context, workflow.id);
       });
       log.debug('Workflow create raced with an existing row; reconciled in place', { workflowId: workflow.id });
+      await syncWorkflowPublication(workflow);
     }
   }
 
@@ -503,6 +605,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
       await repos.execution?.delete(mapping.targetExecutionId);
     }
 
+    await removeWorkflowPublication(workflowId);
     await workflowRepo.delete(workflowId);
     const removedExecutionMappings = executionIdentity
       ? await executionIdentity.deleteBySourceWorkflow({ sourceId, workflowId })
@@ -522,6 +625,7 @@ export function createApplier(repos: N8nSyncRepositories, options: ApplierOption
     if (archived && applyActiveState) {
       fields.active = false;
       fields.activeVersionId = null;
+      await removeWorkflowPublication(workflowId);
     }
     await workflowRepo.update(workflowId, fields);
     log.debug(archived ? 'Workflow archived' : 'Workflow unarchived', { workflowId });

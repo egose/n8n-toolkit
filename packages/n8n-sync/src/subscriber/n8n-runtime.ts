@@ -1,4 +1,4 @@
-import { DEFAULT_N8N_DB_PATH, DEFAULT_N8N_DI_PATH, type SyncEntity } from '../shared/config';
+import { DEFAULT_N8N_CORE_PATH, DEFAULT_N8N_DB_PATH, DEFAULT_N8N_DI_PATH, type SyncEntity } from '../shared/config';
 
 export const SUPPORTED_N8N_RUNTIME_VERSION_MATRIX = Object.freeze([{ label: 'current', version: '2.31.2' }] as const);
 
@@ -53,10 +53,11 @@ export interface SharedCredentialsRepositoryLike {
 /**
  * Minimal subset of n8n's UserRepository used by the applier's owner fallback.
  * `findOne` is the inherited TypeORM repository method; we type it loosely
- * because the `where`/`relations` shape is complex and version-specific.
+ * because the `where`/`relations` shape is complex and version-specific. The
+ * returned entity doubles as the acting user for target-side publication.
  */
 export interface UserRepositoryLike {
-  findOne(options: Record<string, unknown>): Promise<{ id: string } | null>;
+  findOne(options: Record<string, unknown>): Promise<PublicationUserLike | null>;
 }
 
 /**
@@ -83,6 +84,43 @@ export interface ExecutionRepositoryLike {
     partial: Record<string, unknown>,
     options: { incomingTimestamp?: Date; timestampField: 'updatedAt' | 'stoppedAt'; allowEqualTimestamp?: boolean },
   ): Promise<ConditionalUpdateResult>;
+}
+
+/**
+ * Minimal subset of n8n's `WorkflowHistoryService` used for target-side
+ * publishing. `saveVersion` materializes the synced `versionId` as a history
+ * row so the version exists for activation; it accepts a user entity or a
+ * user id string. `findVersion` resolves `null` when the version is absent.
+ */
+export interface WorkflowHistoryServiceLike {
+  findVersion?(workflowId: string, versionId: string): Promise<unknown | null>;
+  saveVersion?(
+    user: unknown,
+    version: { versionId: string; nodes: unknown; connections: unknown },
+    workflowId: string,
+  ): Promise<unknown>;
+}
+
+/**
+ * Minimal subset of n8n's `WorkflowService` used for target-side publishing.
+ * These are the canonical publish/unpublish entry points (the same ones the
+ * UI and Public API call): they validate, persist `active`/`activeVersionId`,
+ * and register/unregister triggers with the active workflow manager.
+ */
+export interface WorkflowServiceLike {
+  activateWorkflow?(user: unknown, workflowId: string, options?: Record<string, unknown>): Promise<unknown>;
+  deactivateWorkflow?(user: unknown, workflowId: string, options?: Record<string, unknown>): Promise<unknown>;
+}
+
+/**
+ * Minimal owner user entity passed through to the publication services.
+ * Resolved from `UserRepository`; only the identity is load-bearing for
+ * permission checks, names are used for history authorship when present.
+ */
+export interface PublicationUserLike {
+  id: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export type ConditionalUpdateResult = 'updated' | 'stale' | 'missing' | 'conflict';
@@ -190,6 +228,14 @@ export interface N8nSyncRepositories {
    * `execution.*` events.
    */
   execution?: ExecutionRepositoryLike;
+  /**
+   * Target-side publication services. Only resolved when workflows are
+   * enabled. Either may be absent when the runtime layout does not expose
+   * the corresponding core module or DI registration; the applier then falls
+   * back to DB-column-only active-state writes.
+   */
+  workflowHistoryService?: WorkflowHistoryServiceLike;
+  workflowService?: WorkflowServiceLike;
   transaction?<T>(work: (repos: N8nSyncRepositories) => Promise<T>): Promise<T>;
 }
 
@@ -207,9 +253,27 @@ type N8nDbModule = {
   ExecutionRepository?: unknown;
 };
 
+/**
+ * Class tokens for n8n core workflow services. Both live in the main n8n
+ * package dist (not `@n8n/db`); each file is loaded independently so a
+ * layout change in one does not break resolution of the other.
+ */
+type N8nCoreServicesModule = {
+  WorkflowService?: unknown;
+  WorkflowHistoryService?: unknown;
+};
+
 export interface N8nRuntimeAdapter {
   loadContainer(diPath: string): N8nContainer;
   loadDbModule(dbPath: string): N8nDbModule;
+  /**
+   * Load n8n core workflow service modules from `<corePath>/dist/...`.
+   * Tolerant by design: files that cannot be loaded resolve to `undefined`
+   * tokens instead of throwing, so a core layout change degrades the
+   * subscriber to DB-column-only active-state writes rather than failing
+   * startup.
+   */
+  loadCoreServices(corePath: string): N8nCoreServicesModule;
   getService<T>(container: N8nContainer, token: unknown, capabilityName: string): T;
 }
 
@@ -265,6 +329,23 @@ export function createN8nRuntimeAdapter(
 
     loadDbModule(dbPath: string): N8nDbModule {
       return loadRequiredModule<N8nDbModule>(requireModule, dbPath, 'n8n DB runtime', 'N8N_DB_PATH');
+    },
+
+    loadCoreServices(corePath: string): N8nCoreServicesModule {
+      const modules: N8nCoreServicesModule = {};
+      const files = {
+        WorkflowService: `${corePath}/dist/workflows/workflow.service.js`,
+        WorkflowHistoryService: `${corePath}/dist/workflows/workflow-history/workflow-history.service.js`,
+      } as const;
+      for (const [token, file] of Object.entries(files) as Array<[keyof N8nCoreServicesModule, string]>) {
+        try {
+          const loaded = requireModule(file) as Record<string, unknown>;
+          if (loaded[token] !== undefined) modules[token] = loaded[token];
+        } catch {
+          // Optional capability: absence degrades to column-only writes.
+        }
+      }
+      return modules;
     },
 
     getService<T>(container: N8nContainer, token: unknown, capabilityName: string): T {
@@ -430,6 +511,8 @@ function decorateRepositories(
           rawRepos.execution as ExecutionRepositoryLike & TransactionCapableRepositoryLike,
         ) as ExecutionRepositoryLike)
       : undefined,
+    workflowHistoryService: rawRepos.workflowHistoryService,
+    workflowService: rawRepos.workflowService,
   };
 }
 
@@ -455,11 +538,13 @@ export function buildN8nSyncRepositories(
     includeExecutions?: boolean;
     diPath?: string;
     dbPath?: string;
+    corePath?: string;
     adapter?: N8nRuntimeAdapter;
   } = {},
 ): N8nSyncRepositories {
   const diPath = options.diPath ?? DEFAULT_N8N_DI_PATH;
   const dbPath = options.dbPath ?? DEFAULT_N8N_DB_PATH;
+  const corePath = options.corePath ?? DEFAULT_N8N_CORE_PATH;
   const adapter = options.adapter ?? createN8nRuntimeAdapter();
   const includeWorkflows = options.entities
     ? options.entities.has('workflows') || options.entities.has('executions')
@@ -516,6 +601,35 @@ export function buildN8nSyncRepositories(
 
   if (executionToken !== undefined) {
     rawRepos.execution = adapter.getService<ExecutionRepositoryLike>(container, executionToken, 'ExecutionRepository');
+  }
+
+  // Target-side publication services are an optional capability: when the
+  // core layout or DI registrations do not expose them, the applier keeps
+  // the DB-column-only active-state behavior instead of failing startup.
+  if (includeWorkflows) {
+    const coreServices = adapter.loadCoreServices(corePath);
+    if (coreServices.WorkflowHistoryService !== undefined) {
+      try {
+        rawRepos.workflowHistoryService = adapter.getService<WorkflowHistoryServiceLike>(
+          container,
+          coreServices.WorkflowHistoryService,
+          'WorkflowHistoryService',
+        );
+      } catch {
+        rawRepos.workflowHistoryService = undefined;
+      }
+    }
+    if (coreServices.WorkflowService !== undefined) {
+      try {
+        rawRepos.workflowService = adapter.getService<WorkflowServiceLike>(
+          container,
+          coreServices.WorkflowService,
+          'WorkflowService',
+        );
+      } catch {
+        rawRepos.workflowService = undefined;
+      }
+    }
   }
 
   const repos: N8nSyncRepositories = {

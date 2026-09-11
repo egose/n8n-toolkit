@@ -74,7 +74,7 @@ services:
       context: ..
       dockerfile: Dockerfile
       args:
-        N8N_VERSION: ${N8N_VERSION:-2.31.2}
+        N8N_VERSION: ${N8N_VERSION:-2.38.6}
         N8N_SYNC_BUNDLE_SOURCE: ${N8N_SYNC_BUNDLE_SOURCE:-workspace}
     environment:
       <<: *n8n-env
@@ -113,7 +113,7 @@ services:
       context: ..
       dockerfile: Dockerfile
       args:
-        N8N_VERSION: ${N8N_VERSION:-2.31.2}
+        N8N_VERSION: ${N8N_VERSION:-2.38.6}
         N8N_SYNC_BUNDLE_SOURCE: ${N8N_SYNC_BUNDLE_SOURCE:-workspace}
     environment:
       <<: *n8n-env

@@ -48,6 +48,7 @@ export interface SubscriberConfig {
   subscriberStatePath: string;
   n8nDiPath: string;
   n8nDbPath: string;
+  n8nCorePath: string;
 }
 
 export interface SyncConfig {
@@ -80,6 +81,7 @@ export const DEFAULT_SYNC_REPLAY_CACHE_SIZE = 10_000;
 export const DEFAULT_SYNC_SUBSCRIBER_STATE_PATH = '/home/node/.n8n/sync-state/subscriber-ordering.json';
 export const DEFAULT_N8N_DI_PATH = '/usr/local/lib/node_modules/n8n/node_modules/@n8n/di';
 export const DEFAULT_N8N_DB_PATH = '/usr/local/lib/node_modules/n8n/node_modules/@n8n/db';
+export const DEFAULT_N8N_CORE_PATH = '/usr/local/lib/node_modules/n8n';
 
 const ENTITY_NAMES: readonly SyncEntity[] = ['workflows', 'credentials', 'executions'];
 const LOG_LEVEL_NAMES: readonly SyncLogLevel[] = ['debug', 'info', 'warn', 'error'];
@@ -355,6 +357,7 @@ function parseSubscriberConfig(env: SyncEnv): SubscriberConfig {
     subscriberStatePath: parseStringEnv(env.SYNC_SUBSCRIBER_STATE_PATH, DEFAULT_SYNC_SUBSCRIBER_STATE_PATH),
     n8nDiPath: parseStringEnv(env.N8N_DI_PATH, DEFAULT_N8N_DI_PATH),
     n8nDbPath: parseStringEnv(env.N8N_DB_PATH, DEFAULT_N8N_DB_PATH),
+    n8nCorePath: parseStringEnv(env.N8N_CORE_PATH, DEFAULT_N8N_CORE_PATH),
   };
 }
 

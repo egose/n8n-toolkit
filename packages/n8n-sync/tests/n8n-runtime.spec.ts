@@ -66,6 +66,7 @@ describe('buildN8nSyncRepositories', () => {
         UserRepository: Symbol('UserRepository'),
         ProjectRepository: Symbol('ProjectRepository'),
       }),
+      loadCoreServices: () => ({}),
       getService: vi.fn(),
     } as unknown as Parameters<typeof buildN8nSyncRepositories>[0]['adapter'];
 
@@ -94,6 +95,7 @@ describe('buildN8nSyncRepositories', () => {
         UserRepository: userToken,
         ProjectRepository: projectToken,
       }),
+      loadCoreServices: () => ({}),
       getService: createN8nRuntimeAdapter().getService,
     };
 
@@ -119,6 +121,7 @@ describe('buildN8nSyncRepositories', () => {
         UserRepository: userToken,
         ProjectRepository: projectToken,
       }),
+      loadCoreServices: () => ({}),
       getService: vi.fn().mockReturnValue({}),
     };
 
@@ -126,6 +129,113 @@ describe('buildN8nSyncRepositories', () => {
 
     expect(repos.execution).toBeUndefined();
     expect(adapter.getService).not.toHaveBeenCalledWith(expect.anything(), expect.anything(), 'ExecutionRepository');
+  });
+
+  it('resolves target-side publication services when the core layout exposes them', () => {
+    const historyToken = Symbol('WorkflowHistoryService');
+    const workflowsToken = Symbol('WorkflowService');
+    const historyService = { findVersion: vi.fn(), saveVersion: vi.fn() };
+    const workflowService = { activateWorkflow: vi.fn(), deactivateWorkflow: vi.fn() };
+    const getService = vi.fn((_container: unknown, token: unknown) => {
+      if (token === historyToken) return historyService;
+      if (token === workflowsToken) return workflowService;
+      return {};
+    });
+    const adapter = {
+      loadContainer: () => ({ get: vi.fn() }),
+      loadDbModule: () => ({
+        WorkflowRepository: Symbol('WorkflowRepository'),
+        CredentialsRepository: Symbol('CredentialsRepository'),
+        SharedWorkflowRepository: Symbol('SharedWorkflowRepository'),
+        SharedCredentialsRepository: Symbol('SharedCredentialsRepository'),
+        UserRepository: Symbol('UserRepository'),
+        ProjectRepository: Symbol('ProjectRepository'),
+      }),
+      loadCoreServices: () => ({ WorkflowHistoryService: historyToken, WorkflowService: workflowsToken }),
+      getService,
+    };
+
+    const repos = buildN8nSyncRepositories({ adapter });
+
+    expect(repos.workflowHistoryService).toBe(historyService);
+    expect(repos.workflowService).toBe(workflowService);
+    expect(getService).toHaveBeenCalledWith(expect.anything(), historyToken, 'WorkflowHistoryService');
+    expect(getService).toHaveBeenCalledWith(expect.anything(), workflowsToken, 'WorkflowService');
+  });
+
+  it('degrades to column-only writes when core services are missing or unresolvable', () => {
+    const dbModule = {
+      WorkflowRepository: Symbol('WorkflowRepository'),
+      CredentialsRepository: Symbol('CredentialsRepository'),
+      SharedWorkflowRepository: Symbol('SharedWorkflowRepository'),
+      SharedCredentialsRepository: Symbol('SharedCredentialsRepository'),
+      UserRepository: Symbol('UserRepository'),
+      ProjectRepository: Symbol('ProjectRepository'),
+    };
+    const missingFiles = buildN8nSyncRepositories({
+      adapter: {
+        loadContainer: () => ({ get: vi.fn().mockReturnValue({}) }),
+        loadDbModule: () => dbModule,
+        loadCoreServices: () => ({}),
+        getService: vi.fn().mockReturnValue({}),
+      },
+    });
+    expect(missingFiles.workflowHistoryService).toBeUndefined();
+    expect(missingFiles.workflowService).toBeUndefined();
+
+    const failingHistoryToken = Symbol('WorkflowHistoryService');
+    const unresolvable = buildN8nSyncRepositories({
+      adapter: {
+        loadContainer: () => ({ get: vi.fn().mockReturnValue({}) }),
+        loadDbModule: () => dbModule,
+        loadCoreServices: () => ({ WorkflowHistoryService: failingHistoryToken }),
+        getService: ((_container: unknown, token: unknown) => {
+          if (token === failingHistoryToken) throw new Error('n8n DI container could not resolve it');
+          return {};
+        }) as never,
+      },
+    });
+    expect(unresolvable.workflowHistoryService).toBeUndefined();
+    expect(unresolvable.workflowService).toBeUndefined();
+  });
+
+  it('skips core service resolution when workflows are disabled', () => {
+    const loadCoreServices = vi.fn();
+    const adapter = {
+      loadContainer: () => ({ get: vi.fn().mockReturnValue({}) }),
+      loadDbModule: () => ({
+        CredentialsRepository: Symbol('CredentialsRepository'),
+        SharedCredentialsRepository: Symbol('SharedCredentialsRepository'),
+        UserRepository: Symbol('UserRepository'),
+        ProjectRepository: Symbol('ProjectRepository'),
+      }),
+      loadCoreServices,
+      getService: vi.fn().mockReturnValue({}),
+    };
+
+    const repos = buildN8nSyncRepositories({
+      adapter,
+      entities: new Set<SyncEntity>(['credentials']),
+    });
+
+    expect(loadCoreServices).not.toHaveBeenCalled();
+    expect(repos.workflowHistoryService).toBeUndefined();
+    expect(repos.workflowService).toBeUndefined();
+  });
+
+  it('loads core service modules tolerantly file by file', () => {
+    class WorkflowServiceFixture {}
+    const adapter = createN8nRuntimeAdapter({
+      require: (path: string) => {
+        if (path.endsWith('dist/workflows/workflow.service.js')) return { WorkflowService: WorkflowServiceFixture };
+        throw new Error(`Cannot find module '${path}'`);
+      },
+    });
+
+    const modules = adapter.loadCoreServices('/n8n/core');
+
+    expect(modules.WorkflowService).toBe(WorkflowServiceFixture);
+    expect(modules.WorkflowHistoryService).toBeUndefined();
   });
 
   it('does not resolve repositories for disabled workflow and credential families', () => {
@@ -145,6 +255,7 @@ describe('buildN8nSyncRepositories', () => {
         UserRepository: userToken,
         ProjectRepository: projectToken,
       }),
+      loadCoreServices: () => ({}),
       getService: vi.fn().mockReturnValue({}),
     });
     const workflowOnlyAdapter = makeAdapter();
@@ -254,6 +365,7 @@ describe('buildN8nSyncRepositories', () => {
         UserRepository: userToken,
         ProjectRepository: projectToken,
       }),
+      loadCoreServices: () => ({}),
       getService: createN8nRuntimeAdapter().getService,
     };
 
