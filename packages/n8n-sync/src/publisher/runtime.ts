@@ -66,6 +66,7 @@ export function createPublisherHookConfig(config: SyncConfig, deps: PublisherHoo
   const ordering = orderingFactory({
     sourceId,
     statePath: config.publisher.publisherStatePath,
+    invalidState: config.publisher.invalidState,
   });
 
   const logContext = {
@@ -83,14 +84,42 @@ export function createPublisherHookConfig(config: SyncConfig, deps: PublisherHoo
     void ordering
       .initialize()
       .then(() => {
-        log.info('n8n-sync publisher hooks registered', logContext);
+        const reset = typeof ordering.getInvalidStateReset === 'function' ? ordering.getInvalidStateReset() : undefined;
+        if (reset) {
+          log.warn(
+            'Sync publisher order state quarantined and reset for a new source epoch; a full subscriber resync is mandatory before trusting convergence',
+            {
+              ...logContext,
+              previousSourceId: reset.previousSourceId,
+              newSourceId: reset.newSourceId,
+              quarantinedBackupPath: reset.backupPath,
+              invalidStateMode: config.publisher.invalidState,
+            },
+          );
+        }
+        const summary = typeof ordering.getStateSummary === 'function' ? ordering.getStateSummary() : undefined;
+        log.info('n8n-sync publisher hooks registered', {
+          ...logContext,
+          invalidStateMode: config.publisher.invalidState,
+          ...(summary
+            ? {
+                publisherStateVersion: summary.version,
+                publisherStateSourceId: summary.sourceId,
+                publisherNextEventSequence: summary.nextEventSequence,
+                publisherEntityKeyCount: summary.entityKeyCount,
+              }
+            : {}),
+        });
       })
       .catch((error) => {
         logError(log, error, { context: 'publisher state readiness initialization' });
         const status = ordering.getStatus();
+        const reset = typeof ordering.getInvalidStateReset === 'function' ? ordering.getInvalidStateReset() : undefined;
         log.warn('n8n-sync publisher hooks registered in degraded state', {
           ...logContext,
           ...(status.ready === true ? {} : { reason: status.reason }),
+          invalidStateMode: config.publisher.invalidState,
+          ...(reset ? { quarantinedBackupPath: reset.backupPath } : {}),
         });
       });
   } else {

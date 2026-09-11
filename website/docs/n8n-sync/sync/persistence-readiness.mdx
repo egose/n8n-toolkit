@@ -48,9 +48,19 @@ Supported production topology is one publisher process for a given `SYNC_SOURCE_
 - To intentionally change `SYNC_SOURCE_ID`, stop the publisher, back up and move aside the old publisher state file, configure the new source ID, and run a full subscriber resync or source-retirement procedure.
 - Subscriber state format `1` is refused instead of migrated because its colon-separated keys are ambiguous. Back it up, then restore from unambiguous metadata if available or reset subscriber sync state and perform a full source resync.
 - Do not delete subscriber tombstone state unless you accept that stale source events can be applied again.
+- Invalid publisher order state (parsed JSON matches no known shape; supported publisher state versions `1`, `2`, `3`) is quarantined via atomic rename to `<statePath>.corrupt.<UTC-timestamp>.bak` — the original path is renamed, never overwritten or deleted in place. With the default `SYNC_PUBLISHER_INVALID_STATE=fail`, the publisher stays degraded (`invalid_state`) without reiniting counters. With `quarantine-reset`, counters reinit from zero only as an epoch rotation: the configured `SYNC_SOURCE_ID` must differ from the quarantined file's stored `sourceId`, and a full subscriber resync is mandatory before trusting convergence. A same-identity reset — or a reset when the quarantined file carries no usable stored identity — is refused at startup, because reused `eventId`/`entityRevision` values under one source identity are rejected by the subscriber as stale/conflict (`409 SYNC_REVISION_CONFLICT`), causing silent divergence.
+- Publisher invalid-state runbook: back up the live file and any `.corrupt.*.bak` backup first; inspect the error's parsed `version`, stored `sourceId` preview, and entity-key count (a version outside `1, 2, 3` against an older bundle usually means bundle skew, not corruption); on skew, rebuild/redeploy current bundles so the valid file loads untouched; on genuine corruption, restore the quarantined backup after upgrading or start a new epoch and resync.
+- Successful publisher boot logs `publisherStateVersion`, `publisherStateSourceId`, `publisherNextEventSequence`, `publisherEntityKeyCount`, and `invalidStateMode` at info; the epoch-reset warn carries `previousSourceId`, `newSourceId`, `quarantinedBackupPath`, and `invalidStateMode`.
+
+## Topology (Kubernetes)
+
+- Prefer a dedicated `ReadWriteOnce` (RWO) PVC for sync state over a shared `ReadWriteMany` (RWX) volume. A shared RWX volume preserves the state file across pod generations, so a redeployed older bundle can boot against a newer on-disk format and halt sync on the first hook.
+- Run a single publisher replica with the `Recreate` strategy so two publisher processes never share one `SYNC_SOURCE_ID` / `SYNC_PUBLISHER_STATE_PATH`.
+- Deploy digest-pinned images so every pod generation runs the bundle that matches the on-disk state format.
+- Keep `SYNC_SOURCE_ID` stable for the lifetime of the state file; rotate it only deliberately alongside a quarantined backup and a full subscriber resync.
 
 ## Related Docs
 
-- [Environment Variables](/n8n-sync/sync/environment/) — `SYNC_PUBLISHER_STATE_PATH`, `SYNC_SUBSCRIBER_STATE_PATH`, and `SYNC_MAX_QUEUE_SIZE`.
+- [Environment Variables](/n8n-sync/sync/environment/) — `SYNC_PUBLISHER_STATE_PATH`, `SYNC_PUBLISHER_INVALID_STATE`, `SYNC_SUBSCRIBER_STATE_PATH`, and `SYNC_MAX_QUEUE_SIZE`.
 - [Architecture](/n8n-sync/sync/architecture/) — how event revisions and row timestamp guards fit together.
 - [Limitations](/n8n-sync/sync/limitations/) — residual constraints and unsupported topologies.

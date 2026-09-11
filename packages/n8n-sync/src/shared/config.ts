@@ -25,6 +25,8 @@ export type SyncAuthConfig =
       token: string;
     };
 
+export type SyncPublisherInvalidState = 'fail' | 'quarantine-reset';
+
 export interface PublisherConfig {
   sourceId: string;
   subscriberUrls: readonly string[];
@@ -33,6 +35,7 @@ export interface PublisherConfig {
   maxAttempts: number;
   maxQueueSize: number;
   publisherStatePath: string;
+  invalidState: SyncPublisherInvalidState;
 }
 
 export interface SubscriberConfig {
@@ -69,6 +72,7 @@ export const DEFAULT_SYNC_TIMEOUT_MS = 10_000;
 export const DEFAULT_SYNC_MAX_RETRIES = 3;
 export const DEFAULT_SYNC_MAX_QUEUE_SIZE = 1_000;
 export const DEFAULT_SYNC_PUBLISHER_STATE_PATH = '/home/node/.n8n/sync-state/publisher-ordering.json';
+export const DEFAULT_SYNC_PUBLISHER_INVALID_STATE: SyncPublisherInvalidState = 'fail';
 export const DEFAULT_SYNC_ROUTE_BASE = '/rest/sync/v1';
 export const DEFAULT_SYNC_MAX_BODY_BYTES = 16 * 1024 * 1024;
 export const DEFAULT_SYNC_SIGNATURE_TOLERANCE_MS = 5 * 60 * 1000;
@@ -317,6 +321,12 @@ function parsePublisherConfig(env: SyncEnv): PublisherConfig {
       max: 100_000,
     }),
     publisherStatePath: parseStringEnv(env.SYNC_PUBLISHER_STATE_PATH, DEFAULT_SYNC_PUBLISHER_STATE_PATH),
+    invalidState: requireEnumValue(
+      'SYNC_PUBLISHER_INVALID_STATE',
+      env.SYNC_PUBLISHER_INVALID_STATE,
+      ['fail', 'quarantine-reset'],
+      DEFAULT_SYNC_PUBLISHER_INVALID_STATE,
+    ),
   };
 }
 

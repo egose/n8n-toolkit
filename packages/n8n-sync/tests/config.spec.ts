@@ -7,6 +7,7 @@ import {
   DEFAULT_SYNC_MAX_BODY_BYTES,
   DEFAULT_SYNC_MAX_QUEUE_SIZE,
   DEFAULT_SYNC_MAX_RETRIES,
+  DEFAULT_SYNC_PUBLISHER_INVALID_STATE,
   DEFAULT_SYNC_REPLAY_CACHE_SIZE,
   DEFAULT_SYNC_ROUTE_BASE,
   DEFAULT_SYNC_SIGNATURE_TOLERANCE_MS,
@@ -202,6 +203,28 @@ describe('parseConfig', () => {
   it('rejects malformed local path values', () => {
     expectConfigError({ SYNC_ROUTE_BASE: 'rest/sync/v1' }, 'local absolute path');
     expectConfigError({ SYNC_EVENTS_PATH: '/rest/sync/v1/events?debug=true' }, 'query or fragment');
+  });
+
+  it('defaults SYNC_PUBLISHER_INVALID_STATE to fail', () => {
+    const config = parseConfig(makeEnv({}));
+    const blankConfig = parseConfig(makeEnv({ SYNC_PUBLISHER_INVALID_STATE: '   ' }));
+
+    expect(DEFAULT_SYNC_PUBLISHER_INVALID_STATE).toBe('fail');
+    expect(config.publisher.invalidState).toBe('fail');
+    expect(blankConfig.publisher.invalidState).toBe('fail');
+  });
+
+  it.each([['fail'], ['quarantine-reset']])('accepts SYNC_PUBLISHER_INVALID_STATE=%s', (raw) => {
+    const config = parseConfig(makeEnv({ SYNC_PUBLISHER_INVALID_STATE: raw }));
+
+    expect(config.publisher.invalidState).toBe(raw);
+  });
+
+  it('rejects garbage SYNC_PUBLISHER_INVALID_STATE with the allowed-values message', () => {
+    expectConfigError(
+      { SYNC_PUBLISHER_INVALID_STATE: 'reset' },
+      'SYNC_PUBLISHER_INVALID_STATE must be one of "fail", "quarantine-reset"',
+    );
   });
 });
 
