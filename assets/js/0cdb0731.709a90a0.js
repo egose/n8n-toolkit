@@ -52,6 +52,10 @@ const toc = [{
   "id": "credential-hook-contract",
   "level": 2
 }, {
+  "value": "Credential backfill on workflow sync",
+  "id": "credential-backfill-on-workflow-sync",
+  "level": 2
+}, {
   "value": "Filtering by tag",
   "id": "filtering-by-tag",
   "level": 2
@@ -68,6 +72,7 @@ function _createMdxContent(props) {
     h2: "h2",
     header: "header",
     li: "li",
+    ol: "ol",
     p: "p",
     strong: "strong",
     table: "table",
@@ -389,7 +394,44 @@ function _createMdxContent(props) {
         }), " are logged and dropped. The publisher never guesses by mutable fields like ", (0,jsx_runtime.jsx)(_components.code, {
           children: "{ name, type }"
         }), "."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.strong, {
+          children: "Known platform gap:"
+        }), " n8n fires ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "credentials.create"
+        }), " pre-commit with ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "id: null"
+        }), ", so creates never sync on their own. See credential backfill below."]
       }), "\n"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "credential-backfill-on-workflow-sync",
+      children: "Credential backfill on workflow sync"
+    }), "\n", (0,jsx_runtime.jsx)(_components.p, {
+      children: "Because creates don't sync, a synced workflow can reference credentials the target has never seen. To close that gap without fetching every credential on every update:"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ol, {
+      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: [(0,jsx_runtime.jsx)(_components.code, {
+          children: "workflow.upsert"
+        }), " / ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "workflow.activate"
+        }), " carry an id-only ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "credentialIds"
+        }), " list collected from the workflow's nodes."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["The subscriber checks those ids with a single query and reports the missing ones back inside the ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "200"
+        }), " delivery response (", (0,jsx_runtime.jsx)(_components.code, {
+          children: "{ ok: true, missingCredentialIds }"
+        }), ")."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["The publisher resolves each reported id by stable id and emits a ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "credentials.upsert"
+        }), " backfill for exactly those blobs."]
+      }), "\n"]
+    }), "\n", (0,jsx_runtime.jsxs)(_components.p, {
+      children: ["The round-trip stays inside the existing publisher→subscriber channel (response body) — no separate subscriber→publisher path. Backfill lookups are id-anchored; credential upserts carry no references, so the loop terminates. Applies only when the ", (0,jsx_runtime.jsx)(_components.code, {
+        children: "credentials"
+      }), " entity is enabled on both sides."]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "filtering-by-tag",
       children: "Filtering by tag"

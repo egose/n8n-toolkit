@@ -531,14 +531,27 @@ function _createMdxContent(props) {
               children: "false"
             })
           }), (0,jsx_runtime.jsxs)(_components.td, {
-            children: ["Also write ", (0,jsx_runtime.jsx)(_components.code, {
-              children: "active"
+            children: ["Publish/unpublish the synced workflow on the target via n8n's ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "WorkflowService"
+            }), " (registers triggers/webhooks with the active workflow manager). Publication failures are warn-only; the event still returns applied."]
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "N8N_CORE_PATH"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "no"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "/usr/local/lib/node_modules/n8n"
+            })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: ["Path to n8n's core bundle (used to resolve ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "WorkflowService"
             }), "/", (0,jsx_runtime.jsx)(_components.code, {
-              children: "activeVersionId"
-            }), ". This is DB-only and does not register triggers/webhooks with the active workflow manager. See ", (0,jsx_runtime.jsx)(_components.a, {
-              href: "/n8n-sync/sync/limitations/",
-              children: "Limitations"
-            }), "."]
+              children: "WorkflowHistoryService"
+            }), " for target-side publishing)."]
           })]
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {

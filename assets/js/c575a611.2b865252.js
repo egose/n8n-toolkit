@@ -143,12 +143,12 @@ function _createMdxContent(props) {
         }), " is exceeded, the oldest queued event for that target is dropped and logged. Later upserts may converge state, but dropped deletes, archives, or mixed operations are not reconstructed automatically."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
         children: [(0,jsx_runtime.jsx)(_components.strong, {
-          children: "Active state is DB-only."
+          children: "Active state publishes on the target."
         }), " With ", (0,jsx_runtime.jsx)(_components.code, {
           children: "SYNC_APPLY_ACTIVE_STATE=true"
-        }), ", the target's ", (0,jsx_runtime.jsx)(_components.code, {
-          children: "active"
-        }), " flag is written to the database, but triggers/webhooks are not registered with the target's active workflow manager until restart or manual toggle. Keep it ", (0,jsx_runtime.jsx)(_components.code, {
+        }), ", the subscriber publishes/unpublishes the synced workflow via n8n's ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "WorkflowService"
+        }), ", which registers triggers/webhooks with the target's active workflow manager. Publication failures are logged as warnings and the event still returns applied, so a failed publish retries on the next event. Keep it ", (0,jsx_runtime.jsx)(_components.code, {
           children: "false"
         }), " (the default) for passive-standby targets."]
       }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
