@@ -5,8 +5,9 @@ import { createLogger, logError } from '../shared/logger';
 import { createApplier } from './applier';
 import { createExecutionIdentityStore, getExecutionIdentityStatePath } from './execution-identity';
 import { createSubscriberHooks } from './hooks';
-import { buildN8nSyncRepositories } from './n8n-runtime';
+import { buildN8nSyncRepositories, type N8nSyncRepositories } from './n8n-runtime';
 import { createSyncOrderingStore } from './order-state';
+import { createWorkflowPublicationManager } from './publication';
 import { createSyncRouteHandler, mountSyncRoutes } from './routes';
 
 export interface SubscriberHookRuntimeDeps {
@@ -14,6 +15,7 @@ export interface SubscriberHookRuntimeDeps {
   createSyncOrderingStore?: typeof createSyncOrderingStore;
   createExecutionIdentityStore?: typeof createExecutionIdentityStore;
   createApplier?: typeof createApplier;
+  createWorkflowPublicationManager?: typeof createWorkflowPublicationManager;
   createSyncRouteHandler?: typeof createSyncRouteHandler;
   mountSyncRoutes?: typeof mountSyncRoutes;
 }
@@ -30,8 +32,26 @@ export function createSubscriberHookConfig(config: SyncConfig, deps: SubscriberH
   const createOrderingStore = deps.createSyncOrderingStore ?? createSyncOrderingStore;
   const createExecutionStore = deps.createExecutionIdentityStore ?? createExecutionIdentityStore;
   const createApply = deps.createApplier ?? createApplier;
+  const createPublicationManager = deps.createWorkflowPublicationManager ?? createWorkflowPublicationManager;
   const createRouteHandler = deps.createSyncRouteHandler ?? createSyncRouteHandler;
   const mountRoutes = deps.mountSyncRoutes ?? mountSyncRoutes;
+
+  /**
+   * Operator visibility for graceful degradation: with
+   * `SYNC_APPLY_ACTIVE_STATE=true` but publication services unresolvable,
+   * the subscriber keeps the legacy DB-column-only behavior. Warn once at
+   * startup so nobody mistakes the column flag for a real publish.
+   */
+  function warnWhenPublicationUnavailable(n8nRepositories: N8nSyncRepositories): void {
+    if (
+      config.subscriber.applyActiveState &&
+      (!n8nRepositories.workflowHistoryService || !n8nRepositories.workflowService)
+    ) {
+      log.warn('Target-side workflow publication unavailable; active state stays DB-column-only', {
+        n8nCorePath: config.subscriber.n8nCorePath,
+      });
+    }
+  }
 
   return createSubscriberHooks({
     ready: async (server) => {
@@ -47,6 +67,7 @@ export function createSubscriberHookConfig(config: SyncConfig, deps: SubscriberH
         includeExecutions,
         diPath: config.subscriber.n8nDiPath,
         dbPath: config.subscriber.n8nDbPath,
+        corePath: config.subscriber.n8nCorePath,
       });
       const ordering = createOrderingStore({ statePath: config.subscriber.subscriberStatePath });
       const executionIdentity = includeExecutions
@@ -79,8 +100,16 @@ export function createSubscriberHookConfig(config: SyncConfig, deps: SubscriberH
         allowedEntities: config.entities,
         ordering,
         ...(executionIdentity ? { executionIdentity } : {}),
+        publication: createPublicationManager(
+          {
+            historyService: n8nRepositories.workflowHistoryService,
+            workflowService: n8nRepositories.workflowService,
+          },
+          { log },
+        ),
         log,
       });
+      warnWhenPublicationUnavailable(n8nRepositories);
 
       const handler = createRouteHandler({
         auth: config.auth,

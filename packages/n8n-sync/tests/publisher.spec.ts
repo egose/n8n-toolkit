@@ -1054,6 +1054,7 @@ describe('createPublisherHookConfig readiness', () => {
         subscriberStatePath: '/state/subscriber.json',
         n8nDiPath: '/n8n/di',
         n8nDbPath: '/n8n/db',
+        n8nCorePath: '/n8n/core',
       },
     };
 
