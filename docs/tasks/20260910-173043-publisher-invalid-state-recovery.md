@@ -4,6 +4,8 @@ Created: 20260910-173043
 
 Related: `docs/tasks/20260823-114633-n8n-sync-residual-health-remediation.md` (STATE-01/DESIGN-01 long-term track),
 `docs/adr-20260823-transactional-sync-metadata-store.md` (accepted STATE-01 design).
+Follow-up: `docs/tasks/20260910-183944-publisher-lock-k8s-restart.md` (PUBLOCK track —
+stale `.lock` false-positives across pod restarts).
 
 ## Objective and scope
 
