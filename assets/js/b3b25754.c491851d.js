@@ -52,6 +52,10 @@ const toc = [{
   "id": "recovery-notes",
   "level": 2
 }, {
+  "value": "Topology (Kubernetes)",
+  "id": "topology-kubernetes",
+  "level": 2
+}, {
   "value": "Related Docs",
   "id": "related-docs",
   "level": 2
@@ -262,6 +266,87 @@ function _createMdxContent(props) {
         }), " is refused instead of migrated because its colon-separated keys are ambiguous. Back it up, then restore from unambiguous metadata if available or reset subscriber sync state and perform a full source resync."]
       }), "\n", (0,jsx_runtime.jsx)(_components.li, {
         children: "Do not delete subscriber tombstone state unless you accept that stale source events can be applied again."
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Invalid publisher order state (parsed JSON matches no known shape; supported publisher state versions ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "1"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "2"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "3"
+        }), ") is quarantined via atomic rename to ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "<statePath>.corrupt.<UTC-timestamp>.bak"
+        }), " — the original path is renamed, never overwritten or deleted in place. With the default ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_PUBLISHER_INVALID_STATE=fail"
+        }), ", the publisher stays degraded (", (0,jsx_runtime.jsx)(_components.code, {
+          children: "invalid_state"
+        }), ") without reiniting counters. With ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "quarantine-reset"
+        }), ", counters reinit from zero only as an epoch rotation: the configured ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_SOURCE_ID"
+        }), " must differ from the quarantined file's stored ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "sourceId"
+        }), ", and a full subscriber resync is mandatory before trusting convergence. A same-identity reset — or a reset when the quarantined file carries no usable stored identity — is refused at startup, because reused ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "eventId"
+        }), "/", (0,jsx_runtime.jsx)(_components.code, {
+          children: "entityRevision"
+        }), " values under one source identity are rejected by the subscriber as stale/conflict (", (0,jsx_runtime.jsx)(_components.code, {
+          children: "409 SYNC_REVISION_CONFLICT"
+        }), "), causing silent divergence."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Publisher invalid-state runbook: back up the live file and any ", (0,jsx_runtime.jsx)(_components.code, {
+          children: ".corrupt.*.bak"
+        }), " backup first; inspect the error's parsed ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "version"
+        }), ", stored ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "sourceId"
+        }), " preview, and entity-key count (a version outside ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "1, 2, 3"
+        }), " against an older bundle usually means bundle skew, not corruption); on skew, rebuild/redeploy current bundles so the valid file loads untouched; on genuine corruption, restore the quarantined backup after upgrading or start a new epoch and resync."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Successful publisher boot logs ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "publisherStateVersion"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "publisherStateSourceId"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "publisherNextEventSequence"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "publisherEntityKeyCount"
+        }), ", and ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "invalidStateMode"
+        }), " at info; the epoch-reset warn carries ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "previousSourceId"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "newSourceId"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "quarantinedBackupPath"
+        }), ", and ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "invalidStateMode"
+        }), "."]
+      }), "\n"]
+    }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
+      id: "topology-kubernetes",
+      children: "Topology (Kubernetes)"
+    }), "\n", (0,jsx_runtime.jsxs)(_components.ul, {
+      children: ["\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Prefer a dedicated ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "ReadWriteOnce"
+        }), " (RWO) PVC for sync state over a shared ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "ReadWriteMany"
+        }), " (RWX) volume. A shared RWX volume preserves the state file across pod generations, so a redeployed older bundle can boot against a newer on-disk format and halt sync on the first hook."]
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Run a single publisher replica with the ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "Recreate"
+        }), " strategy so two publisher processes never share one ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_SOURCE_ID"
+        }), " / ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_PUBLISHER_STATE_PATH"
+        }), "."]
+      }), "\n", (0,jsx_runtime.jsx)(_components.li, {
+        children: "Deploy digest-pinned images so every pod generation runs the bundle that matches the on-disk state format."
+      }), "\n", (0,jsx_runtime.jsxs)(_components.li, {
+        children: ["Keep ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_SOURCE_ID"
+        }), " stable for the lifetime of the state file; rotate it only deliberately alongside a quarantined backup and a full subscriber resync."]
       }), "\n"]
     }), "\n", (0,jsx_runtime.jsx)(_components.h2, {
       id: "related-docs",
@@ -273,6 +358,8 @@ function _createMdxContent(props) {
           children: "Environment Variables"
         }), " — ", (0,jsx_runtime.jsx)(_components.code, {
           children: "SYNC_PUBLISHER_STATE_PATH"
+        }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+          children: "SYNC_PUBLISHER_INVALID_STATE"
         }), ", ", (0,jsx_runtime.jsx)(_components.code, {
           children: "SYNC_SUBSCRIBER_STATE_PATH"
         }), ", and ", (0,jsx_runtime.jsx)(_components.code, {

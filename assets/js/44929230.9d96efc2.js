@@ -376,6 +376,40 @@ function _createMdxContent(props) {
         }), (0,jsx_runtime.jsxs)(_components.tr, {
           children: [(0,jsx_runtime.jsx)(_components.td, {
             children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_PUBLISHER_INVALID_STATE"
+            })
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: "no"
+          }), (0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
+              children: "fail"
+            })
+          }), (0,jsx_runtime.jsxs)(_components.td, {
+            children: [(0,jsx_runtime.jsx)(_components.code, {
+              children: "fail"
+            }), " | ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "quarantine-reset"
+            }), ". Recovery policy when the parsed publisher order state matches no known shape (supported versions ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "1"
+            }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "2"
+            }), ", ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "3"
+            }), "). Both modes quarantine the file via atomic rename to ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "<statePath>.corrupt.<UTC-timestamp>.bak"
+            }), ". ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "fail"
+            }), " stays degraded without reiniting counters; ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "quarantine-reset"
+            }), " reinits from zero only when the configured ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "SYNC_SOURCE_ID"
+            }), " differs from the quarantined file's stored ", (0,jsx_runtime.jsx)(_components.code, {
+              children: "sourceId"
+            }), ", followed by a mandatory full subscriber resync. Invalid values fail startup."]
+          })]
+        }), (0,jsx_runtime.jsxs)(_components.tr, {
+          children: [(0,jsx_runtime.jsx)(_components.td, {
+            children: (0,jsx_runtime.jsx)(_components.code, {
               children: "SYNC_FILTER_BY_TAG"
             })
           }), (0,jsx_runtime.jsx)(_components.td, {
