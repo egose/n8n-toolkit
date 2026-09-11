@@ -117,6 +117,20 @@ async function waitForSubscriberHealth(label = 'subscriber health route') {
   );
 }
 
+async function waitForSubscriberReady(label = 'subscriber ready route') {
+  await waitFor(
+    async () => {
+      try {
+        const res = await fetch(`${secrets.n8n2.baseUrl}/rest/sync/v1/ready`);
+        return res.status === 200 ? true : null;
+      } catch {
+        return null;
+      }
+    },
+    { timeoutMs: 60_000, intervalMs: 1000, label },
+  );
+}
+
 async function createTrackedWorkflow(
   body: ReturnType<typeof makeWorkflowBody> | ReturnType<typeof makeActivatableWorkflowBody>,
 ) {
@@ -1042,10 +1056,27 @@ describe.runIf(MAX_QUEUE_SIZE === 2)('n8n-sync integration: bounded publisher qu
     } finally {
       await startSandboxServices('n8n2');
       await waitForSubscriberHealth('subscriber health route after restart');
+      await waitForSubscriberReady('subscriber ready route after restart');
     }
 
     const recovered = await createTrackedWorkflow(makeWorkflowBody(`wf-overflow-recovery-${Date.now()}`));
     await setWorkflowTagsAndRepublish(recovered.id, [WORKFLOW_SYNC_TAG]);
+    // The recovery upsert is fire-and-forget behind stale queued deliveries and
+    // a restarting subscriber can still 503 a single attempt (dropped by
+    // design). Republish periodically while waiting so a later revision is
+    // guaranteed to land after the queue drains and the subscriber is ready.
+    const recoveryDeadline = Date.now() + SYNC_TIMEOUT;
+    let seen: Workflow | null = null;
+    while (Date.now() < recoveryDeadline && !seen) {
+      seen = await getTargetWorkflow(recovered.id);
+      if (seen) break;
+      try {
+        await updateSourceWorkflow(recovered.id, { description: `republished-recovery-${Date.now()}` });
+      } catch {
+        // Republish is best-effort; the poll below surfaces real failures.
+      }
+      await sleep(5000);
+    }
     await waitForTargetWorkflow(recovered.id, `overflow recovery workflow ${recovered.id}`);
 
     const logs = await readSandboxServiceLogs('n8n1');
