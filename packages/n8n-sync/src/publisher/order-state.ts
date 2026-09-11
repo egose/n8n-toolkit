@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync, rmSync } from 'node:fs';
 import { mkdir, open, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { dirname } from 'node:path';
@@ -307,6 +308,13 @@ function isProcessRunning(pid: number): boolean {
  */
 const LOCK_HEARTBEAT_MS = 30_000;
 const LOCK_STALE_MS = 120_000;
+/**
+ * Startup wait-and-retry tuning for a live-held lock. The total timeout
+ * exceeds the staleness window plus margin so a genuinely live duplicate
+ * still fails loud, while a rolling-restart overlap is waited out.
+ */
+const LOCK_WAIT_POLL_MS = 1_000;
+const LOCK_WAIT_TIMEOUT_MS = LOCK_STALE_MS + 60_000;
 
 interface PublisherLockContent {
   pid: number;
@@ -324,10 +332,89 @@ function lockTimestampMs(value: unknown): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
+function resolveLockHost(override: unknown): string {
+  if (typeof override === 'string' && override.trim() !== '') return override;
+  try {
+    return hostname();
+  } catch {
+    return 'unknown';
+  }
+}
+
+/** Progress ping for a startup wait on a live-held publisher lock. */
+export interface PublisherLockWaitInfo {
+  lockPath: string;
+  elapsedMs: number;
+  attempt: number;
+}
+
+/**
+ * Test/advanced overrides for the file-backed publisher lock. All fields
+ * are optional; defaults preserve production behavior (multi-heartbeat
+ * staleness margin, bounded wait exceeding the staleness window). There are
+ * intentionally no env tunables here — all `process.env` access lives in
+ * `src/shared/config.ts`.
+ */
+export interface PublisherLockOptions {
+  /** Override for the heartbeat/mtime staleness window. Default `LOCK_STALE_MS`. */
+  staleMs?: number;
+  /** Bounded total wait for a live-held lock before failing loud. Default `LOCK_WAIT_TIMEOUT_MS`. */
+  waitTimeoutMs?: number;
+  /** Poll interval while waiting on a live-held lock. Default `LOCK_WAIT_POLL_MS`. */
+  pollMs?: number;
+  /** Override for the current hostname (tests). Defaults to `os.hostname()`. */
+  host?: string;
+}
+
+/**
+ * Synchronously remove a publisher lock file owned by `owner`.
+ *
+ * Best-effort only: never throws (missing file, unparseable content,
+ * foreign owner, and removal failures are all silently ignored) so it is
+ * safe to call from `SIGTERM`/`SIGINT` handlers during graceful shutdown.
+ * Non-owner locks are always preserved.
+ */
+export function tryRemovePublisherLockSync(lockPath: string, owner: string): void {
+  try {
+    let raw: string;
+    try {
+      raw = readFileSync(lockPath, 'utf8');
+    } catch {
+      return;
+    }
+    let existing: Partial<PublisherLockContent>;
+    try {
+      existing = JSON.parse(raw) as Partial<PublisherLockContent>;
+    } catch {
+      return;
+    }
+    if (existing.owner !== owner) return;
+    try {
+      rmSync(lockPath, { force: true });
+    } catch {
+      // Best effort: staleness detection reclaims a leftover lock.
+    }
+  } catch {
+    // Never throw from sync shutdown paths.
+  }
+}
+
 export function createEventOrderingAllocator(options: {
   sourceId: string;
   statePath?: string;
   invalidState?: SyncPublisherInvalidState;
+  /**
+   * Lock tuning overrides (staleness window, wait timeout/poll, hostname).
+   * Defaults stand alone; used by tests for short windows.
+   */
+  lock?: PublisherLockOptions;
+  /**
+   * Lightweight wait-progress callback (the allocator is logger-free).
+   * Live-lock waits are also surfaced via `getStatus()` (`storage_error`)
+   * for the runtime degraded-state channel. Never throws back into the
+   * allocator — callback errors are swallowed.
+   */
+  onLockWait?: (info: PublisherLockWaitInfo) => void;
 }): EventOrderingAllocator {
   const { sourceId, statePath, invalidState = 'fail' } = options;
   assertValidSourceId(sourceId);
@@ -343,12 +430,21 @@ export function createEventOrderingAllocator(options: {
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   const lockPath = `${statePath}.lock`;
   const lockOwner = randomUUID();
-  let lockHost = '';
-  try {
-    lockHost = hostname();
-  } catch {
-    lockHost = 'unknown';
-  }
+  // Effective identity/tuning for this allocator. A blank `lock.host`
+  // override falls back to the real hostname.
+  const effectiveHost = resolveLockHost(options.lock?.host);
+  const lockStaleMs = options.lock?.staleMs ?? LOCK_STALE_MS;
+  const lockWaitTimeoutMs = options.lock?.waitTimeoutMs ?? LOCK_WAIT_TIMEOUT_MS;
+  const lockWaitPollMs = options.lock?.pollMs ?? LOCK_WAIT_POLL_MS;
+  const notifyLockWait = (info: PublisherLockWaitInfo): void => {
+    const callback = options.onLockWait;
+    if (!callback) return;
+    try {
+      callback(info);
+    } catch {
+      // Progress reporting must never break acquisition.
+    }
+  };
 
   const markDegraded = (reason: StateStoreStatusReason): void => {
     status = { ready: false, reason, degradedSince: new Date().toISOString() };
@@ -473,7 +569,7 @@ export function createEventOrderingAllocator(options: {
     const content: PublisherLockContent = {
       pid: process.pid,
       owner: lockOwner,
-      host: lockHost,
+      host: effectiveHost,
       sourceId,
       statePath,
       acquiredAt,
@@ -501,7 +597,7 @@ export function createEventOrderingAllocator(options: {
       const next: PublisherLockContent = {
         pid: process.pid,
         owner: lockOwner,
-        host: lockHost,
+        host: effectiveHost,
         sourceId,
         statePath,
         acquiredAt: typeof existing.acquiredAt === 'string' ? existing.acquiredAt : new Date().toISOString(),
@@ -538,15 +634,37 @@ export function createEventOrderingAllocator(options: {
     }
   };
 
+  const releaseLockSync = (): void => {
+    try {
+      tryRemovePublisherLockSync(lockPath, lockOwner);
+    } catch {
+      // Best effort: staleness detection reclaims a leftover lock.
+    } finally {
+      lockAcquired = false;
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = undefined;
+    }
+  };
+
   const registerExitCleanup = (): void => {
-    const cleanup = () => {
+    // SIGTERM/SIGINT remove the lock synchronously so graceful redeploys
+    // (k8s rolling restarts) leave no lock behind. Async cleanup is kept
+    // for `beforeExit` and other exits.
+    const onSignal = (): void => {
+      try {
+        releaseLockSync();
+      } catch {
+        // Never throw from process lifecycle hooks.
+      }
+    };
+    const onBeforeExit = (): void => {
       void releaseLock();
     };
     // Best effort only — never throw from process lifecycle hooks.
     try {
-      process.once('SIGTERM', cleanup);
-      process.once('SIGINT', cleanup);
-      process.once('beforeExit', cleanup);
+      process.once('SIGTERM', onSignal);
+      process.once('SIGINT', onSignal);
+      process.once('beforeExit', onBeforeExit);
     } catch {
       // Non-Node runtimes or restricted sandboxes: staleness covers it.
     }
@@ -567,57 +685,149 @@ export function createEventOrderingAllocator(options: {
     }
   };
 
+  /**
+   * Classify an existing lock as live or stealable.
+   *
+   * Host-aware: when the recorded `host` is present (and known) and differs
+   * from this process's host, the lock comes from a different PID namespace
+   * (e.g. a previous k8s pod generation), so the PID check proves nothing
+   * and is disregarded — the decision rests on heartbeat/mtime staleness
+   * only. Same host, or a missing/blank/`unknown` recorded host, keeps the
+   * legacy PID + staleness logic unchanged.
+   */
+  const classifyLock = (
+    content: Partial<PublisherLockContent> | undefined,
+    mtimeMs: number | undefined,
+    now: number,
+  ): { hostDiffers: boolean; heartbeatStale: boolean; pidDead: boolean; live: boolean } => {
+    const heartbeatMs = lockTimestampMs(content?.heartbeatAt) ?? lockTimestampMs(content?.acquiredAt);
+    const heartbeatAgeMs = heartbeatMs === undefined ? undefined : Math.max(0, now - heartbeatMs);
+    const mtimeAgeMs = mtimeMs === undefined ? undefined : Math.max(0, now - mtimeMs);
+    const lockPid =
+      typeof content?.pid === 'number' && Number.isInteger(content.pid) && content.pid > 0 ? content.pid : undefined;
+    const recordedHost = typeof content?.host === 'string' ? content.host.trim() : '';
+    const selfHost = effectiveHost.trim();
+    const isUnknownHost = (value: string): boolean => value === '' || value === 'unknown';
+    const hostDiffers = !isUnknownHost(recordedHost) && !isUnknownHost(selfHost) && recordedHost !== selfHost;
+    // Same owner re-entry is handled by the caller before consulting this.
+    const heartbeatFresh = heartbeatAgeMs !== undefined && heartbeatAgeMs <= lockStaleMs;
+    const mtimeFresh = mtimeAgeMs !== undefined && mtimeAgeMs <= lockStaleMs;
+    const heartbeatStale = !heartbeatFresh || !mtimeFresh;
+    const pidDead = !hostDiffers && lockPid !== undefined && !isProcessRunning(lockPid);
+    return { hostDiffers, heartbeatStale, pidDead, live: !(heartbeatStale || pidDead) };
+  };
+
+  const buildDuplicateLockError = (): Error =>
+    new Error(
+      `Publisher state lock already exists at ${lockPath}. Multiple publisher processes sharing one SYNC_SOURCE_ID/SYNC_PUBLISHER_STATE_PATH are unsupported without an atomic shared allocator. Stop the duplicate process, or if this is a verified stale lock after a crash, remove the lock file before restarting.`,
+    );
+
+  const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
   const acquireLock = async (): Promise<void> => {
     if (lockAcquired) return;
     const acquiredAt = new Date().toISOString();
+
+    const stealAndAcquire = async (): Promise<void> => {
+      await rm(lockPath, { force: true });
+      await writeLockFile(acquiredAt);
+      lockAcquired = true;
+      registerExitCleanup();
+      startHeartbeat();
+    };
 
     try {
       await writeLockFile(acquiredAt);
       lockAcquired = true;
       registerExitCleanup();
       startHeartbeat();
+      return;
     } catch (error) {
       const code = (error as NodeJS.ErrnoException | undefined)?.code;
-      if (code === 'EEXIST') {
-        const { content, mtimeMs } = await readExistingLock();
-        const now = Date.now();
-        const heartbeatMs = lockTimestampMs(content?.heartbeatAt) ?? lockTimestampMs(content?.acquiredAt);
-        const heartbeatAgeMs = heartbeatMs === undefined ? undefined : Math.max(0, now - heartbeatMs);
-        const mtimeAgeMs = mtimeMs === undefined ? undefined : Math.max(0, now - mtimeMs);
-        const lockPid =
-          typeof content?.pid === 'number' && Number.isInteger(content.pid) && content.pid > 0
-            ? content.pid
-            : undefined;
-        // Same owner re-entering in-process (e.g. loadState racing allocate):
-        // just adopt the lock instead of failing.
-        if (content?.owner === lockOwner) {
-          lockAcquired = true;
-          startHeartbeat();
-          return;
-        }
-        // Stale when nothing proves liveness: unparseable content, an expired
-        // heartbeat/mtime, or a dead PID. PID aliveness alone is NOT enough —
-        // container PID reuse makes stale locks look live.
-        const heartbeatFresh = heartbeatAgeMs !== undefined && heartbeatAgeMs <= LOCK_STALE_MS;
-        const mtimeFresh = mtimeAgeMs !== undefined && mtimeAgeMs <= LOCK_STALE_MS;
-        const heartbeatStale = !heartbeatFresh || !mtimeFresh;
-        const pidDead = lockPid !== undefined && !isProcessRunning(lockPid);
-        if (heartbeatStale || pidDead) {
-          await rm(lockPath, { force: true });
-          await writeLockFile(acquiredAt);
-          lockAcquired = true;
-          registerExitCleanup();
-          startHeartbeat();
-          return;
-        }
-
+      if (code !== 'EEXIST') {
         markDegraded('storage_error');
-        throw new Error(
-          `Publisher state lock already exists at ${lockPath}. Multiple publisher processes sharing one SYNC_SOURCE_ID/SYNC_PUBLISHER_STATE_PATH are unsupported without an atomic shared allocator. Stop the duplicate process, or if this is a verified stale lock after a crash, remove the lock file before restarting.`,
-        );
+        throw error;
       }
-      markDegraded('storage_error');
-      throw error;
+    }
+
+    // Another lock file exists. Same owner re-entering in-process (e.g.
+    // loadState racing allocate): just adopt the lock instead of failing.
+    const initial = await readExistingLock();
+    if (initial.content?.owner === lockOwner) {
+      lockAcquired = true;
+      startHeartbeat();
+      return;
+    }
+    // Stale when nothing proves liveness: unparseable content, an expired
+    // heartbeat/mtime, or (same host / unknown host only) a dead PID. PID
+    // aliveness alone is NOT enough — container PID reuse makes stale locks
+    // look live, so a foreign-host lock ignores the PID check entirely.
+    try {
+      if (!classifyLock(initial.content, initial.mtimeMs, Date.now()).live) {
+        await stealAndAcquire();
+        return;
+      }
+    } catch (stealError) {
+      const code = (stealError as NodeJS.ErrnoException | undefined)?.code;
+      if (code !== 'EEXIST') {
+        markDegraded('storage_error');
+        throw stealError;
+      }
+      // Lost a steal race with another starter; fall through to the wait.
+    }
+
+    // Live-held lock (fresh heartbeat, or same-host live PID): do not throw
+    // immediately — a rolling restart genuinely overlaps during the grace
+    // period. Surface the wait via the degraded status channel (logger-free)
+    // plus the optional progress callback, poll until the lock is released
+    // or goes stale (then steal per the rules above), and only fail loud
+    // after a bounded timeout exceeding the staleness window plus margin.
+    markDegraded('storage_error');
+    const waitStart = Date.now();
+    let attempt = 0;
+    for (;;) {
+      const elapsedMs = Date.now() - waitStart;
+      if (elapsedMs >= lockWaitTimeoutMs) {
+        markDegraded('storage_error');
+        throw buildDuplicateLockError();
+      }
+      attempt += 1;
+      notifyLockWait({ lockPath, elapsedMs, attempt });
+      await sleep(Math.min(lockWaitPollMs, Math.max(0, lockWaitTimeoutMs - elapsedMs)));
+      // Fast path: the holder released the lock (graceful shutdown removes
+      // it synchronously on SIGTERM/SIGINT).
+      try {
+        await writeLockFile(acquiredAt);
+        lockAcquired = true;
+        registerExitCleanup();
+        startHeartbeat();
+        return;
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException | undefined)?.code;
+        if (code !== 'EEXIST') {
+          markDegraded('storage_error');
+          throw error;
+        }
+      }
+      const current = await readExistingLock();
+      if (current.content?.owner === lockOwner) {
+        lockAcquired = true;
+        startHeartbeat();
+        return;
+      }
+      if (!classifyLock(current.content, current.mtimeMs, Date.now()).live) {
+        try {
+          await stealAndAcquire();
+          return;
+        } catch (error) {
+          const code = (error as NodeJS.ErrnoException | undefined)?.code;
+          if (code !== 'EEXIST') {
+            markDegraded('storage_error');
+            throw error;
+          }
+          // Lost a steal race; keep waiting until the timeout.
+        }
+      }
     }
   };
 
