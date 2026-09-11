@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { dirname } from 'node:path';
 
+import type { SyncPublisherInvalidState } from '../shared/config';
 import {
   decodeOrderingTupleKey,
   getEntityOrderingKey,
@@ -38,10 +39,109 @@ interface LegacyPublisherOrderingStateV2 {
   entityRevisions: Record<string, string>;
 }
 
+export interface PublisherInvalidStateResetInfo {
+  backupPath: string;
+  previousSourceId: string;
+  newSourceId: string;
+}
+
+export interface PublisherOrderStateSummary {
+  version: number;
+  sourceId: string;
+  nextEventSequence: string;
+  entityKeyCount: number;
+}
+
 export interface EventOrderingAllocator {
   initialize(): Promise<void>;
   getStatus(): StateStoreStatus;
   allocate(event: EventOrderingInput): Promise<{ eventId: string; entityRevision: string }>;
+  /**
+   * Epoch-reset outcome from a `quarantine-reset` recovery, if one happened
+   * during `initialize()`/`allocate()`. Optional so hand-rolled test fakes
+   * of this interface keep compiling; the runtime guards with a typeof check.
+   */
+  getInvalidStateReset?(): PublisherInvalidStateResetInfo | undefined;
+  /**
+   * Read-only snapshot of the loaded order state for startup visibility.
+   * Returns undefined when no state is loaded yet. Optional so hand-rolled
+   * test fakes of this interface keep compiling; the runtime guards with
+   * a typeof check. Must not expose mutable state.
+   */
+  getStateSummary?(): PublisherOrderStateSummary | undefined;
+}
+
+/**
+ * Supported on-disk publisher order-state format versions.
+ *
+ * Exposed in invalid-state diagnostics instead of the package version:
+ * there is no build-time version define and reading package.json at
+ * runtime is fragile inside the bundled `dist/publisher.cjs`
+ * (tsup bundle, no runtime deps), so the format versions are the
+ * stable identifier operators need for bundle-skew triage.
+ */
+export const PUBLISHER_ORDER_STATE_VERSIONS = [1, 2, 3] as const;
+
+/**
+ * Quarantine an unreadable publisher state file via atomic rename.
+ *
+ * Never writes over or deletes the original in place: the only copy is
+ * moved to `<statePath>.corrupt.<UTC-timestamp>.bak`. Throws on failure
+ * so callers can decide whether the failure masks their own error.
+ */
+export async function quarantineCorruptPublisherState(statePath: string): Promise<string> {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupPath = `${statePath}.corrupt.${timestamp}.bak`;
+  await rename(statePath, backupPath);
+  return backupPath;
+}
+
+function jsonTypeOf(value: unknown): string {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array';
+  return typeof value;
+}
+
+function describeUnknownPublisherState(value: unknown): {
+  versionDesc: string;
+  sourceIdDesc: string;
+  entityKeyCountDesc: string;
+} {
+  let versionDesc = `missing (JSON type ${jsonTypeOf(value)})`;
+  let sourceIdDesc = 'missing';
+  let entityKeyCountDesc = 'unknown';
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    if ('version' in record) {
+      try {
+        versionDesc = JSON.stringify(record.version) ?? jsonTypeOf(record.version);
+      } catch {
+        versionDesc = jsonTypeOf(record.version);
+      }
+    }
+    if (typeof record.sourceId === 'string') {
+      const preview = record.sourceId.slice(0, 64);
+      try {
+        sourceIdDesc = `${JSON.stringify(preview)} (length ${record.sourceId.length})`;
+      } catch {
+        sourceIdDesc = `(length ${record.sourceId.length})`;
+      }
+    } else if ('sourceId' in record) {
+      sourceIdDesc = `non-string (JSON type ${jsonTypeOf(record.sourceId)})`;
+    }
+    if (
+      typeof record.entityRevisions === 'object' &&
+      record.entityRevisions !== null &&
+      !Array.isArray(record.entityRevisions)
+    ) {
+      entityKeyCountDesc = String(Object.keys(record.entityRevisions as Record<string, unknown>).length);
+    }
+  } else if ('version' in Object(value ?? {})) {
+    versionDesc = String((value as { version?: unknown }).version);
+  } else {
+    versionDesc = `missing (JSON type ${jsonTypeOf(value)})`;
+  }
+  return { versionDesc, sourceIdDesc, entityKeyCountDesc };
 }
 
 function assertValidSourceId(sourceId: string): void {
@@ -158,6 +258,19 @@ function createMemoryAllocator(sourceId: string): EventOrderingAllocator {
       return { ready: true };
     },
 
+    getInvalidStateReset() {
+      return undefined;
+    },
+
+    getStateSummary() {
+      return {
+        version: state.version,
+        sourceId: state.sourceId,
+        nextEventSequence: state.nextEventSequence,
+        entityKeyCount: Object.keys(state.entityRevisions).length,
+      };
+    },
+
     async allocate(event) {
       const entity = getSyncEventEntityRef(event);
       state.nextEventSequence = incrementDecimalString(state.nextEventSequence);
@@ -214,8 +327,9 @@ function lockTimestampMs(value: unknown): number | undefined {
 export function createEventOrderingAllocator(options: {
   sourceId: string;
   statePath?: string;
+  invalidState?: SyncPublisherInvalidState;
 }): EventOrderingAllocator {
-  const { sourceId, statePath } = options;
+  const { sourceId, statePath, invalidState = 'fail' } = options;
   assertValidSourceId(sourceId);
   if (!statePath) {
     return createMemoryAllocator(sourceId);
@@ -223,6 +337,7 @@ export function createEventOrderingAllocator(options: {
 
   let loadedState: PublisherOrderingState | undefined;
   let status: StateStoreStatus = { ready: false, reason: 'not_initialized' };
+  let invalidStateReset: PublisherInvalidStateResetInfo | undefined;
   let mutationChain = Promise.resolve();
   let lockAcquired = false;
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
@@ -279,8 +394,68 @@ export function createEventOrderingAllocator(options: {
       return loadedState;
     }
     if (!isCurrentPublisherOrderingState(persisted)) {
-      markDegraded('invalid_state');
-      throw new Error(`Invalid sync publisher order state at ${statePath}`);
+      const { versionDesc, sourceIdDesc, entityKeyCountDesc } = describeUnknownPublisherState(persisted);
+      const buildFailError = (backupNote: string): Error =>
+        new Error(
+          `Invalid sync publisher order state at ${statePath}. Parsed version: ${versionDesc}; stored sourceId: ${sourceIdDesc}; entity-key count: ${entityKeyCountDesc}; supports publisher state versions ${PUBLISHER_ORDER_STATE_VERSIONS.join(', ')}. ${backupNote} To recover, restore the quarantined backup after upgrading to a bundle that supports the stored version, or reset publisher sync state and run a full subscriber resync so revisions are rebuilt (never reinit counters under the same SYNC_SOURCE_ID).`,
+        );
+      if (invalidState !== 'quarantine-reset') {
+        markDegraded('invalid_state');
+        let backupNote: string;
+        try {
+          const backupPath = await quarantineCorruptPublisherState(statePath);
+          backupNote = `Quarantined the unreadable file to ${backupPath}; the original path was renamed, not overwritten or deleted.`;
+        } catch {
+          // Quarantine failure must not mask the original invalid-state error.
+          backupNote = `Quarantine of the unreadable file failed; the original file was left in place at ${statePath}.`;
+        }
+        throw buildFailError(backupNote);
+      }
+      // quarantine-reset policy: quarantine first, then reinit counters from
+      // zero only as an epoch rotation (configured sourceId differs from the
+      // quarantined file's stored sourceId). Never reset under the same
+      // identity: reused eventId/entityRevision values are rejected by the
+      // subscriber as stale/conflict (409 SYNC_REVISION_CONFLICT), causing
+      // silent divergence.
+      let backupPath: string;
+      try {
+        backupPath = await quarantineCorruptPublisherState(statePath);
+      } catch {
+        // Quarantine failure must not mask the original invalid-state error.
+        markDegraded('invalid_state');
+        throw buildFailError(
+          `Quarantine of the unreadable file failed; the original file was left in place at ${statePath}.`,
+        );
+      }
+      // Read the stored identity back from the quarantined backup. A
+      // missing/unparseable/non-blank stored identity counts as unknown:
+      // the epoch rotation cannot be verified, so refuse the reset.
+      let storedSourceId: unknown;
+      try {
+        const quarantined = await readJsonFile<unknown>(backupPath);
+        if (typeof quarantined === 'object' && quarantined !== null && !Array.isArray(quarantined)) {
+          storedSourceId = (quarantined as Record<string, unknown>).sourceId;
+        }
+      } catch {
+        storedSourceId = undefined;
+      }
+      if (typeof storedSourceId !== 'string' || storedSourceId.trim() === '') {
+        markDegraded('invalid_state');
+        throw buildFailError(
+          `Quarantined the unreadable file to ${backupPath}; the original path was renamed, not overwritten or deleted. Automatic reset was refused because the quarantined file carries no usable stored publisher source identity, so an epoch rotation cannot be verified.`,
+        );
+      }
+      if (storedSourceId === sourceId) {
+        markDegraded('invalid_state');
+        throw new Error(
+          `Refusing to reset invalid sync publisher order state at ${statePath} under the same SYNC_SOURCE_ID ${JSON.stringify(sourceId)} (quarantined to ${backupPath}). Reinitializing counters would reuse eventId/entityRevision values that the subscriber rejects as stale/conflict (409 SYNC_REVISION_CONFLICT), causing silent divergence. To recover, restore the quarantined backup after upgrading to a bundle that supports the stored version, or rotate to a new SYNC_SOURCE_ID and run a full subscriber resync.`,
+        );
+      }
+      const fresh = defaultPublisherOrderingState(sourceId);
+      loadedState = fresh;
+      status = { ready: true };
+      invalidStateReset = { backupPath, previousSourceId: storedSourceId, newSourceId: sourceId };
+      return fresh;
     }
     if (persisted.sourceId !== sourceId) {
       markDegraded('invalid_state');
@@ -460,6 +635,20 @@ export function createEventOrderingAllocator(options: {
 
     getStatus() {
       return status;
+    },
+
+    getInvalidStateReset() {
+      return invalidStateReset;
+    },
+
+    getStateSummary() {
+      if (!loadedState) return undefined;
+      return {
+        version: loadedState.version,
+        sourceId: loadedState.sourceId,
+        nextEventSequence: loadedState.nextEventSequence,
+        entityKeyCount: Object.keys(loadedState.entityRevisions).length,
+      };
     },
 
     allocate(event) {

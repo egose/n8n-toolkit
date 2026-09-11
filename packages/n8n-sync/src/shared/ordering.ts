@@ -1,4 +1,5 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, open, readFile, rename } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 import type { SyncEvent, SyncEventType } from './types';
@@ -179,7 +180,38 @@ export async function readJsonFile<T>(filePath: string): Promise<T | undefined> 
 
 export async function writeJsonFileAtomic(filePath: string, value: unknown): Promise<void> {
   await mkdir(dirname(filePath), { recursive: true });
-  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  await writeFile(tempPath, JSON.stringify(value, null, 2));
+  // randomUUID guards against tmp-name collisions across container PID namespaces
+  // sharing one RWX volume (pid + timestamp alone can repeat across namespaces).
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.${randomUUID()}.tmp`;
+  const handle = await open(tempPath, 'w');
+  try {
+    await handle.writeFile(JSON.stringify(value, null, 2));
+    // Best-effort durability for NFS/Ceph-backed RWX volumes where rename
+    // persistence across hard kills differs from local FS. This module is
+    // dependency-free (no logger), so fsync failures are deliberately swallowed:
+    // a filesystem without fsync support must never break state writes — the
+    // existing staleness/quarantine logic covers the residual crash window.
+    try {
+      await handle.sync();
+    } catch {
+      // Swallowed deliberately (see above).
+    }
+  } finally {
+    await handle.close();
+  }
   await rename(tempPath, filePath);
+  // Fsync the containing directory so the rename itself is durable. Best-effort
+  // for the same reason as above: never fail the write when the FS rejects it.
+  try {
+    const dirHandle = await open(dirname(filePath), 'r');
+    try {
+      await dirHandle.sync();
+    } catch {
+      // Swallowed deliberately (see above).
+    } finally {
+      await dirHandle.close();
+    }
+  } catch {
+    // Swallowed deliberately (see above).
+  }
 }

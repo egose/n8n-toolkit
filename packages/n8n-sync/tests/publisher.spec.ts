@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPublisherHooks } from '../src/publisher/hooks';
 import { createEventOrderingAllocator } from '../src/publisher/order-state';
 import { createPublisherHookConfig } from '../src/publisher/runtime';
+import { parseConfig } from '../src/shared/config';
 import type { SyncConfig } from '../src/shared/config';
 import type { Logger } from '../src/shared/logger';
 import type { ICredentialsDb, IRunPayload, IWorkflowBase, IWorkflowTag, SyncEvent } from '../src/shared/types';
@@ -1041,6 +1042,7 @@ describe('createPublisherHookConfig readiness', () => {
         maxAttempts: 1,
         maxQueueSize: 10,
         publisherStatePath: '/state/publisher.json',
+        invalidState: 'fail',
       },
       subscriber: {
         routeBase: '/rest/sync/v1',
@@ -1070,6 +1072,99 @@ describe('createPublisherHookConfig readiness', () => {
     await Promise.resolve();
 
     expect(log.info).toHaveBeenCalledWith('n8n-sync publisher hooks registered', expect.any(Object));
+  });
+
+  it('logs a prominent epoch-reset warn after quarantine-reset recovery', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'n8n-sync-publisher-reset-warn-'));
+
+    try {
+      const statePath = join(tempDir, 'publisher-ordering.json');
+      await writeFile(statePath, JSON.stringify({ version: 99, sourceId: 'old-source' }));
+      const log: Logger = {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        child: vi.fn(),
+      };
+      const config = parseConfig({
+        SYNC_SHARED_SECRET: 's3cret', // pragma: allowlist secret
+        SYNC_SUBSCRIBER_URLS: 'https://target.example.com',
+        SYNC_SOURCE_ID: 'new-source',
+        SYNC_PUBLISHER_STATE_PATH: statePath,
+        SYNC_PUBLISHER_INVALID_STATE: 'quarantine-reset',
+      });
+
+      createPublisherHookConfig(config, {
+        createLogger: vi.fn().mockReturnValue(log),
+        createPublisherHooks: vi.fn().mockReturnValue({}),
+      });
+
+      await vi.waitFor(() => {
+        expect(log.warn).toHaveBeenCalledWith(
+          expect.stringContaining('full subscriber resync is mandatory'),
+          expect.objectContaining({
+            previousSourceId: 'old-source',
+            newSourceId: 'new-source',
+            invalidStateMode: 'quarantine-reset',
+          }),
+        );
+      });
+      const warnCall = (log.warn as ReturnType<typeof vi.fn>).mock.calls[0] as [string, Record<string, unknown>];
+      expect(String(warnCall[1].quarantinedBackupPath)).toContain('.corrupt.');
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('logs publisher state version/sourceId/counters/mode at info on fresh boot', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'n8n-sync-publisher-boot-info-'));
+
+    try {
+      const statePath = join(tempDir, 'publisher-ordering.json');
+      await writeFile(
+        statePath,
+        JSON.stringify({
+          version: 3,
+          sourceId: 'n8n',
+          nextEventSequence: '33',
+          entityRevisions: { '["workflow","cVEK5GA9Im9YPUAk"]': '33' },
+        }),
+      );
+      const log: Logger = {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        child: vi.fn(),
+      };
+      const config = parseConfig({
+        SYNC_SHARED_SECRET: 's3cret', // pragma: allowlist secret
+        SYNC_SUBSCRIBER_URLS: 'https://target.example.com',
+        SYNC_SOURCE_ID: 'n8n',
+        SYNC_PUBLISHER_STATE_PATH: statePath,
+      });
+
+      createPublisherHookConfig(config, {
+        createLogger: vi.fn().mockReturnValue(log),
+        createPublisherHooks: vi.fn().mockReturnValue({}),
+      });
+
+      await vi.waitFor(() => {
+        expect(log.info).toHaveBeenCalledWith(
+          'n8n-sync publisher hooks registered',
+          expect.objectContaining({
+            publisherStateVersion: 3,
+            publisherStateSourceId: 'n8n',
+            publisherNextEventSequence: '33',
+            publisherEntityKeyCount: 1,
+            invalidStateMode: 'fail',
+          }),
+        );
+      });
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 });
 
