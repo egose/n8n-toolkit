@@ -1230,7 +1230,13 @@ describe('publisher ordering source identity', () => {
     try {
       const statePath = join(tempDir, 'publisher-ordering.json');
       const first = createEventOrderingAllocator({ sourceId: 'source-1', statePath });
-      const second = createEventOrderingAllocator({ sourceId: 'source-1', statePath });
+      // Short wait window: the live same-host lock must still fail loud,
+      // but only after the bounded wait (PUBLOCK-01 wait-and-retry).
+      const second = createEventOrderingAllocator({
+        sourceId: 'source-1',
+        statePath,
+        lock: { waitTimeoutMs: 500, pollMs: 20 },
+      });
 
       await first.initialize();
       await expect(second.initialize()).rejects.toThrow(/Multiple publisher processes sharing one SYNC_SOURCE_ID/);
