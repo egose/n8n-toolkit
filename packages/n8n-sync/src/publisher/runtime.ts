@@ -3,7 +3,7 @@ import { createLogger, logError } from '../shared/logger';
 import type { SyncEvent } from '../shared/types';
 import { createPublisherHooks } from './hooks';
 import { createEventOrderingAllocator } from './order-state';
-import { createEventSender } from './sender';
+import { createEventSender, type EventSendOptions } from './sender';
 
 export interface PublisherHookRuntimeDeps {
   createLogger?: typeof createLogger;
@@ -40,14 +40,14 @@ export function createPublisherHookConfig(config: SyncConfig, deps: PublisherHoo
    * break n8n operations (hook rejections propagate to users — e.g. a
    * rejecting `workflow.activate` hook cancels activation).
    */
-  const emit = async (event: SyncEvent): Promise<void> => {
+  const emit = async (event: SyncEvent, opts?: EventSendOptions): Promise<void> => {
     if (!senders.length) {
       log.warn('SYNC_SUBSCRIBER_URLS is not set; dropping sync event', { type: event.type });
       return;
     }
 
     for (const sender of senders) {
-      sender.send(event);
+      sender.send(event, opts);
     }
   };
 

@@ -211,8 +211,22 @@ interface SyncEventBase {
 export type SyncEvent =
   | (SyncEventBase & { type: 'credentials.upsert'; credential: SyncCredentialDto })
   | (SyncEventBase & { type: 'credentials.delete'; credentialId: string })
-  | (SyncEventBase & { type: 'workflow.upsert'; workflow: SyncWorkflowDto })
-  | (SyncEventBase & { type: 'workflow.activate'; workflow: SyncWorkflowDto })
+  | (SyncEventBase & {
+      type: 'workflow.upsert';
+      workflow: SyncWorkflowDto;
+      /**
+       * Credential ids referenced by the workflow's nodes (id-only, collected
+       * by the publisher). Lets the subscriber report missing credentials with
+       * a single query so the publisher can backfill exactly those blobs.
+       */
+      credentialIds?: string[];
+    })
+  | (SyncEventBase & {
+      type: 'workflow.activate';
+      workflow: SyncWorkflowDto;
+      /** Same reference list as `workflow.upsert.credentialIds`. */
+      credentialIds?: string[];
+    })
   | (SyncEventBase & { type: 'workflow.delete'; workflowId: string })
   | (SyncEventBase & { type: 'workflow.archive'; workflowId: string; archived: boolean })
   | (SyncEventBase & { type: 'execution.upsert'; execution: SyncExecutionDto });

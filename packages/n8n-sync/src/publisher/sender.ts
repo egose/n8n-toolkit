@@ -1,4 +1,4 @@
-import { sendSyncEvent, SyncSendError } from '../shared/http';
+import { sendSyncEvent, type SyncDeliveryResult, SyncSendError } from '../shared/http';
 import { logError, type Logger } from '../shared/logger';
 import type { SyncAuthConfig } from '../shared/config';
 import type { SyncEvent } from '../shared/types';
@@ -23,14 +23,26 @@ export interface EventSender {
    * Enqueue an event for delivery. Resolves once the event is queued —
    * delivery continues in the background so n8n hooks stay fast.
    */
-  send(event: SyncEvent): void;
+  send(event: SyncEvent, opts?: EventSendOptions): void;
   /** Resolves when every queued event has been delivered (or has failed). */
   drain(): Promise<void>;
+}
+
+/**
+ * Per-event follow-up invoked in the background after a successful delivery,
+ * e.g. to backfill subscriber-reported missing credentials. Failures are
+ * logged, never thrown.
+ */
+export type EventDeliveredHandler = (event: SyncEvent, result: SyncDeliveryResult) => void | Promise<void>;
+
+export interface EventSendOptions {
+  onDelivered?: EventDeliveredHandler;
 }
 
 interface QueueNode {
   event: SyncEvent;
   key: string;
+  onDelivered: EventDeliveredHandler | undefined;
   previous: QueueNode | undefined;
   next: QueueNode | undefined;
 }
@@ -52,7 +64,7 @@ export function createEventSender(options: EventSenderOptions): EventSender {
   let queueSize = 0;
   let draining = false;
 
-  const deliver = (event: SyncEvent): Promise<void> =>
+  const deliver = (event: SyncEvent): Promise<SyncDeliveryResult> =>
     sendSyncEvent(event, {
       url,
       auth: options.auth,
@@ -112,8 +124,8 @@ export function createEventSender(options: EventSenderOptions): EventSender {
     node.next = undefined;
   };
 
-  const appendEvent = (event: SyncEvent, key: string): void => {
-    const node: QueueNode = { event, key, previous: queueTail, next: undefined };
+  const appendEvent = (event: SyncEvent, key: string, onDelivered: EventDeliveredHandler | undefined): void => {
+    const node: QueueNode = { event, key, onDelivered, previous: queueTail, next: undefined };
 
     if (queueTail) {
       queueTail.next = node;
@@ -126,15 +138,14 @@ export function createEventSender(options: EventSenderOptions): EventSender {
     queueSize += 1;
   };
 
-  const shiftEvent = (): SyncEvent | undefined => {
+  const shiftNode = (): QueueNode | undefined => {
     const node = queueHead;
     if (!node) {
       return undefined;
     }
 
-    const event = node.event;
     removeNode(node);
-    return event;
+    return node;
   };
 
   const pumpQueue = async (): Promise<void> => {
@@ -145,14 +156,26 @@ export function createEventSender(options: EventSenderOptions): EventSender {
     draining = true;
     try {
       while (queueSize > 0) {
-        const event = shiftEvent();
-        if (!event) {
+        const node = shiftNode();
+        if (!node) {
           continue;
         }
 
+        const event = node.event;
         try {
-          await deliver(event);
+          const result = await deliver(event);
           options.log.debug('Sync event delivered', { type: event.type, target: url });
+          if (node.onDelivered) {
+            try {
+              await node.onDelivered(event, result);
+            } catch (error) {
+              logError(options.log, error, {
+                context: 'sync delivery follow-up',
+                type: event.type,
+                target: url,
+              });
+            }
+          }
         } catch (error) {
           logError(options.log, error, {
             context: 'publish sync event',
@@ -173,7 +196,7 @@ export function createEventSender(options: EventSenderOptions): EventSender {
     }
   };
 
-  const send = (event: SyncEvent): void => {
+  const send = (event: SyncEvent, opts?: EventSendOptions): void => {
     const key = coalescingKey(event);
     const existing = queuedByKey.get(key);
     if (existing) {
@@ -182,16 +205,16 @@ export function createEventSender(options: EventSenderOptions): EventSender {
     }
 
     if (queueSize >= maxQueueSize) {
-      const dropped = shiftEvent();
+      const dropped = shiftNode();
       options.log.warn('Sync queue is full; dropping oldest queued event', {
         target: url,
-        droppedType: dropped?.type,
+        droppedType: dropped?.event.type,
         queueDepth: queueSize,
         maxQueueSize,
       });
     }
 
-    appendEvent(event, key);
+    appendEvent(event, key, opts?.onDelivered);
     options.log.debug('Queued sync event', { type: event.type, target: url, queueDepth: queueSize });
     void pumpQueue();
   };

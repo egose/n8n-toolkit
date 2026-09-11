@@ -1,7 +1,10 @@
 import { mapCredential, mapExecution, mapWorkflow } from '../shared/mappers';
+import { extractWorkflowCredentialIds, MAX_WORKFLOW_CREDENTIAL_REFS } from '../shared/credential-refs';
 import { logError, type Logger } from '../shared/logger';
 import { getEntityOrderingKey, type StateStoreStatus, type SyncEntityKind } from '../shared/ordering';
+import { MAX_ID_LENGTH } from '../shared/validate';
 import { createEventOrderingAllocator, type EventOrderingAllocator } from './order-state';
+import type { EventSendOptions } from './sender';
 import type {
   ICredentialsDb,
   IExternalHooksFileData,
@@ -28,13 +31,19 @@ type PublisherHookThis = {
   };
 };
 
+type CredentialsLookupRepository = NonNullable<NonNullable<PublisherHookThis['dbCollections']>['Credentials']>;
+
 const CREDENTIAL_LOOKUP_ATTEMPTS = 10;
 const CREDENTIAL_LOOKUP_DELAY_MS = 250;
 const SUPPORTED_CREDENTIAL_HOOK_N8N_VERSION = '2.31.2';
 
 export interface PublisherDeps {
-  /** Deliver a fully-built event to the subscriber. Must never throw. */
-  emit: (event: SyncEvent) => Promise<void>;
+  /**
+   * Deliver a fully-built event to the subscriber. Must never throw. The
+   * optional `onDelivered` callback runs in the background after a successful
+   * delivery with the subscriber's response (e.g. missing-credential report).
+   */
+  emit: (event: SyncEvent, opts?: EventSendOptions) => Promise<void>;
   /** Logger used for the publisher's no-throw hook boundary. */
   log: Logger;
   /** Identifier of this publishing instance, stamped on every event. */
@@ -336,13 +345,64 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
   }
 
   /**
+   * Backfill subscriber-reported missing credentials: each id is resolved by
+   * stable id only (never by name) and emitted as its own `credentials.upsert`
+   * with its own revision. Credential upserts carry no references, so this
+   * cannot loop. Runs detached in the delivery-response background path where
+   * no hook `this` exists, so the repository is captured at emit time.
+   */
+  const requestCredentialBackfill = (
+    hook: string,
+    missing: readonly unknown[],
+    credentialsRepo: CredentialsLookupRepository | undefined,
+  ): void => {
+    if (!entities.credentials || !credentialsRepo || missing.length === 0) return;
+    const seen = new Set<string>();
+    for (const candidate of missing) {
+      if (typeof candidate !== 'string') continue;
+      const id = candidate.trim();
+      if (id.length === 0 || id.length > MAX_ID_LENGTH || seen.has(id)) continue;
+      seen.add(id);
+      if (seen.size > MAX_WORKFLOW_CREDENTIAL_REFS) break;
+      const credentialId = id;
+      void enqueueEntityWork({
+        hook: `${hook}.backfill`,
+        kind: 'credential',
+        id: credentialId,
+        detached: true,
+        work: async () => {
+          const resolved = await resolveCredential.call(
+            { dbCollections: { Credentials: credentialsRepo } },
+            { id: credentialId },
+          );
+          if (!('credential' in resolved)) {
+            logCredentialDrop(`${hook}.backfill`, resolved.dropReason, { id: credentialId });
+            return;
+          }
+          await deps.emit(
+            await envelope({ type: 'credentials.upsert', credential: mapCredential(resolved.credential) }),
+          );
+        },
+      });
+    }
+  };
+
+  /**
    * Resolve + publish a workflow upsert. Used by `afterCreate` and
    * `afterUpdate`. When the tag filter is enabled and the workflow loses the
    * sync tag, the publisher emits a `workflow.delete` instead so the
    * subscriber drops it (eventually-consistent — a delete for an unknown ID
    * is a documented no-op on the subscriber side).
+   *
+   * Referenced credential ids ride along id-only so the subscriber can report
+   * which ones are missing with a single query; the delivery response then
+   * triggers an id-anchored backfill of exactly those blobs.
    */
-  const emitWorkflowUpsert = async (hook: string, workflow: IWorkflowBase & { tags?: IWorkflowTag[] }) => {
+  const emitWorkflowUpsert = async (
+    hook: string,
+    workflow: IWorkflowBase & { tags?: IWorkflowTag[] },
+    credentialsRepo?: CredentialsLookupRepository,
+  ) => {
     const decision = shouldSyncWorkflow(workflow);
     if (decision === 'skip') {
       logWorkflowSkip(hook, 'tag_unresolved', workflow.id);
@@ -352,7 +412,20 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
       await deps.emit(await envelope({ type: 'workflow.delete', workflowId: workflow.id }));
       return;
     }
-    await deps.emit(await envelope({ type: 'workflow.upsert', workflow: mapWorkflowDto(workflow) }));
+    const credentialIds = entities.credentials ? extractWorkflowCredentialIds(workflow.nodes) : [];
+    await deps.emit(
+      await envelope({
+        type: 'workflow.upsert',
+        workflow: mapWorkflowDto(workflow),
+        ...(credentialIds.length > 0 ? { credentialIds } : {}),
+      }),
+      credentialsRepo
+        ? {
+            onDelivered: (_event, result) =>
+              requestCredentialBackfill(hook, result.missingCredentialIds, credentialsRepo),
+          }
+        : undefined,
+    );
   };
 
   /**
@@ -360,7 +433,11 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
    * workflow lacks the sync tag, fall back to a delete so the subscriber
    * can't keep a stale active copy around.
    */
-  const emitWorkflowActivate = async (hook: string, workflow: IWorkflowBase & { tags?: IWorkflowTag[] }) => {
+  const emitWorkflowActivate = async (
+    hook: string,
+    workflow: IWorkflowBase & { tags?: IWorkflowTag[] },
+    credentialsRepo?: CredentialsLookupRepository,
+  ) => {
     const decision = shouldSyncWorkflow(workflow);
     if (decision === 'skip') {
       logWorkflowSkip(hook, 'tag_unresolved', workflow.id);
@@ -370,7 +447,20 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
       await deps.emit(await envelope({ type: 'workflow.delete', workflowId: workflow.id }));
       return;
     }
-    await deps.emit(await envelope({ type: 'workflow.activate', workflow: mapWorkflowDto(workflow) }));
+    const credentialIds = entities.credentials ? extractWorkflowCredentialIds(workflow.nodes) : [];
+    await deps.emit(
+      await envelope({
+        type: 'workflow.activate',
+        workflow: mapWorkflowDto(workflow),
+        ...(credentialIds.length > 0 ? { credentialIds } : {}),
+      }),
+      credentialsRepo
+        ? {
+            onDelivered: (_event, result) =>
+              requestCredentialBackfill(hook, result.missingCredentialIds, credentialsRepo),
+          }
+        : undefined,
+    );
   };
 
   return {
@@ -462,7 +552,7 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
                               logWorkflowDrop('workflow.afterCreate', 'workflow_not_found', id);
                               return;
                             }
-                            await emitWorkflowUpsert('workflow.afterCreate', workflow);
+                            await emitWorkflowUpsert('workflow.afterCreate', workflow, this.dbCollections?.Credentials);
                           },
                         });
                       },
@@ -487,7 +577,7 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
                               logWorkflowDrop('workflow.afterUpdate', 'workflow_not_found', id);
                               return;
                             }
-                            await emitWorkflowUpsert('workflow.afterUpdate', workflow);
+                            await emitWorkflowUpsert('workflow.afterUpdate', workflow, this.dbCollections?.Credentials);
                           },
                         });
                       },
@@ -512,7 +602,7 @@ export function createPublisherHooks(deps: PublisherDeps): IExternalHooksFileDat
                               logWorkflowDrop('workflow.activate', 'workflow_not_found', id);
                               return;
                             }
-                            await emitWorkflowActivate('workflow.activate', workflow);
+                            await emitWorkflowActivate('workflow.activate', workflow, this.dbCollections?.Credentials);
                           },
                         });
                       },

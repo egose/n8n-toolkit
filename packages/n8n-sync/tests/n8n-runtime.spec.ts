@@ -155,7 +155,7 @@ describe('buildN8nSyncRepositories', () => {
       getService,
     };
 
-    const repos = buildN8nSyncRepositories({ adapter });
+    const repos = buildN8nSyncRepositories({ adapter: adapter as never });
 
     expect(repos.workflowHistoryService).toBe(historyService);
     expect(repos.workflowService).toBe(workflowService);
@@ -214,7 +214,7 @@ describe('buildN8nSyncRepositories', () => {
     };
 
     const repos = buildN8nSyncRepositories({
-      adapter,
+      adapter: adapter as never,
       entities: new Set<SyncEntity>(['credentials']),
     });
 
@@ -369,7 +369,7 @@ describe('buildN8nSyncRepositories', () => {
       getService: createN8nRuntimeAdapter().getService,
     };
 
-    const repos = buildN8nSyncRepositories({ adapter });
+    const repos = buildN8nSyncRepositories({ adapter: adapter as never });
     const result = await repos.workflow.conditionalUpdate?.(
       'wf-1',
       { name: 'Incoming' },

@@ -1275,3 +1275,102 @@ describe('publisher ordering source identity', () => {
     }
   });
 });
+
+describe('workflow credential backfill', () => {
+  const workflowWithCreds: IWorkflowBase = {
+    ...workflow,
+    nodes: [
+      { id: 'n1', credentials: { postgres: { id: 'cred-a', name: 'PG' } } },
+      { id: 'n2', credentials: { httpHeaderAuth: { id: 'cred-b', name: 'H' } } },
+    ],
+  };
+
+  it('attaches referenced credential ids to workflow.upsert', async () => {
+    const { emit, hooks } = makeDeps();
+    await hooks.workflow.afterUpdate[0](workflowWithCreds as never);
+
+    expect(emittedWorkflowEvent(emit)).toMatchObject({
+      type: 'workflow.upsert',
+      credentialIds: ['cred-a', 'cred-b'],
+    });
+  });
+
+  it('omits credentialIds when no node references credentials', async () => {
+    const { emit, hooks } = makeDeps();
+    await hooks.workflow.afterUpdate[0](workflow as never);
+
+    expect(emittedWorkflowEvent(emit)).not.toHaveProperty('credentialIds');
+  });
+
+  it('omits credentialIds when the credentials entity is disabled', async () => {
+    const { emit, hooks } = makeDeps({ entities: { credentials: false } });
+    await hooks.workflow.afterUpdate[0](workflowWithCreds as never);
+
+    expect(emittedWorkflowEvent(emit)).not.toHaveProperty('credentialIds');
+  });
+
+  it('backfills subscriber-reported missing credentials by stable id', async () => {
+    const emitted: SyncEvent[] = [];
+    const callbacks: Array<(event: SyncEvent, result: { missingCredentialIds: string[] }) => void> = [];
+    const { hooks } = makeDeps({
+      emit: (async (
+        event: SyncEvent,
+        opts?: {
+          onDelivered?: (event: SyncEvent, result: { missingCredentialIds: string[] }) => void;
+        },
+      ) => {
+        emitted.push(event);
+        if (opts?.onDelivered) callbacks.push(opts.onDelivered);
+      }) as (event: SyncEvent) => Promise<void>,
+    });
+    const findOne = vi
+      .fn()
+      .mockImplementation(async ({ where }: { where: { id: string } }) =>
+        where.id === 'cred-b' ? { id: 'cred-b', name: 'H', type: 'httpHeaderAuth', data: 'encrypted-blob' } : null,
+      );
+
+    await hooks.workflow.afterUpdate[0].call(
+      { dbCollections: { Credentials: { findOne } } },
+      workflowWithCreds as never,
+    );
+    expect(emitted).toHaveLength(1);
+    expect(callbacks).toHaveLength(1);
+
+    await callbacks[0](emitted[0], { missingCredentialIds: ['cred-b', 'cred-gone'] });
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const backfill = emitted.filter((event) => event.type === 'credentials.upsert');
+    expect(backfill).toHaveLength(1);
+    expect(backfill[0]).toMatchObject({
+      type: 'credentials.upsert',
+      credential: { id: 'cred-b', data: 'encrypted-blob' },
+    });
+    expect(parseSyncEvent(backfill[0])).toEqual(backfill[0]);
+  });
+
+  it('does not backfill when the delivery reports nothing missing', async () => {
+    const emitted: SyncEvent[] = [];
+    const callbacks: Array<(event: SyncEvent, result: { missingCredentialIds: string[] }) => void> = [];
+    const { hooks } = makeDeps({
+      emit: (async (
+        event: SyncEvent,
+        opts?: {
+          onDelivered?: (event: SyncEvent, result: { missingCredentialIds: string[] }) => void;
+        },
+      ) => {
+        emitted.push(event);
+        if (opts?.onDelivered) callbacks.push(opts.onDelivered);
+      }) as (event: SyncEvent) => Promise<void>,
+    });
+
+    await hooks.workflow.afterUpdate[0].call(
+      { dbCollections: { Credentials: { findOne: vi.fn() } } },
+      workflowWithCreds as never,
+    );
+    await callbacks[0](emitted[0], { missingCredentialIds: [] });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(emitted).toHaveLength(1);
+  });
+});

@@ -370,3 +370,73 @@ describe('createEventSender', () => {
     await expect(sender.drain()).resolves.toBeUndefined();
   });
 });
+
+describe('delivery follow-up', () => {
+  function jsonBodyResponse(payload: unknown) {
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    let done = false;
+    const reader = {
+      read: vi.fn().mockImplementation(async () => {
+        if (done) return { done: true, value: undefined };
+        done = true;
+        return { done: false, value: bytes };
+      }),
+      cancel: vi.fn().mockResolvedValue(undefined),
+      releaseLock: vi.fn(),
+    };
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      body: { getReader: () => reader } as unknown as Response['body'],
+    } as Response;
+  }
+
+  it('invokes onDelivered with the subscriber missing-credential report', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonBodyResponse({ ok: true, missingCredentialIds: ['cred-a'] }));
+    const sender = createEventSender(makeSenderOptions(fetchImpl));
+    const seen: Array<{ event: SyncEvent; missing: string[] }> = [];
+
+    sender.send(makeEvent('wf-1'), {
+      onDelivered: (event, result) => {
+        seen.push({ event, missing: result.missingCredentialIds });
+      },
+    });
+    await sender.drain();
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0].missing).toEqual(['cred-a']);
+    expect(seen[0].event).toMatchObject({ type: 'workflow.delete', workflowId: 'wf-1' });
+  });
+
+  it('does not invoke onDelivered when delivery fails', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 500, headers: new Headers() });
+    const sender = createEventSender(makeSenderOptions(fetchImpl, { maxAttempts: 1 }));
+    const onDelivered = vi.fn();
+
+    sender.send(makeEvent('wf-1'), { onDelivered });
+    await sender.drain();
+
+    expect(onDelivered).not.toHaveBeenCalled();
+  });
+
+  it('logs follow-up failures without breaking the queue', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonBodyResponse({ ok: true }));
+    const sender = createEventSender(makeSenderOptions(fetchImpl));
+    const second = vi.fn();
+
+    sender.send(makeEvent('wf-1'), {
+      onDelivered: () => {
+        throw new Error('backfill failed');
+      },
+    });
+    sender.send(makeEvent('wf-2'), { onDelivered: second });
+    await sender.drain();
+
+    expect(log.error).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ context: 'sync delivery follow-up' }),
+    );
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+});

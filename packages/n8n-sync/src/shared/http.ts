@@ -1,11 +1,14 @@
 import { signPayload, SYNC_SIGNATURE_HEADER, SYNC_TIMESTAMP_HEADER, SYNC_TOKEN_HEADER } from './auth';
 import type { SyncAuthConfig } from './config';
+import { MAX_WORKFLOW_CREDENTIAL_REFS } from './credential-refs';
 import type { Logger } from './logger';
 import type { SyncEvent } from './types';
+import { MAX_ID_LENGTH } from './validate';
 
 const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const MAX_BACKOFF_MS = 10_000;
 const MAX_DISCARD_BYTES = 64 * 1024;
+const MAX_RESPONSE_BYTES = 64 * 1024;
 const JITTER_RATIO = 0.25;
 
 type BodyLike = ReadableStream<Uint8Array> & { cancel?: (reason?: unknown) => Promise<void> };
@@ -208,6 +211,123 @@ async function disposeResponseBody(
 }
 
 /**
+ * Result of a successful sync-event delivery. The subscriber reports
+ * workflow-referenced credential ids absent on the target so the publisher
+ * can backfill exactly those blobs.
+ */
+export interface SyncDeliveryResult {
+  missingCredentialIds: string[];
+}
+
+function parseMissingCredentialIds(value: unknown): string[] {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return [];
+  const ids = (value as { missingCredentialIds?: unknown }).missingCredentialIds;
+  if (!Array.isArray(ids)) return [];
+  const collected: string[] = [];
+  const seen = new Set<string>();
+  for (const id of ids) {
+    if (collected.length >= MAX_WORKFLOW_CREDENTIAL_REFS) break;
+    if (typeof id !== 'string') continue;
+    const trimmed = id.trim();
+    if (trimmed.length === 0 || trimmed.length > MAX_ID_LENGTH || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    collected.push(trimmed);
+  }
+  return collected;
+}
+
+async function readDeliveryResult(
+  response: Response,
+  deadlineAtMs: number,
+  signal: AbortSignal,
+  abortAttempt: () => void,
+): Promise<SyncDeliveryResult> {
+  const empty: SyncDeliveryResult = { missingCredentialIds: [] };
+  const contentLength = response.headers.get('content-length');
+  if (
+    contentLength !== null &&
+    /^\d+$/.test(contentLength.trim()) &&
+    Number(contentLength.trim()) > MAX_RESPONSE_BYTES
+  ) {
+    await disposeResponseBody(response, deadlineAtMs, signal, abortAttempt);
+    return empty;
+  }
+  // Drain through the same bounded reader path as disposal (never text()):
+  // small bodies are decoded + parsed for the missing-credential report,
+  // oversized bodies are cancelled and degrade to an empty report.
+  const text = await readResponseTextBounded(response, deadlineAtMs, signal, abortAttempt);
+  if (text === undefined || text.length === 0 || text.length > MAX_RESPONSE_BYTES) return empty;
+  try {
+    return { missingCredentialIds: parseMissingCredentialIds(JSON.parse(text)) };
+  } catch {
+    return empty;
+  }
+}
+
+async function readResponseTextBounded(
+  response: Response,
+  deadlineAtMs: number,
+  signal: AbortSignal,
+  abortAttempt: () => void,
+): Promise<string | undefined> {
+  const body = response.body;
+  if (!body) {
+    return '';
+  }
+
+  const readableBody = body as BodyLike;
+  if (typeof readableBody.getReader !== 'function') {
+    return undefined;
+  }
+
+  const reader = readableBody.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (totalBytes <= MAX_RESPONSE_BYTES) {
+      const { done, value } = await withAttemptDeadline(() => reader.read(), deadlineAtMs, signal, abortAttempt);
+      if (done) {
+        break;
+      }
+
+      totalBytes += value?.byteLength ?? 0;
+      if (totalBytes > MAX_RESPONSE_BYTES) {
+        await cancelBody(() => reader.cancel(), deadlineAtMs, signal, abortAttempt);
+        return undefined;
+      }
+      if (value) {
+        chunks.push(value);
+      }
+    }
+  } catch {
+    await cancelBody(() => reader.cancel(), deadlineAtMs, signal, abortAttempt);
+    return undefined;
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      // Ignore already-released locks.
+    }
+  }
+
+  if (totalBytes === 0) {
+    return '';
+  }
+  const merged = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  try {
+    return new TextDecoder().decode(merged);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * POST a sync event to the subscriber with exponential backoff
  * (1s, 2s, 4s, … capped at 10s). Network errors, timeouts, and HTTP
  * 408/429/500/502/503/504 responses are retried; every other HTTP status
@@ -215,8 +335,12 @@ async function disposeResponseBody(
  *
  * In hmac mode every attempt re-signs the body with a fresh timestamp so
  * long retry chains never trip the subscriber's signature tolerance window.
+ *
+ * On success the (small, bounded) response body is parsed for the
+ * subscriber's missing-credential report; unparseable bodies degrade to an
+ * empty report rather than failing delivery.
  */
-export async function sendSyncEvent(event: SyncEvent, options: SendSyncEventOptions): Promise<void> {
+export async function sendSyncEvent(event: SyncEvent, options: SendSyncEventOptions): Promise<SyncDeliveryResult> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const sleep = options.sleep ?? defaultSleep;
   const timeoutMs = options.timeoutMs ?? 10_000;
@@ -257,8 +381,7 @@ export async function sendSyncEvent(event: SyncEvent, options: SendSyncEventOpti
       });
 
       if (response.ok) {
-        await disposeResponseBody(response, deadlineAtMs, controller.signal, abortAttempt);
-        return;
+        return await readDeliveryResult(response, deadlineAtMs, controller.signal, abortAttempt);
       }
 
       await disposeResponseBody(response, deadlineAtMs, controller.signal, abortAttempt);
